@@ -1,0 +1,330 @@
+######################################################### {COPYRIGHT-TOP} ###
+# Licensed Materials - Property of IBM
+# 5737-I23
+#
+# Copyright IBM Corp. 2023. All Rights Reserved.
+#
+# US Government Users Restricted Rights - Use, duplication, or
+# disclosure restricted by GSA ADP Schedule Contract with IBM Corp.
+######################################################### {COPYRIGHT-END} ###
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:  
+  name: insightsengines.bai.ibm.com
+  labels:
+    app.kubernetes.io/instance: ibm-bai
+    app.kubernetes.io/managed-by: ibm-bai
+    app.kubernetes.io/name: ibm-bai    
+    release: 24.0.0
+spec:
+  group: bai.ibm.com
+  names:
+    kind: InsightsEngine
+    listKind: InsightsEngineList
+    plural: insightsengines
+    singular: insightsengine
+  scope: Namespaced
+  versions:
+  - name: v1
+    schema:
+      openAPIV3Schema:
+        description: InsightsEngine is the Schema for the insightsengines API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: InsightsEngineSpec defined the desired state of BAI
+            required:
+            - appVersion
+            - license
+            x-kubernetes-preserve-unknown-fields: true
+            properties:
+              license:
+                type: object
+                required:
+                  - accept
+                properties:
+                  accept:
+                    type: boolean
+              appVersion:
+                type: string
+              shared_configuration:
+                description: Shared Configuration for BAI
+                required:
+                - sc_deployment_license
+                - sc_deployment_platform
+                x-kubernetes-preserve-unknown-fields: true
+                type: object
+                properties:
+                  sc_deployment_license:
+                    type: string 
+                    nullable: true
+                  sc_deployment_platform:
+                    type: string
+                  sc_deployment_type:
+                    type: string
+                  sc_egress_configuration:
+                    type: object
+                    x-kubernetes-preserve-unknown-fields: true
+                    nullable: true
+                    properties:
+                      sc_restricted_internet_access:
+                        type: boolean
+                  sc_common_service:
+                    type: object
+                    nullable: true
+                    properties:
+                      operator_namespace:
+                        type: string
+                        nullable: true
+                      services_namespace:
+                        type: string
+                        nullable: true             
+                  sc_iam:
+                    type: object
+                    nullable: true
+                    properties:
+                      default_admin_username:
+                        type: string
+                        nullable: true
+                  sc_zen:
+                    type: object
+                    nullable: true
+                    properties:
+                      operator_version:
+                        type: string
+                        nullable: true
+                  external_tls_certificate_secret:
+                    type: string
+                    nullable: true
+                  root_ca_secret:
+                    type: string
+                    nullable: true
+                  sc_ingress_enable:
+                    type: boolean
+                  sc_ingress_tls_secret_name: 
+                    type: string 
+                    nullable: true
+                  sc_deployment_profile_size:
+                    type: string
+                    nullable: true
+                  storage_configuration:
+                    type: object
+                    nullable: true
+                    properties:
+                      sc_dynamic_storage_classname:
+                        type: string
+                        nullable: true
+                      sc_block_storage_classname:
+                        type: string
+                        nullable: true
+                      sc_medium_file_storage_classname:
+                        type: string
+                        nullable: true 
+                      sc_fast_file_storage_classname:
+                        type: string
+                        nullable: true 
+              ldap_configuration:
+                type: object
+                description: Directory Service Configuration for IBM Business Automation Insights
+                x-kubernetes-preserve-unknown-fields: true
+                properties:
+                  lc_selected_ldap_type:
+                    type: string 
+                  lc_ldap_server:
+                    type: string
+                  lc_ldap_port: 
+                    type: string
+                  lc_bind_secret: 
+                    type: string
+                  lc_ldap_ssl_enabled: 
+                    type: boolean
+                  lc_ldap_ssl_secret_name:
+                    type: string 
+                    nullable: true
+                  lc_ldap_base_dn: 
+                    type: string
+                  lc_ldap_user_name_attribute: 
+                    type: string
+                  lc_ldap_user_display_name_attr: 
+                    type: string
+                  lc_ldap_group_base_dn: 
+                    type: string
+                  lc_ldap_group_name_attribute:
+                    type: string
+                  lc_ldap_group_display_name_attr:
+                    type: string
+                  lc_ldap_group_membership_search_filter: 
+                    type: string
+                  lc_ldap_group_member_id_map:
+                    type: string 
+                  ad:
+                    type: object
+                    description: Provide below info if you use Active Directory (ad)
+                    x-kubernetes-preserve-unknown-fields: true
+                    properties:
+                      lc_ad_gc_host: 
+                        type: string
+                        nullable: true
+                      lc_ad_gc_port:
+                        type: string
+                      lc_user_filter:
+                        type: string
+                        nullable: true
+                      lc_group_filter:
+                        type: string 
+                        nullable: true
+                  tds:
+                    type: object
+                    description: Provide below info if you use Tivoli Directory Service (tds)
+                    x-kubernetes-preserve-unknown-fields: true
+                    properties:
+                      lc_user_filter: 
+                        type: string
+                        nullable: true
+                      lc_group_filter: 
+                        type: string
+                        nullable: true
+              bai_configuration:
+                type: object
+                description: BAI Configuration
+                x-kubernetes-preserve-unknown-fields: true
+                properties:
+                  admin_user:
+                    type: string
+                    nullable: true
+                  baml:
+                    type: object
+                    x-kubernetes-preserve-unknown-fields: true
+                    properties:
+                      install: 
+                        type: boolean
+                  bpmn:
+                    type: object
+                    x-kubernetes-preserve-unknown-fields: true
+                    properties:
+                      install: 
+                        type: boolean
+                      parallelism: 
+                        type: number
+                        nullable: true 
+                  bawadv:
+                    type: object
+                    x-kubernetes-preserve-unknown-fields: true
+                    properties:
+                      install: 
+                        type: boolean
+                      parallelism: 
+                        type: number
+                        nullable: true 
+                  icm:
+                    type: object
+                    x-kubernetes-preserve-unknown-fields: true
+                    properties:
+                      install: 
+                        type: boolean
+                      parallelism: 
+                        type: number
+                        nullable: true 
+                  odm:
+                    type: object
+                    x-kubernetes-preserve-unknown-fields: true
+                    properties:
+                      install: 
+                        type: boolean
+                      parallelism: 
+                        type: number
+                        nullable: true 
+                  content:
+                    type: object
+                    x-kubernetes-preserve-unknown-fields: true
+                    properties:
+                      install: 
+                        type: boolean
+                      parallelism: 
+                        type: number
+                        nullable: true
+                  ads:
+                    type: object
+                    x-kubernetes-preserve-unknown-fields: true
+                    properties:
+                      install: 
+                        type: boolean
+                      parallelism: 
+                        type: number
+                        nullable: true
+                  navigator:
+                    type: object
+                    x-kubernetes-preserve-unknown-fields: true
+                    properties:
+                      install: 
+                        type: boolean
+                      parallelism: 
+                        type: number
+                        nullable: true             
+            type: object
+          status:
+            description: IBMBAIStatus defines the observed state of Automation
+            x-kubernetes-preserve-unknown-fields: true
+            properties:
+              components:
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+              endpoints:
+                type: array 
+                items:
+                  properties:
+                    type:
+                      type: string
+                    name:
+                      type: string
+                    scope:
+                      type: string
+                    uri:
+                      type: string
+                    caSecret:
+                      type: object
+                      properties:
+                        secretName:
+                          type: string
+                        key:
+                          type: string                   
+                  type: object 
+              conditions:
+                items:
+                  properties:
+                    message:
+                      type: string
+                    reason:
+                      type: string
+                    status:
+                      type: string
+                    type:
+                      type: string
+                  required:
+                  - status
+                  - type
+                  type: object
+                type: array      
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

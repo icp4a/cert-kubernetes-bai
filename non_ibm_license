@@ -1,0 +1,1901 @@
+TERMS AND CONDITIONS FOR SEPARATELY LICENSED CODE
+
+IBM Cloud Pak for Business Automation 22.0.2
+
+The IBM license agreement and any applicable information on the web
+download page for IBM products refers Licensee to this file for details
+concerning terms and conditions applicable to code identified as
+Separately Licensed Code below and included in the products listed
+above ("the Program").
+
+The Separately Licensed Code is provided to Licensee under terms
+and conditions that are different from the IBM license agreement.
+Licensee's use of such components or portions thereof is subject to the
+terms of the associated license agreement provided or referenced in this
+section and not the terms of the IBM license agreement.
+
+Please note: This NON_IBM_LICENSE file may identify Separately Licensed
+Code and its related agreements that are not used by, or that were not
+shipped with, the Program as Licensee installed it.
+
+The following are Separately Licensed Code:
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+NON-IBM-LICENSE INFORMATION FOR EXCLUDED COMPONENTS 
+
+IBM Cloud Pak for Business Automation 22.0.2
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+TABLE OF CONTENTS
+
+THIS NON-IBM-LICENSE FILE CONSISTS OF THE FOLLOWING SECTIONS:
+
+AGPL V3 
+CC-BY-1.0  
+CC-BY-2.0  
+CC-BY-2.5  
+CC-BY-3.0  
+CC-BY-4.0  
+CC-BY-SA-1.0
+CC-BY-SA-2.0
+CC-BY-SA-2.5
+CC-BY-SA-3.0
+CC-BY-SA-4.0
+GPL V2  
+GPL V3
+REDHAT UNIVERSAL BASE IMAGE v 7.6 and 8.3, 8.4 ootpa and 8.6
+SIL OPEN FONT LICENSE 1.1 
+UBUNTU FONT LICENSE
+UNIQUE 
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+GNU AFFERO GENERAL PUBLIC LICENSE, VERSION 3
+
+The Program includes some or all of the following licensed to you as
+Separately Licensed Code under the GNU Affero General Public License.
+For copies of the source code for this software, send an email to
+<email address> identifying the IBM product and the AGPL-licensed 
+program for which you are requesting the source code.
+
+@PM2/AGENT, PM2, ITEXT, HTML2PDF
+
+END OF GNU AFFERO GENERAL PUBLIC LICENSE,VERSION 3 NON-IBM-LICENSE INFORMATION
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+CREATIVE COMMONS ATTRIBUTION 1.0 GENERIC
+
+The Program includes some or all of the following works licensed under
+the Creative Commons.
+The url to the license is https://creativecommons.org/licenses/by/1.0/legalcode
+
+PAPER-100K.PDF [MongoDB] (https://github.com/mongodb/mongo/tree/r4.2.12)
+ENCYCLOPEDIA OF GRAPHICS FILE FORMATS [pillow]
+(https://files.pythonhosted.org/packages/2b/06/93bf1626ef36815010e971a5ce90f49919d84ab5d2fa310329f843a74bc1/Pillow-8.0.1.tar.gz)
+
+END OF CREATIVE COMMONS ATTRIBUTION 1.0 GENERIC NON-IBM-LICENSE INFORMATION
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+CREATIVE COMMONS ATTRIBUTION 2.0 GENERIC
+
+The Program includes some or all of the following works licensed under
+the Creative Commons.
+The url to the license is https://creativecommons.org/licenses/by/2.0/legalcode
+
+CHINA.JPG [scikit-learn]
+(https://files.pythonhosted.org/packages/f4/7b/d415b0c89babf23dcd8ee631015f043e2d76795edd9c7359d6e63257464b/scikit-learn-0.24.1.tar.gz),
+ICON-THEMES [LibreOffice]
+(https://alpine.pkgs.org/3.11/alpine-community-x86/libreoffice-math-6.3.2.2-r3.apk.html)
+SEAM.JPG [wand] (http://www.pinksherbet.com/), ICON-THEMES [LibreOffice]
+(https://alpine.pkgs.org/3.11/alpine-community-x86/libreoffice-math-6.3.2.2-r3.apk.html),
+COMPOSITE-CHANNEL.JPG [wand] (http://saturatedhigh.tumblr.com/)
+VENDOR/GITHUB.COM/MOBY/TERM/README.MD - DOCS [kubernetes] (GITHUB.COM/MOBY)
+(Not Found), VENDOR/GITHUB.COM/MOBY/IPVS/README.MD - DOCS [kubernetes]
+(GITHUB.COM/MOBY), ICON-THEMES [LibreOffice] (No copyright
+found)
+(https://downloadarchive.documentfoundation.org/libreoffice/old/7.0.6.2/)
+
+END OF CREATIVE COMMONS ATTRIBUTION 2.0 GENERIC NON-IBM-LICENSE INFORMATION
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+CREATIVE COMMONS ATTRIBUTION 2.5 GENERIC
+
+The Program includes some or all of the following works licensed under
+the Creative Commons.
+The url to the license is https://creativecommons.org/licenses/by/2.5/legalcode
+
+FAMFAMFAM-SILK-ICONS [groovy-all-minimal]
+(http://www.famfamfam.com/lab/icons/silk/), CONCURRENT [JSR305]
+(https://search.maven.org/remotecontent?filepath=com/google/code/findbugs/jsr305/3.0.2/jsr305-3.0.2-sources.jar),
+ANNOTATIONS [Mongo-java-driver]
+(https://repo1.maven.org/maven2/org/mongodb/mongo-java-driver/3.12.1/),
+LC_DECREMENTLEVEL.PNG [LibreOffice]
+(https://alpine.pkgs.org/3.11/alpine-community-x86/libreoffice-math-6.3.2.2-r3.apk.html)
+LC_FIRSTPAGE LC_ZOOMTOOLBOX.PNG [LibreOffice]
+(https://downloadarchive.documentfoundation.org/libreoffice/old/5.2.7.1/),
+LC_FIRSTPAGE LC_ZOOMTOOLBOX.PNG [LibreOffice] (Copyright 2005 by Lapo
+Calamandrei, Jakub Steiner) (v), LC_DECREMENTLEVEL.PNG [LibreOffice]
+(Copyright 2004-2006 by Canonical Ltd)
+(https://downloadarchive.documentfoundation.org/libreoffice/old/7.0.6.2/)
+JCIP [findbugs-annotations] (No Copyright)
+THREADSAFE.JAVA [findbugs-annotations] (No Copyright)
+GUARDEDBY.JAVA [findbugs-annotations] (No Copyright) 
+IMMUTABLE.JAVA [findbugs-annotations] (No Copyright) 
+NOTTHREADSAFE.JAVA [findbugs-annotations] (No Copyright) 
+(https://search.maven.org/remotecontent?filepath=com/google/code/findbugs/findbugs-annotations/3.0.1/findbugs-annotations-3.0.1-sources.jar),
+IMMUTABLE (Copyright (c) 2005 Brian Goetz and Tim Peierls)
+(http://www.jcip.net)
+
+END OF CREATIVE COMMONS ATTRIBUTION 2.5 GENERIC NON-IBM-LICENSE INFORMATION
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+CREATIVE COMMONS ATTRIBUTION 3.0
+
+The Program includes some or all of the following works licensed under
+the Creative Commons.
+The url to the license is https://creativecommons.org/licenses/by/3.0/legalcode
+
+GEONAMES.SMD [dojox], BASEPROVIDER [faker],
+SPDX-EXCEPTIONS [npm]
+(http://registry.npmjs.org/spdx-exceptions/-/spdx-exceptions-2.3.0.tgz),
+SPDX STANDARD [spdx-expression-parse]
+(https://github.com/spdx/spdx-spec), CONTENT [ITK]
+(https://github.com/InsightSoftwareConsortium/ITK/releases/download/v5.1.1/InsightToolkit-5.1.1.tar.gz),
+JQ DOCS [libjq1], FIREWORKS.JPEG [MongoDB]
+(https://github.com/mongodb/mongo/tree/r4.2.12), STAMEN DESIGN [GDaL]
+(http://creativecommons.org/licenses/by/3.0), NLTK DOCUMENTATION [nltk]
+, EFF WORDSETS [passlib]
+(https://pypi.io/packages/source/p/passlib/passlib-1.7.4.tar.gz), ATOB
+DOCUMENTATION [oracledb]
+(http://registry.npmjs.org/oracledb/-/oracledb-4.2.0.tgz),
+HTTP://WIKI.OPENOFFICE.ORG/WIKI/TEMPLATE:MATH_COMMANDS_REFERENCE
+[LibreOffice]
+(https://alpine.pkgs.org/3.11/alpine-community-x86/libreoffice-math-6.3.2.2-r3.apk.html),
+DUTCH DICTIONARY [LibreOffice]
+(https://alpine.pkgs.org/3.11/alpine-community-x86/libreoffice-math-6.3.2.2-r3.apk.html),
+JQ.1 [libjq1], FONT AWESOME PICTOGRAMS [twython]
+(https://pypi.io/packages/source/t/twython/twython-3.8.2.tar.gz),
+TORNADO-DOCUMENTATION [Tornado]
+(https://files.pythonhosted.org/packages/cf/44/cc9590db23758ee7906d40cacff06c02a21c2a6166602e095a56cbf2f6f6/tornado-6.1.tar.gz)
+VIDEOIO [opencv-python-headless]
+(https://github.com/opencv/opencv-python/archive/44.zip)
+SILK ICON [Werkzeug]
+(https://pypi.io/packages/source/W/Werkzeug/Werkzeug-2.0.1.tar.gz),
+INSIGHT [SimpleITK]
+(https://github.com/SimpleITK/SimpleITK/archive/v2.0.0.zip), STAMEN
+DESIGN [GDaL] (http://creativecommons.org/licenses/by/3.0), NLTK
+DOCUMENTATION [nltk]
+(https://files.pythonhosted.org/packages/fe/a5/b7931f2c2c3204c304e0a3a6396d7adeb15335b8d2ab46e5ca48666c9186/nltk-3.6.2.zip),
+GD2000IT-DOWNLOAD [proj-datumgrid] (Creative Commons Attribution 3.0 New
+Zealand](https://creativecommons.org/licenses/by/3.0/nz/)),
+HTTP://WIKI.OPENOFFICE.ORG/WIKI/TEMPLATE:MATH_COMMANDS_REFERENCE
+[LibreOffice]
+(https://alpine.pkgs.org/3.11/alpine-community-x86/libreoffice-math-6.3.2.2-r3.apk.html),
+SEMVER [pbr]
+(https://files.pythonhosted.org/packages/39/e9/937d7777eca2670c6d04279c243359c4a97652e728e1d19021890193ea58/pbr-0.11.0.tar.gz),
+DUTCH DICTIONARY [LibreOffice]
+(https://alpine.pkgs.org/3.11/alpine-community-x86/libreoffice-math-6.3.2.2-r3.apk.html),
+INSIGHT.STY [SimpleITK]
+(https://github.com/SimpleITK/SimpleITK/archive/v2.0.0.zip), ICELANDIC
+DICTIONARY [LibreOffice]
+(https://downloadarchive.documentfoundation.org/libreoffice/old/5.2.7.1/),
+CONTENT [SimpleITK]
+(https://github.com/SimpleITK/SimpleITK/archive/v2.0.0.zip),
+IVY MASCOT (By Renee French) (https://reneefrench.blogspot.com/'), DUTCH
+DICTIONARY [LibreOffice] (© 2006-2010 OpenTaal, © 2001-2005 Simon
+Brouwer e.a., © 1996 Nederlandstalige T)
+(https://downloadarchive.documentfoundation.org/libreoffice/old/7.0.6.2/),
+FAVICON.ICO (No Copyright Statement found)
+(http://static.php.net/www.php.net/styles/site.css), DIR.TMPL (No
+Copyright Statement found)
+(https://developers.google.com/site-policies#restrictions), ICELANDIC
+DICTIONARY [LibreOffice] (No copyright found)
+(https://downloadarchive.documentfoundation.org/libreoffice/old/7.0.6.2/),
+DOCS [jq] (copyright (C) 2012 Stephen Dolan)
+(http://stedolan.github.io/jq/), ATOB - DOCS [Atob] (Copyright 2012-2018
+AJ ONeal) (http://registry.npmjs.org/atob/-/atob-2.1.2.tgz),
+SPDX-EXCEPTIONS (Copyright 2010-2015 Linux Foundation and its Contributors)
+(http://registry.npmjs.org/spdx-exceptions/-/spdx-exceptions-2.3.0.tgz),
+SPDX STANDARD [spdx-expression-parse] (Copyright (c) The Linux
+Foundation and its contributors)
+(http://registry.npmjs.org/spdx-expression-parse/-/spdx-expression-parse-3.0.1.tgz),
+DOCS [github.com/opencontainers/runc] (Copyright 2012-2015 Docker, Inc.)
+(https://proxy.golang.org/github.com/opencontainers/runc/@v/v0.1.1.zip),
+ATOB (DOCS) [Atob] (Copyright 2012-2018 AJ ONeal)
+(https://registry.npmjs.org/atob/-/atob-2.1.1.tgz)
+
+
+END OF CREATIVE COMMONS ATTRIBUTION 3.0 NON-IBM-LICENSE INFORMATION
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+CREATIVE COMMONS ATTRIBUTION 4.0
+
+The Program includes some or all of the following works licensed under
+the Creative Commons.
+The url to the license is https://creativecommons.org/licenses/by/4.0/legalcode
+
+COMPATIBLE-IDIOMS [Future], FA-BRANDS.MIN.CSS [Django]
+(https://pypi.io/packages/source/D/Django/Django-3.1.2.tar.gz), FONT
+AWESOME ICONS [Django] (https://fontawesome.com/), LIBUV DOCS [uvloop]
+(https://github.com/libuv), DOC [gevent], FONT AWESOME SVGS
+[matplotlib], WRITING PYTHON 2-3 COMPATIBLE CODE.IPYNB
+[Future], GONVML [kubernetes]
+(/Source-0/vendor/github.com/mindprince/gonvml/nvml.h), SWAGGER
+[z-schema] (No download location), THE SPEECH COMMANDS DATASET.
+[tensorflow]
+(https://github.com/tensorflow/tensorflow/archive/v2.4.0.zip)
+THE SPEECH COMMANDS DATASET. [tensorflow]
+(https://github.com/tensorflow/tensorflow/archive/v2.0.0.zip)
+MSPIMAGEPLUGIN.PY [pillow]
+(https://files.pythonhosted.org/packages/73/59/3192bb3bc554ccbd678bdb32993928cb566dccf32f65dac65ac7e89eb311/Pillow-8.1.0.tar.gz),
+SWAGGER [z-schema]
+(http://registry.npmjs.org/z-schema/-/z-schema-4.2.3.tgz)
+LIBUV DOCS [NodeJS] (nodejs.org) (https://github.com/libuv/libuv),
+CASCADINGSCHEMES.YAML [go-openapi/loads] (No Copyright Information
+found)
+(https://proxy.golang.org/github.com/go-openapi/loads/@v/v0.19.4.zip),
+DATA.GO [go-openapi/runtime] (github.com/go-openapi/runtime)
+(https://github.com/go-openapi/runtime/tree/v0.19.4), SWAGGER PETSTORE
+[go-openapi/spec] (No Copyright found)
+(https://github.com/go-openapi/spec/archive/v0.19.7.zip),
+EXPANDER_TEST.GO [go-openapi/spec] (No Copyright found)
+(https://github.com/go-openapi/spec/tree/v0.19.4), DEMO PETSTORE/SWAGGER
+[go-openapi/loads] (github.com/go-openapi/loads)
+(https://github.com/go-openapi/loads/tree/v0.19.5), KUYBERNETES-LOGO
+[kubernetes] (No Copyright) (github.com/k8s.io/api)
+CANIUSE-LITE (Copyright (c) Ben Briggs <beneb.info@gmail.com>)
+(http://registry.npmjs.org/caniuse-lite/-/caniuse-lite-1.0.30001255.tgz),
+SWAGGER [z-schema] (Copyright (c) wordnik api team)
+(http://registry.npmjs.org/z-schema/-/z-schema-4.2.3.tgz),
+LIBCONTAINER-DOCUMENTATION [opencontainers/runc] (Copyright 2014 Docker, inc)
+(https://proxy.golang.org/github.com/opencontainers/runc/@v/v0.0.0-20190115041553-12f6a991201f.zip),
+SWAGGER (Copyright (c) wordnik api team) (http://developer.wordnik.com),
+MOCHAJS DOCS [mocha] (No Copyright Statement found)
+(https://github.com/mochajs/mocha/archive/refs/tags/v3.5.3.zip)
+
+END OF CREATIVE COMMONS ATTRIBUTION 4.0 NON-IBM-LICENSE INFORMATION
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+CREATIVE COMMONS ATTRIBUTION SHARE ALIKE 1.0 GENERIC
+
+The Program includes some or all of the following works licensed under
+the Creative Commons.
+The url to the license is https://creativecommons.org/licenses/by-sa/1.0/legalcode
+
+LASS MSPDECODER-IMAGEFILE.PYDECODER [pillow]
+(https://pypi.io/packages/source/P/Pillow/Pillow-8.1.0.tar.gz), EGFF.HTM
+[pillow] (https://pypi.io/packages/source/P/Pillow/Pillow-8.2.0.tar.gz)
+
+END OF CREATIVE COMMONS ATTRIBUTION SHARE ALIKE 1.0 GENERIC NON-IBM-LICENSE INFORMATION
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+CREATIVE COMMONS ATTRIBUTION SHARE ALIKE 2.0 GENERIC
+
+The Program includes some or all of the following works licensed under
+the Creative Commons.
+The url to the license is https://creativecommons.org/licenses/by-sa/2.0/legalcode
+
+CONTRIBUTOR-MODEL [eslint] (no copyright)
+(https://github.com/eslint/eslint)
+
+END OF CREATIVE COMMONS ATTRIBUTION SHARE ALIKE 2.0 GENERIC NON-IBM-LICENSE INFORMATION
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+CREATIVE COMMONS ATTRIBUTION SHARE ALIKE 2.5 GENERIC
+
+The Program includes some or all of the following works licensed under
+the Creative Commons.
+The url to the license is https://creativecommons.org/licenses/by-sa/2.5/legalcode
+
+RNN COLORBOT [tensorflow]
+(https://github.com/tensorflow/tensorflow/tree/v1.14.0)
+BUG-EYED FISH AND VJ FUGU [libtheora-devel] (http://www.theora.org),
+SINICA TREEBANK CORPUS SAMPLE (CC-BY-NC-SA-2.5) [nltk]
+(https://files.pythonhosted.org/packages/fe/a5/b7931f2c2c3204c304e0a3a6396d7adeb15335b8d2ab46e5ca48666c9186/nltk-3.6.2.zip)
+TEMPLATE-CSSDATA [postcss-reduce-initial] (Copyright (c) Mozilla and
+individual contributors)
+(http://registry.npmjs.org/postcss-reduce-initial/-/postcss-reduce-initial-4.0.3.tgz)
+
+
+END OF CREATIVE COMMONS ATTRIBUTION SHARE ALIKE 2.5 GENERIC NON-IBM-LICENSE INFORMATION
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+CREATIVE COMMONS ATTRIBUTION SHARE ALIKE 3.0 GENERIC
+
+The Program includes some or all of the following works licensed under
+the Creative Commons.
+The url to the license is https://creativecommons.org/licenses/by-sa/3.0/legalcode
+
+RAWSPEED_XMLDATA.CPP [LibRaw]
+(https://github.com/LibRaw/LibRaw/tree/0.19.5), USER-DISABLED.PNG
+[matrix-auth]
+(https://github.com/jenkinsci/matrix-auth-plugin/releases), THE PHOTO OF
+TROLLIS FLOWER [trollius]
+(https://pypi.io/packages/source/t/trollius/trollius-2.2.post1.tar.gz),
+HTML-PY-EVER [setuptools-rust]
+(https://pypi.io/packages/source/s/setuptools-rust/setuptools-rust-0.11.6.tar.gz),
+NPM-DISPUTES [npm] (http://registry.npmjs.org/npm/-/npm-6.14.8.tgz),
+HOPCROFT--KARP ALGORITHM [networkx]
+(https://en.wikipedia.org/wiki/Hopcroft%E2%80%93Karp_algorithm), MNIST
+DATASET [tensorflow]
+(https://github.com/tensorflow/tensorflow/archive/v2.4.0.zip),
+BLUEPRINT_PLANS [LibreOffice]
+(https://alpine.pkgs.org/3.11/alpine-community-x86/libreoffice-math-6.3.2.2-r3.apk.html),
+NPM-DOCS [npm] (https://registry.npmjs.org/npm/-/npm-7.6.0.tgz), TANGO
+[LibreOffice]
+(https://alpine.pkgs.org/3.11/alpine-community-x86/libreoffice-math-6.3.2.2-r3.apk.html),
+JSONSELECT SITE [Jsonselect]
+(http://registry.npmjs.org/JSONSelect/-/JSONSelect-0.4.0.tgz),
+CODE_OF_CONDUCT [ansible]
+(https://github.com/ansible/ansible/releases/tag/v2.9.11)
+MNIST DATASET [tensorflow]
+(https://github.com/tensorflow/tensorflow/archive/v2.0.0.zip),
+HOWTO.DIVINETOMARK [chardet] (http://howto.diveintomark.org)
+NEP-0012-MISSING-DATA.RST [NumPy] (No download location), VINTAGE
+[LibreOffice] , DOXYGEN-FOOTER.HTML [libbluray]
+(http://vault.centos.org/8.3.2011/AppStream/Source/SPackages/libbluray-1.0.2-3.el8.src.rpm),
+BLUEPRINT_PLANS [LibreOffice]
+(https://alpine.pkgs.org/3.11/alpine-community-x86/libreoffice-math-6.3.2.2-r3.apk.html),
+TANGO [LibreOffice]
+(https://alpine.pkgs.org/3.11/alpine-community-x86/libreoffice-math-6.3.2.2-r3.apk.html),
+TANGO ICONS [LibreOffice] , LENSFUN DATABASE [lensfun]
+(https://download-ib01.fedoraproject.org/pub/epel/7/SRPMS/Packages/l/lensfun-0.3.2-20.el7.src.rpm),
+VINTAGE [LibreOffice] (No copyright found)
+(https://downloadarchive.documentfoundation.org/libreoffice/old/7.0.6.2/),
+BLUEPRINT_PLANS [LibreOffice] (No copyright found)
+(https://downloadarchive.documentfoundation.org/libreoffice/old/7.0.6.2/),
+NPM-DOCS [npm] (No Copyright)
+(https://registry.npmjs.org/npm/-/npm-7.10.0.tgz), TANGO ICONS
+[LibreOffice] (No copyright found)
+(https://downloadarchive.documentfoundation.org/libreoffice/old/7.0.6.2/)
+SPEED.SVG [performancecopilot/speed] (No Copyright found)
+(https://proxy.golang.org/github.com/performancecopilot/speed/@v/v3.0.0+incompatible.zip),
+WIKIMEDIA FOUNDATION'S CODE OF CONDUCT DRAFT
+[github.com/lyft/protoc-gen-validate] (Copyright (c) Wikimedia Foundation)
+(﻿﻿https://proxy.golang.org/github.com/lyft/protoc-gen-validate/@v/v0.0.13.zip),
+REGULAR_EXPRESSIONS [posix-character-classes] (No copyright found)
+(https://en.wikibooks.org/wiki/Regular_Expressions/POSIX_Basic_Regular_Expressions),
+CODE OF CONDUCT [pem] (No copyright found)
+(http://registry.npmjs.org/pem/-/pem-1.14.4.tgz),
+
+
+END OF CREATIVE COMMONS ATTRIBUTION SHARE ALIKE 3.0 GENERIC NON-IBM-LICENSE INFORMATION
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+CREATIVE COMMONS ATTRIBUTION SHARE ALIKE 4.0 GENERIC
+
+The Program includes some or all of the following works licensed under
+the Creative Commons.
+The url to the license is https://creativecommons.org/licenses/by-sa/4.0/legalcode
+
+UNIVERSAL DEPENDENCIES ENGLISH WEB TREEBANK [Torchtext],
+LC_OPEN.PNG, LC_SCRIPTORGANIZER.PNG [LibreOffice]
+(https://alpine.pkgs.org/3.11/alpine-community-x86/libreoffice-math-6.3.2.2-r3.apk.html),
+GLOB [npm] (http://registry.npmjs.org/npm/-/npm-6.14.8.tgz),
+SC_OPEN.PNG, SC_SCRIPTORGANIZER.PNG [LibreOffice]
+(https://alpine.pkgs.org/3.11/alpine-community-x86/libreoffice-math-6.3.2.2-r3.apk.html),
+SCREENSHOTS [shortid] (No download location),
+OPENCONTAINERS/GO-DIGEST.DOCS [kubernetes] (gihub.com/open-containers)
+(github.com/opencontainers/go-digest/), GLOB(LOGO) [Glob] (no copyright)
+(https://registry.npmjs.org/glob/-/glob-7.2.0.tgz), LC_OPEN.PNG,
+LC_SCRIPTORGANIZER.PNG [LibreOffice] (No copyright found) (Not
+Required), SIFR [LibreOffice] (libreoffice.org)
+(https://downloadarchive.documentfoundation.org/libreoffice/old/7.0.6.2/),
+SC_OPEN.PNG, SC_SCRIPTORGANIZER.PNG [LibreOffice] (No copyright found)
+(https://downloadarchive.documentfoundation.org/libreoffice/old/7.0.6.2/)
+KIMBIE.DARK.SCSS [highlight.js] (Copyright (c) Jan T. Sott)
+(http://registry.npmjs.org/highlight.js/-/highlight.js-10.7.2.tgz),
+POLICIES (No Copyright Found)
+(http://registry.npmjs.org/policies/-/policies-1.0.0.tgz), 
+GLOB LOGO [Glob] (no copyright)
+(http://registry.npmjs.org/glob/-/glob-7.1.5.tgz), GLOB [npm] (No
+Copyright Statement found)
+(http://registry.npmjs.org/npm/-/npm-6.14.13.tgz)
+
+
+END OF CREATIVE COMMONS ATTRIBUTION SHARE ALIKE 4.0 GENERIC NON-IBM-LICENSE INFORMATION
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+GNU GENERAL PUBLIC LICENSE, VERSION 2
+
+The Program includes some or all of the following licensed to you as
+Separately Licensed Code under the GNU General Public License. For copies
+of the source code for this software, send an email to <emailaddress>
+identifying the IBM product and the GPL-licensed program for which you
+are requesting the source code
+
+ID.XML [iText], PYINSTALLER-HOOKS [pyinstaller-hooks-contrib], GNU
+LIBTOOL [astropy], MINDTERM [JZlib], LZ4CLI.C - LZ4 COMMAND LINE
+INTERFACE [LZ4], AR-LIB [libjq1], GNU BISON [astropy], MD5
+MESSAGE-DIGEST ALGORITHM [geoipupdate], BOOT-9.SCM [pygments], FORMAT.ML
+[pygments], LIBTOOL.M4 [Erlang/OTP], COMPILE [libjq1], TYPES.H
+[geoipupdate], RWEB [pygments], ACLOCALM4 [Erlang/OTP], FUZZYWUZZY,
+RSYNTH [atari-py], ANSIGENERATOR.CPP [pygments], FRAMETEST - TEST TOOL
+FOR LZ4FRAME [LZ4], MD5.C - MD5 MESSAGE-DIGEST ALGORITHM [geoipupdate],
+VALGRIND.H [Torch], CONFIG.GUESS [libjq1], BSPF [atari-py],
+OPT.SYSLOG-NG.SBIN.SYSLOG-NG [syslog-ng], TEST.JAVA AND TEST.EH
+[pygments], BUILD/CONFIG SCRIPTS [node-expat], DCRAW.C [LibRaw],
+ATARI-PY, DICTIONARY [linguistico], PYTHON3-RPM-GENERATORS, SK.XML
+[iText], TEST-DRIVER [libjq1], AX_CFLAGS_SUN_OPTION (AUTOCONF)
+[syslog-ng], CALLGRIND.H [Torch], GNUPG [geoipupdate],
+IMX6Q-DHCOM-SOM.DTS [pygments], ADD-CONTEXTUAL-DATA-TEMPLATE-SELECTOR.H
+[syslog-ng], GEOIPUPDATE, BENGALI DICTIONARY BULGARIAN DICTIONARY,
+HYPHENATION PATTERNS, THESAURUS, CATALAN DICTIONARY, [LibreOffice],
+DEPCOMP [geoipupdate], INOTIFY-TOOLS, CS.XML [iText], ZH_LATN.XML
+[iText], LIBONIG4, CONFIGURE, CONFIGURE.HELP, BDFTOPSF.PL [blessed],
+LTMAIN.SH [pygments], EXAMPLE.COB [pygments], PHPMYADMIN [pygments],
+XMLWF MAN PAGE (GFDL V1.1) [node-expat], EXAMPLE.LUA [pygments],
+SCHOOLTOOL [lxml], MISSING [libjq1], R VERSION 2.9.2 [pygments],
+IMAGE_CROP.SVG. NSSRENAM.H, TANGO, HWPFILTER, M4, BREEZE ICON THEME, GNU
+ISO C++ LIBRARY, ISO C++ 14882, LIBATOMIC-OPS, LPSOLVE, POPPLER, MYSQL
+CONNECTOR/C++, LINUX LIBERTINE G AND LINUX BIOLINUM G [LibreOffice],
+M6052 [atari-py], PYINSTALLER, LIBJQ1, GERMAIN DICTIONARY FRENCH
+DICTIONARY GALICIAN DICTIONARY GUJARATI DICTIONARY NORWEGIAN DICTIONARY
+ROMANIAN DICTIONARY SERBIAN DICTIONARY SLOVAK DICTIONARY SLOVENIAN
+DICTIONARY VIETNAMESE DICTIONARY ENGLISH (AUSTRALIA) DICTIONARY
+[LibreOffice], CONFIG.SUB [libjq1], EVAL.RS [pygments], CONFIGURE
+[Erlang/OTP], FFTW [ITK], LC_TOGGLEOBJECTROTATEMODE.PNG,
+LC_ALIGNCENTER.PNG, LC_FREELINE_UNFILLED.PNG, [LibreOffice], ZSTANDARD
+[MongoDB], HEBREW DICTIONARY HINDI DICTIONARY OCCITAN DICTIONARY TELUGU
+DICTIONARY UKRAINIAN DICTIONARY ZULU DICTIONARY , ELEMENTARY THEME FOR
+LIBREOFFICE, HUMANITY-ICON-THEME, LC_TOGGLEOBJECTROTATEMODE.PNG,
+LC_ALIGNCENTER.PNG, LC_FREELINE_UNFILLED.PNG, [LibreOffice], LIBTOOL
+[libjq1], JAVAX.JSON-API, ACLOCAL.M4 [Libtirpc], YLWRAP [libjq1],
+ASBEAUTIFIER.CPP [pygments], PKG.M4 [xcb-util], ADA/ZLIB.ADS [Zlib],
+CYCNUS.YTOOLS 1.0.3 [pygments], Ubuntu 18.04
+PYINSTALLER, VALGRIND.H [Torch], PYINSTALLER_HOOKS
+[pyinstaller-hooks-contrib], RAWDEFLATE.JS [Adm-zip], NEON, AC;OCAL.M4
+(LIBTOOL) [redland], CONFIGURE [pypy], CONFIGURE (LIBTOOL) [libwps],
+M4_DEFINE (LIBTOOL) [rasqal], EIGEN [Torch], JINJA.EL [Jinja2],
+WPG2SVGBATCH.PL -H [libwpg], ACLOCAL (AUTOCONF) [libzmf], CONFIGURE
+(AUTOCONF) [libwpg], AUTOMAKE [libvisual], ADOPTOPENJDK BINARIES FOR
+ECLIPSE OPENJ9, LIBTOOL [pakchois], ANSIDECL.H [pypy], CALLGRIND.H
+[Torch], LP_RLP.C (BISON) [lpsolve], AR-LIB (AUTOCONF) [libwps], UBUNTU
+(MAIN), AR-LIB (AUTCONF) [libwpg], WPD2SXWBATCH.PL [libwpg]
+BDJ_TEST.C [libbluray], CONFIGUIRE (LIBTOOL) [libcdio], LIBPOSTPROC
+[ffmpeg], MM-COMMON [libsigc++20], GNU LIBTOOL [astropy],
+VLGOTHIC-P-FONTS, CODEC2-DEBIAN [codec2], GNU BISON [astropy], EEDI3
+[vapoursynth-libs], INPUT_BLURAY [libbluray], PO/MAKEFILE [zvbi],
+COMPILE [NetCDF], GETOPT [lensfun], DVCONT [libavc1394], CONTROL POINTS
+[libspatialite], MMX CBP [XvidCore], BITMASK [numactl-libs],
+LWIN_ENCODED_POLYLINE.C [libspatialite], COVERITY [ffmpeg],
+ZVBI-TTXFILTER -- TELETEXT FILTER [zvbi], CLOSED CAPTION AND XDS DECODER
+[zvbi], LIBTOOL.M4 (LIBTOOL) [Faac], CONFIG.GUESS [libsamplerate],
+LIBZVBI TEST [zvbi], AVILIB.C [libtheora-devel], SNOW.TXT [ffmpeg],
+COMPLIE - AUTOCONF [Proj], CPU.CC [davs2], POPPLER-CONFIG.PATCH.1
+[LibreOffice], XVID VFW [XvidCore], ACX_PTHREAD.M4 (AUTOCONF)
+[intel-mediasdk], XVIDCORE, VIRTUALDUB [vapoursynth-libs], XSL
+TRANSFORMATION [libsigc++20], AX_CREATE_STDINT_H.M4 (AUTOCONF)
+[gstreamer/orc], MULTIBOOT.H [libcaca], LIBAVFILTER [ffmpeg], /BIN/SH
+[zvbi], ATTRIBUTES.M4 (AUTOCONF) [libbluray], COMPAT [ffmpeg],
+XAVS2-LIBS, BENGALI DICTIONARY BULGARIAN DICTIONARY, HYPHENATION
+PATTERNS, THESAURUS, CATALAN DICTIONARY, [LibreOffice], DEPCOMP [Lame],
+JACK SERVER [jack-audio-connection-kit], NOTE [ffmpeg], AVISYNTH
+[vapoursynth-libs], MAKEHRTF.C [openal-soft], CONFIG.GUESS (AUTOCONF)
+[libcaca], PLUGCTL.1 [libiec61883], CFGMR.C [SuperLu], CONFIGURE
+(LIBTOOL) [mpg123-libs], X264-LIBS, MAC [Lame], GETOPT FOR GNU [Faac],
+COMPILE (AUTOCONF) [Faac], PKG.M4 (AUTOCONF) [gstreamer/orc],
+CODEC2-UNITTEST [codec2], AX_CHECK_COMPILE_FLAG [GEOS], TEST.PY [lxml],
+LIBRTMP.3 [librtmp], DSHOW [XvidCore], DAVS2, ENCODEDV [libdv],
+SCHOOLTOOL [lxml], ACLOCAL [libodfgen], IMAGE_CROP.SVG. NSSRENAM.H,
+TANGO, HWPFILTER, M4, BREEZE ICON THEME, GNU ISO C++ LIBRARY, ISO C++
+14882, LIBATOMIC-OPS, LPSOLVE, POPPLER, MYSQL CONNECTOR/C++, LINUX
+LIBERTINE G AND LINUX BIOLINUM G [LibreOffice], EPEL-RELEASE, X265-LIBS,
+AVC_VCR.C [libavc1394], COREAUDIO.C [mpg123-libs], FFT.C [Lame],
+VID.STAB, WIN32THREAD.C [davs2], GERMAIN DICTIONARY FRENCH DICTIONARY
+GALICIAN DICTIONARY GUJARATI DICTIONARY NORWEGIAN DICTIONARY ROMANIAN
+DICTIONARY SERBIAN DICTIONARY SLOVAK DICTIONARY SLOVENIAN DICTIONARY
+VIETNAMESE DICTIONARY ENGLISH (AUSTRALIA) DICTIONARY [LibreOffice],
+SLANG, GETOPT.H [x264-libs], IA64 [XvidCore], M4 [zvbi], LTMAIN.SH
+(LIBTOOL) [libbluray], GZIP [CFITSIO], CONFIGURE [Proj],
+LC_TOGGLEOBJECTROTATEMODE.PNG, LC_ALIGNCENTER.PNG,
+LC_FREELINE_UNFILLED.PNG, [LibreOffice], ODGI-CONFIG.IN [ogdi],
+XMMS-WAVPACK [wavpack], HEBREW DICTIONARY HINDI DICTIONARY OCCITAN
+DICTIONARY TELUGU DICTIONARY UKRAINIAN DICTIONARY ZULU DICTIONARY ,
+ELEMENTARY THEME FOR LIBREOFFICE, HUMANITY-ICON-THEME,
+LC_TOGGLEOBJECTROTATEMODE.PNG, LC_ALIGNCENTER.PNG,
+LC_FREELINE_UNFILLED.PNG, [LibreOffice], BUILD-AUX (AUTOCONF)
+[libbluray], LIBTOOL [libconfig], PKG.M4 (AUTOCONF EXCEPTION) [Speex],
+DVB-APPS [libv4l], ACLOCAL.M4 [Lame], ACLOCAL.M4 (AUTOCONF) [libbs2b],
+PKG.M4 [libdap], RUBBERBAND, GNU LIBTOOL 2.4 [libdap], BOOTSTRAPPER
+[ocl-icd], TEXI2POD.PL [ffmpeg], 
+EMAIL FOR USERS & PROGRAMMERS
+<HTTP://RAND-MH.SOURCEFORGE.NET/BOOK/> [Python], LTMAIN.SH [Python], GNU
+READLINE [Python], OPENJDK [elasticsearch], DYNSECTIONS [YAML], COMPILE
+[YAML], BISON PARSER [Tcl/Tk], IMAGE_CROP.SVG. NSSRENAM.H, TANGO,
+HWPFILTER, M4, BREEZE ICON THEME, GNU ISO C++ LIBRARY, ISO C++ 14882,
+LIBATOMIC-OPS, LPSOLVE, POPPLER, MYSQL CONNECTOR/C++, LINUX LIBERTINE G
+AND LINUX BIOLINUM G [LibreOffice], INFO/LICENSES/COPYING
+[ld_impl_linux-64], LIBFFI.TEXI [Python], LIBTOOL-LDFLAGS [Python],
+GERMAIN DICTIONARY FRENCH DICTIONARY GALICIAN DICTIONARY GUJARATI
+DICTIONARY NORWEGIAN DICTIONARY ROMANIAN DICTIONARY SERBIAN DICTIONARY
+SLOVAK DICTIONARY SLOVENIAN DICTIONARY VIETNAMESE DICTIONARY ENGLISH
+(AUSTRALIA) DICTIONARY [LibreOffice], JBIG, M4_DEFINE [YAML], DOXYGEN
+[YAML], LBTOOL [Xz], POPPLER-CONFIG.PATCH.1 [LibreOffice],
+LC_TOGGLEOBJECTROTATEMODE.PNG, LC_ALIGNCENTER.PNG,
+LC_FREELINE_UNFILLED.PNG, [LibreOffice], HEBREW DICTIONARY HINDI
+DICTIONARY OCCITAN DICTIONARY TELUGU DICTIONARY UKRAINIAN DICTIONARY
+ZULU DICTIONARY , ELEMENTARY THEME FOR LIBREOFFICE, HUMANITY-ICON-THEME,
+LC_TOGGLEOBJECTROTATEMODE.PNG, LC_ALIGNCENTER.PNG,
+LC_FREELINE_UNFILLED.PNG, [LibreOffice], ACLOCAL.M4 [Python], FREETYPE,
+PKG.M4 [freetype], ZLIB.ADS (WITH EXCEPTION) [Tcl/Tk], BENGALI
+DICTIONARY BULGARIAN DICTIONARY, HYPHENATION PATTERNS, THESAURUS,
+CATALAN DICTIONARY, [LibreOffice], LIBFFI.INFO [Python],
+GNU LIBTOOL (GPL WITH LIBTOOL EXCEPTION) [Protobuf-c], ASM-GENERIC
+[modernc.org/cc], JSON-DECYCLE, GHOSTSCRIPT-6.52 [modernc.org/cc],
+AX_PROG_XSLTPROC.M4 (GPL V2 WITH AUTOCONF EXCEPTION) [fstrm], AR-LIB
+[jq], PKG.M4 (GPL WITH AUTOCONF EXCEPTION) [Protobuf-c], BUILD-AUX (GPL
+WITH AUTOCONF EXCEPTION) [Protobuf-c], PKG.M4 (GPL V2 WITH AUTOCONF
+EXCEPTION) [fstrm], PYINSTALLER, GNU LIBTOOL [node-expat], LIBTOOL [node-expat], 
+LTMAIN.SH (LIBTOOL) [node-expat], ATOM1.XML [dojox], AUTOCONF [node-expat],
+CONFIGURE [node-expat], LIBCONFIG [collectd], LTMAIN.SH [node-expat],
+FIX_DUP_NIC_MACS.PY [ovirt-engine-sdk-python], COLLECTD-MODULES
+[collectd], SCANELF, APK-TOOLS, ORG.OPENJFX:JAVAFX-BASE, ORG.OPENJFX:JAVAFX-GRAPHICS,
+ORG.OPENJFX:JAVAFX-CONTROLS
+
+END OF GNU GENERAL PUBLIC LICENSE, VERSION 2 NON-IBM-LICENSE INFORMATION
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+GNU GENERAL PUBLIC LICENSE, VERSION 3
+
+The Program includes some or all of the following licensed to you as
+Separately Licensed Code under the GNU General Public License. For copies
+of the source code for this software, send an email to <emailaddress>
+identifying the IBM product and the GPL-licensed program for which you
+are requesting the source code
+
+AWX_DISPLAY.PY [ansible-runner], ZIPPED_EGG [PyInstaller], C10 [Torch],
+LINGUISTICO, WCSLIB [astropy], SCREEN, LTMAIN.SH [geoipupdate], SUBR.EL
+AND HYBRIS_FILE.HY [pygments], ANSIBLE, BIN_LIBRARY_INFO.SH
+CONCAT-DEPS.C, BOOST, ITALIAN DICTIONARY SINHALA DICTIONARY
+[LibreOffice], SHOBJ-CONF [pre-commit], ISPELL-NORSK [iText],
+PIP-MANPAGE.RST [python3-pip], H5LTPARSE.C WITH BISON EXCEPTION [ITK],
+ALEINTERFACE [atari-py], ELEMENTARYICONS [LibreOffice], CONFIG.GUESS
+[astropy], M4 [libraqm], CISCO IOS-XE [ansible], WIREDTIGER [MongoDB],
+ERT-BUFFER [docutils], CONFIG.SUB [astropy], EMACS [docutils], EIGEN
+[tensorflow], BY BARRY WARSAW [python3-pip], CALCULATE_MULTIPART_ETAG
+[ansible], AX_PTHREAD.M4 [gevent], RST.EL [docutils], AX_OPENMP.M4
+(AUTOCONF) [LibRaw], SR_CYRL.XML [iText], AX_CHECK_COMPILER_FLAGS
+[xcb-util], HTML2PDF, BISON [libjq1],ZIPPED_EGG [PyInstaller], C10 [Torch], 
+SHELL-SCRIPT [libwpg],
+CONFIG.GUESS (AUTOCONF) [mythes], TOOLCHAINS/CLANG6 [tensorflow],
+SETUP.PY [python-daemon], CONFIG.SUB [pypy], LTMAIN.SH [libvisio],
+PARSEDATE.C (BISON) [raptor], BENCH/BTL [tensorflow], DWARF3 [pypy],
+PG_QUERY [readme-renderer], SPARQL_PARSER (BISON) [rasqal], SWIG
+[tensorflow], CONFIG [libwpd]
+CHECK_SIZEOF.C [libcdio], CONFIG.GUESS (AUTOCONF) [davs2], USAGE
+[libodfgen], FDL.TEXI (GFDL) [libcdio], GNU BISON [CFITSIO],
+EXPAT/DOC/XMLWF (GNU FREE DOCUMENTATION LICENSE [astropy],
+BIN_LIBRARY_INFO.SH CONCAT-DEPS.C, BOOST, ITALIAN DICTIONARY SINHALA
+DICTIONARY [LibreOffice], TM-STM [codec2], AC.PY [lensfun],
+AX_CHECK_COMPILE_FLAG.M4 - AUTOCONF [Proj], AX_CHECK_COMPILE_FLAG.M4
+[zimg], AX_BLAS.M4 (AUTOCONF) [arpack-ng], SHOBJ-CONF [pre-commit],
+CONFIG.GUESS (AUTOCONF EXCEPTION) [Slang], AX_CHECK_COMPILE_FLAG (GPL V3
+WITH AUTOCONF EXCEPTION) [numactl-libs], FREEMONO.TFF [pillow],
+SHELL-SCRIPT [libgta], LIBKML, ELEMENTARYICONS [LibreOffice],
+LIBCDIO-PARANOIA, ITMAIN [Lame], CONFIG - AUTOCONF [Proj], CONFIG.GUESS
+[astropy], CONFIG.SUB [astropy], AUTO_EPSG_EXT [libspatialite], TEXINFO
+[libconfig], LIBCDIO, MP4 [Faac], LIBZMQ [ZeroMQ], BISON [libconfig],
+ITMAIN.SH [Proj], AX_CHECK_COMPILE_FLAG.M4 (AUTOCONF) [kvazaar-libs]
+TARGET-LIBPATH.EXP [Python], ELEMENTARYICONS [LibreOffice], CONFIG.GUESS
+[LibreOffice], WRAPPER.EXP [Python], LD_IMPL_LINUX-64, CALL.EXP
+[Python], A PORTABLE, PLUGGABLE OPTION PARSER FOR BOURNE SHELL. [YAML],
+CONFIG.SUB [Python], LTMAIN.SH [Python], BIN_LIBRARY_INFO.SH
+CONCAT-DEPS.C, BOOST, ITALIAN DICTIONARY SINHALA DICTIONARY
+[LibreOffice], LCMS2_FAST_FLOAT.H [lcms2], TEXINFO.TEX [Python],
+LIBFFI.EXP [Python], READLINE,
+DEBIAN/RULES [mikefarah/yq/v2], V2/HEADERS [modernc.org/cc],
+AX_CHECK_COMPLE_FLAG.M4 (GPL WITH AUTOCONF MACRO EXCEPTION)
+[Protobuf-c], AX_PTHREAD.M4 (GPL V3 WITH AUTOCONF EXCEPTION) [fstrm],
+TESTDATA/GCC [modernc.org/cc], A PORTABLE, PLUGGABLE OPTION PARSER FOR BOURNE SHELL [node-expat], XMLWF
+- GNU FREE DOCUMENTAION LICENSE [node-expat], GITWEB [node-expat],
+GITWEB (AUTOCONF) [node-expat], YAMLLINT, CONFIG.GUESS [node-expat],
+CONFIG.SUB [node-expat], AX_COMPILER_VENDOR [collectd], CONFIG
+[node-expat], READLINE, ANSIBLE-BASE, PQCHECKER, LIBGOMP, LIBGCC-NG, 
+UBUNTU Main 20.04 packages
+
+END OF GNU GENERAL PUBLIC LICENSE, VERSION 3 NON-IBM-LICENSE INFORMATION
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+REDHAT UNIVERSAL BASE IMAGE v 7.6 and 8.3, 8.4 ootpa, 8.6
+
+RedHAT UBI v7 and v8 has been taken under EULA > https://www.redhat.com/licenses/eulas
+RedHat UBI v8.4 ootpa and 8.6 has been taken under EULA > https://www.redhat.com/licenses/eulas
+
+The Program maybe provided with third party software programs subject to their own
+license terms.  The license terms either accompany the third party software programs or,
+in some instances, maybe viewed at : https://access.redhat.com/containers/
+
+END OF REDHAT UBI LICENSE NOTICES AND INFORMATION
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+SIL OPEN FONT LICENSE 1.1
+
+The Program includes some or all of the following works licensed under
+the SIL OPEN FONT LICENSE 1.1
+
+FONT AWESOME - FONT [mkdocs][Flink][MongoDB][Django], STIX FONT [matplotlib], CARLITO
+[LibreOffice], FONTS [Keras], LATO FONTS [sphinx-rtd-theme],
+FA-BRANDS.MIN.CSS 1 [Django] , THEME.CSS [lxml], FONTS/AMARANTH
+[iText], GENTIUM [LibreOffice], LATO [sphinx-rtd-theme], CARLITO [LibreOffice],
+STATIC/CSS/THEME.CSS [sphinx-rtd-theme], FONT AWESOME
+[sphinx-rtd-theme], LIBERATION [LibreOffice], THEME.CSS [lxml],
+NOTO-CJK, SOURCE CODE PRO - SOURCE SANS PRO [LibreOffice], TERMINUS FONT
+[vapoursynth-libs], PT SERIF [LibreOffice], FONTS [pillow], FONT AWESOME
+(FONT) [lxml], CMTI10 [CFITSIO], FONT AWESOME FONT [sphinx-rtd-theme],
+FONT [pillow], CARLITO [LibreOffice], IBM PLEX TYPEFACE [carbon-components],
+FONTAWESONE-FONT [mikefarah/yq/v2], GLOBALS-FONT [carbon-components],
+FONT AWESOME - FONT [ansible-base], IBM PLEX TYPEFACE
+[carbon-components]
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of the font software, to use, study, copy, merge, embed, 
+modify, redistribute, and sell modified and unmodified copies of the font software, subject to the following conditions:
+
+1) Neither the font software nor any of its individual components, in original or modified versions, may be sold by itself.
+
+2) Original or modified versions of the font software may be bundled, redistributed and/or sold with any software, provided that each 
+copy contains the above copyright notice and this license. These can be included either as stand-alone text files, human-readable headers 
+or in the appropriate machine-readable metadata fields within text or binary files as long as those fields can be easily viewed by the user.
+
+3) No modified version of the font software may use the Reserved Name(s) or combinations of Reserved Names with other words unless explicit 
+written permission is granted by the ParaType. This restriction only applies to the primary font name as presented to the users.
+
+4) The name of ParaType or the author(s) of the font software shall not be used to promote, endorse or advertise any modified version, except 
+to acknowledge the contribution(s) of ParaType and the author(s) or with explicit written permission of ParaType.
+
+5) The font software, modified or unmodified, in part or in whole, must be distributed entirely under this license, and must not be distributed 
+under any other license. The requirement for fonts to remain under this license does not apply to any document created using the Font Software.
+
+TERMINATION & TERRITORY
+This license has no limits on time and territory, but it becomes null and void if any of the above conditions are not met.
+
+DISCLAIMER
+THE FONT SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO ANY WARRANTIES OF 
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT OF COPYRIGHT, PATENT, TRADEMARK, OR OTHER RIGHT. IN NO EVENT SHALL 
+PARATYPE BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, INCLUDING ANY GENERAL, SPECIAL, INDIRECT, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, 
+WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF THE USE OR INABILITY TO USE THE FONT SOFTWARE OR FROM OTHER DEALINGS 
+IN THE FONT SOFTWARE.
+
+
+END OF SIL OPEN FONT LICENSE 1.1 NON-IBM-LICENSE INFORMATION
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+UBUNTU FONT LICENCE Version 1.0
+
+-------------------------------
+
+PREAMBLE
+
+This licence allows the licensed fonts to be used, studied, modified and redistributed freely. The fonts, including any derivative works, can be bundled, embedded, and redistributed provided the terms of this licence are met. The fonts and derivatives, however, cannot be released under any other licence. The requirement for fonts to remain under this licence does not require any document created using the fonts or their derivatives to be published under this licence, as long as the primary purpose of the document is not to be a vehicle for the distribution of the fonts.  
+
+DEFINITIONS
+
+"Font Software" refers to the set of files released by the Copyright Holder(s) under this licence and clearly marked as such. This may include source files, build scripts and documentation.  
+
+"Original Version" refers to the collection of Font Software components as received under this licence.  
+
+"Modified Version" refers to any derivative made by adding to, deleting, or substituting -- in part or in whole -- any of the components of the Original Version, by changing formats or by porting the Font Software to a new environment.  
+
+"Copyright Holder(s)" refers to all individuals and companies who have a copyright ownership of the Font Software.  
+
+"Substantially Changed" refers to Modified Versions which can be easily identified as dissimilar to the Font Software by users of the Font Software comparing the Original Version with the Modified Version.  
+
+To "Propagate" a work means to do anything with it that, without permission, would make you directly or secondarily liable for infringement under applicable copyright law, except executing it on a computer or modifying a private copy. Propagation includes copying, distribution (with or without modification and with or without charging a redistribution fee), making available to the public, and in some countries other activities as well.  
+
+PERMISSION & CONDITIONS
+
+This licence does not grant any rights under trademark law and all such rights are reserved.  
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of the Font Software, to propagate the Font Software, subject to the below conditions:  
+
+1) Each copy of the Font Software must contain the above copyright notice and this licence. These can be included either as stand-alone text files, human-readable headers or in the appropriate machine- readable metadata fields within text or binary files as long as those fields can be easily viewed by the user.  
+
+2) The font name complies with the following:
+
+(a) The Original Version must retain its name, unmodified.
+
+(b) Modified Versions which are Substantially Changed must be renamed to avoid use of the name of the Original Version or similar names entirely.
+
+(c) Modified Versions which are not Substantially Changed must be renamed to both (i) retain the name of the Original Version and (ii) add additional naming elements to distinguish the Modified Version from the Original Version. The name of such Modified Versions must be the name of the Original Version, with "derivative X" where X represents the name of the new work, appended to that name.  
+
+3) The name(s) of the Copyright Holder(s) and any contributor to the Font Software shall not be used to promote, endorse or advertise any Modified Version, except (i) as required by this licence, (ii) to acknowledge the contribution(s) of the Copyright Holder(s) or (iii) with their explicit written permission.  
+
+4) The Font Software, modified or unmodified, in part or in whole, must be distributed entirely under this licence, and must not be distributed under any other licence. The requirement for fonts to remain under this licence does not affect any document created using the Font Software, except any version of the Font Software extracted from a document created using the Font Software may only be distributed under this licence.  
+
+TERMINATION
+
+This licence becomes null and void if any of the above conditions are not met.  
+
+DISCLAIMER
+
+THE FONT SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO ANY WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT OF COPYRIGHT, PATENT, TRADEMARK, OR OTHER RIGHT. IN NO EVENT SHALL THE COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, INCLUDING ANY GENERAL, SPECIAL, INDIRECT, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF THE USE OR INABILITY TO USE THE FONT SOFTWARE OR FROM OTHER DEALINGS IN THE FONT SOFTWARE.
+ 
+ 
+FONT_LICENSE [Werkzeug], FONT [Werkzeug]
+ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+UNIQUE (SLC REQD)
+
+OCB, OCB mode [pycryptodomex], OCBBlockCipher [bcprov-jdk15on]
+
+
+Copyright (c) 2014 IETF Trust and the persons identified as the
+   document authors.  All rights reserved
+
+This repository relates to activities in the Internet Engineering Task Force (IETF). All material in this repository is considered Contributions to the IETF Standards Process, as defined in the intellectual property policies of IETF currently designated as BCP 78, BCP 79 and the IETF Trust Legal Provisions (TLP) Relating to IETF Documents.
+
+Any edit, commit, pull request, issue, comment or other change made to this repository constitutes Contributions to the IETF Standards Process (https://www.ietf.org/).
+
+You agree to comply with all applicable IETF policies and procedures, including, BCP 78, 79, the TLP, and the TLP rules regarding code components (e.g. being subject to a Simplified BSD License) in Contributions.
+Other Resources
+
+Discussion of this work occurs on the {WG_NAME} working group mailing list (subscribe). In addition to contributions in GitHub, you are encouraged to participate in discussions there.
+
+Note: Some working groups adopt a policy whereby substantive discussion of technical issues needs to occur on the mailing list.
+
+You might also like to familiarize yourself with other working group documents..
+
+xmlwf man page
+
+
+                GNU Free Documentation License
+                 Version 1.3, 3 November 2008
+
+
+ Copyright (C) 2000, 2001, 2002, 2007, 2008 Free Software Foundation, Inc.
+     <https://fsf.org/>
+ Everyone is permitted to copy and distribute verbatim copies
+ of this license document, but changing it is not allowed.
+
+0. PREAMBLE
+
+The purpose of this License is to make a manual, textbook, or other
+functional and useful document "free" in the sense of freedom: to
+assure everyone the effective freedom to copy and redistribute it,
+with or without modifying it, either commercially or noncommercially.
+Secondarily, this License preserves for the author and publisher a way
+to get credit for their work, while not being considered responsible
+for modifications made by others.
+
+This License is a kind of "copyleft", which means that derivative
+works of the document must themselves be free in the same sense.  It
+complements the GNU General Public License, which is a copyleft
+license designed for free software.
+
+We have designed this License in order to use it for manuals for free
+software, because free software needs free documentation: a free
+program should come with manuals providing the same freedoms that the
+software does.  But this License is not limited to software manuals;
+it can be used for any textual work, regardless of subject matter or
+whether it is published as a printed book.  We recommend this License
+principally for works whose purpose is instruction or reference.
+
+
+1. APPLICABILITY AND DEFINITIONS
+
+This License applies to any manual or other work, in any medium, that
+contains a notice placed by the copyright holder saying it can be
+distributed under the terms of this License.  Such a notice grants a
+world-wide, royalty-free license, unlimited in duration, to use that
+work under the conditions stated herein.  The "Document", below,
+refers to any such manual or work.  Any member of the public is a
+licensee, and is addressed as "you".  You accept the license if you
+copy, modify or distribute the work in a way requiring permission
+under copyright law.
+
+A "Modified Version" of the Document means any work containing the
+Document or a portion of it, either copied verbatim, or with
+modifications and/or translated into another language.
+
+A "Secondary Section" is a named appendix or a front-matter section of
+the Document that deals exclusively with the relationship of the
+publishers or authors of the Document to the Document's overall
+subject (or to related matters) and contains nothing that could fall
+directly within that overall subject.  (Thus, if the Document is in
+part a textbook of mathematics, a Secondary Section may not explain
+any mathematics.)  The relationship could be a matter of historical
+connection with the subject or with related matters, or of legal,
+commercial, philosophical, ethical or political position regarding
+them.
+
+The "Invariant Sections" are certain Secondary Sections whose titles
+are designated, as being those of Invariant Sections, in the notice
+that says that the Document is released under this License.  If a
+section does not fit the above definition of Secondary then it is not
+allowed to be designated as Invariant.  The Document may contain zero
+Invariant Sections.  If the Document does not identify any Invariant
+Sections then there are none.
+
+The "Cover Texts" are certain short passages of text that are listed,
+as Front-Cover Texts or Back-Cover Texts, in the notice that says that
+the Document is released under this License.  A Front-Cover Text may
+be at most 5 words, and a Back-Cover Text may be at most 25 words.
+
+A "Transparent" copy of the Document means a machine-readable copy,
+represented in a format whose specification is available to the
+general public, that is suitable for revising the document
+straightforwardly with generic text editors or (for images composed of
+pixels) generic paint programs or (for drawings) some widely available
+drawing editor, and that is suitable for input to text formatters or
+for automatic translation to a variety of formats suitable for input
+to text formatters.  A copy made in an otherwise Transparent file
+format whose markup, or absence of markup, has been arranged to thwart
+or discourage subsequent modification by readers is not Transparent.
+An image format is not Transparent if used for any substantial amount
+of text.  A copy that is not "Transparent" is called "Opaque".
+
+Examples of suitable formats for Transparent copies include plain
+ASCII without markup, Texinfo input format, LaTeX input format, SGML
+or XML using a publicly available DTD, and standard-conforming simple
+HTML, PostScript or PDF designed for human modification.  Examples of
+transparent image formats include PNG, XCF and JPG.  Opaque formats
+include proprietary formats that can be read and edited only by
+proprietary word processors, SGML or XML for which the DTD and/or
+processing tools are not generally available, and the
+machine-generated HTML, PostScript or PDF produced by some word
+processors for output purposes only.
+
+The "Title Page" means, for a printed book, the title page itself,
+plus such following pages as are needed to hold, legibly, the material
+this License requires to appear in the title page.  For works in
+formats which do not have any title page as such, "Title Page" means
+the text near the most prominent appearance of the work's title,
+preceding the beginning of the body of the text.
+
+The "publisher" means any person or entity that distributes copies of
+the Document to the public.
+
+A section "Entitled XYZ" means a named subunit of the Document whose
+title either is precisely XYZ or contains XYZ in parentheses following
+text that translates XYZ in another language.  (Here XYZ stands for a
+specific section name mentioned below, such as "Acknowledgements",
+"Dedications", "Endorsements", or "History".)  To "Preserve the Title"
+of such a section when you modify the Document means that it remains a
+section "Entitled XYZ" according to this definition.
+
+The Document may include Warranty Disclaimers next to the notice which
+states that this License applies to the Document.  These Warranty
+Disclaimers are considered to be included by reference in this
+License, but only as regards disclaiming warranties: any other
+implication that these Warranty Disclaimers may have is void and has
+no effect on the meaning of this License.
+
+2. VERBATIM COPYING
+
+You may copy and distribute the Document in any medium, either
+commercially or noncommercially, provided that this License, the
+copyright notices, and the license notice saying this License applies
+to the Document are reproduced in all copies, and that you add no
+other conditions whatsoever to those of this License.  You may not use
+technical measures to obstruct or control the reading or further
+copying of the copies you make or distribute.  However, you may accept
+compensation in exchange for copies.  If you distribute a large enough
+number of copies you must also follow the conditions in section 3.
+
+You may also lend copies, under the same conditions stated above, and
+you may publicly display copies.
+
+
+3. COPYING IN QUANTITY
+
+If you publish printed copies (or copies in media that commonly have
+printed covers) of the Document, numbering more than 100, and the
+Document's license notice requires Cover Texts, you must enclose the
+copies in covers that carry, clearly and legibly, all these Cover
+Texts: Front-Cover Texts on the front cover, and Back-Cover Texts on
+the back cover.  Both covers must also clearly and legibly identify
+you as the publisher of these copies.  The front cover must present
+the full title with all words of the title equally prominent and
+visible.  You may add other material on the covers in addition.
+Copying with changes limited to the covers, as long as they preserve
+the title of the Document and satisfy these conditions, can be treated
+as verbatim copying in other respects.
+
+If the required texts for either cover are too voluminous to fit
+legibly, you should put the first ones listed (as many as fit
+reasonably) on the actual cover, and continue the rest onto adjacent
+pages.
+
+If you publish or distribute Opaque copies of the Document numbering
+more than 100, you must either include a machine-readable Transparent
+copy along with each Opaque copy, or state in or with each Opaque copy
+a computer-network location from which the general network-using
+public has access to download using public-standard network protocols
+a complete Transparent copy of the Document, free of added material.
+If you use the latter option, you must take reasonably prudent steps,
+when you begin distribution of Opaque copies in quantity, to ensure
+that this Transparent copy will remain thus accessible at the stated
+location until at least one year after the last time you distribute an
+Opaque copy (directly or through your agents or retailers) of that
+edition to the public.
+
+It is requested, but not required, that you contact the authors of the
+Document well before redistributing any large number of copies, to
+give them a chance to provide you with an updated version of the
+Document.
+
+
+4. MODIFICATIONS
+
+You may copy and distribute a Modified Version of the Document under
+the conditions of sections 2 and 3 above, provided that you release
+the Modified Version under precisely this License, with the Modified
+Version filling the role of the Document, thus licensing distribution
+and modification of the Modified Version to whoever possesses a copy
+of it.  In addition, you must do these things in the Modified Version:
+
+A. Use in the Title Page (and on the covers, if any) a title distinct
+   from that of the Document, and from those of previous versions
+   (which should, if there were any, be listed in the History section
+   of the Document).  You may use the same title as a previous version
+   if the original publisher of that version gives permission.
+B. List on the Title Page, as authors, one or more persons or entities
+   responsible for authorship of the modifications in the Modified
+   Version, together with at least five of the principal authors of the
+   Document (all of its principal authors, if it has fewer than five),
+   unless they release you from this requirement.
+C. State on the Title page the name of the publisher of the
+   Modified Version, as the publisher.
+D. Preserve all the copyright notices of the Document.
+E. Add an appropriate copyright notice for your modifications
+   adjacent to the other copyright notices.
+F. Include, immediately after the copyright notices, a license notice
+   giving the public permission to use the Modified Version under the
+   terms of this License, in the form shown in the Addendum below.
+G. Preserve in that license notice the full lists of Invariant Sections
+   and required Cover Texts given in the Document's license notice.
+H. Include an unaltered copy of this License.
+I. Preserve the section Entitled "History", Preserve its Title, and add
+   to it an item stating at least the title, year, new authors, and
+   publisher of the Modified Version as given on the Title Page.  If
+   there is no section Entitled "History" in the Document, create one
+   stating the title, year, authors, and publisher of the Document as
+   given on its Title Page, then add an item describing the Modified
+   Version as stated in the previous sentence.
+J. Preserve the network location, if any, given in the Document for
+   public access to a Transparent copy of the Document, and likewise
+   the network locations given in the Document for previous versions
+   it was based on.  These may be placed in the "History" section.
+   You may omit a network location for a work that was published at
+   least four years before the Document itself, or if the original
+   publisher of the version it refers to gives permission.
+K. For any section Entitled "Acknowledgements" or "Dedications",
+   Preserve the Title of the section, and preserve in the section all
+   the substance and tone of each of the contributor acknowledgements
+   and/or dedications given therein.
+L. Preserve all the Invariant Sections of the Document,
+   unaltered in their text and in their titles.  Section numbers
+   or the equivalent are not considered part of the section titles.
+M. Delete any section Entitled "Endorsements".  Such a section
+   may not be included in the Modified Version.
+N. Do not retitle any existing section to be Entitled "Endorsements"
+   or to conflict in title with any Invariant Section.
+O. Preserve any Warranty Disclaimers.
+
+If the Modified Version includes new front-matter sections or
+appendices that qualify as Secondary Sections and contain no material
+copied from the Document, you may at your option designate some or all
+of these sections as invariant.  To do this, add their titles to the
+list of Invariant Sections in the Modified Version's license notice.
+These titles must be distinct from any other section titles.
+
+You may add a section Entitled "Endorsements", provided it contains
+nothing but endorsements of your Modified Version by various
+parties--for example, statements of peer review or that the text has
+been approved by an organization as the authoritative definition of a
+standard.
+
+You may add a passage of up to five words as a Front-Cover Text, and a
+passage of up to 25 words as a Back-Cover Text, to the end of the list
+of Cover Texts in the Modified Version.  Only one passage of
+Front-Cover Text and one of Back-Cover Text may be added by (or
+through arrangements made by) any one entity.  If the Document already
+includes a cover text for the same cover, previously added by you or
+by arrangement made by the same entity you are acting on behalf of,
+you may not add another; but you may replace the old one, on explicit
+permission from the previous publisher that added the old one.
+
+The author(s) and publisher(s) of the Document do not by this License
+give permission to use their names for publicity for or to assert or
+imply endorsement of any Modified Version.
+
+
+5. COMBINING DOCUMENTS
+
+You may combine the Document with other documents released under this
+License, under the terms defined in section 4 above for modified
+versions, provided that you include in the combination all of the
+Invariant Sections of all of the original documents, unmodified, and
+list them all as Invariant Sections of your combined work in its
+license notice, and that you preserve all their Warranty Disclaimers.
+
+The combined work need only contain one copy of this License, and
+multiple identical Invariant Sections may be replaced with a single
+copy.  If there are multiple Invariant Sections with the same name but
+different contents, make the title of each such section unique by
+adding at the end of it, in parentheses, the name of the original
+author or publisher of that section if known, or else a unique number.
+Make the same adjustment to the section titles in the list of
+Invariant Sections in the license notice of the combined work.
+
+In the combination, you must combine any sections Entitled "History"
+in the various original documents, forming one section Entitled
+"History"; likewise combine any sections Entitled "Acknowledgements",
+and any sections Entitled "Dedications".  You must delete all sections
+Entitled "Endorsements".
+
+
+6. COLLECTIONS OF DOCUMENTS
+
+You may make a collection consisting of the Document and other
+documents released under this License, and replace the individual
+copies of this License in the various documents with a single copy
+that is included in the collection, provided that you follow the rules
+of this License for verbatim copying of each of the documents in all
+other respects.
+
+You may extract a single document from such a collection, and
+distribute it individually under this License, provided you insert a
+copy of this License into the extracted document, and follow this
+License in all other respects regarding verbatim copying of that
+document.
+
+
+7. AGGREGATION WITH INDEPENDENT WORKS
+
+A compilation of the Document or its derivatives with other separate
+and independent documents or works, in or on a volume of a storage or
+distribution medium, is called an "aggregate" if the copyright
+resulting from the compilation is not used to limit the legal rights
+of the compilation's users beyond what the individual works permit.
+When the Document is included in an aggregate, this License does not
+apply to the other works in the aggregate which are not themselves
+derivative works of the Document.
+
+If the Cover Text requirement of section 3 is applicable to these
+copies of the Document, then if the Document is less than one half of
+the entire aggregate, the Document's Cover Texts may be placed on
+covers that bracket the Document within the aggregate, or the
+electronic equivalent of covers if the Document is in electronic form.
+Otherwise they must appear on printed covers that bracket the whole
+aggregate.
+
+
+8. TRANSLATION
+
+Translation is considered a kind of modification, so you may
+distribute translations of the Document under the terms of section 4.
+Replacing Invariant Sections with translations requires special
+permission from their copyright holders, but you may include
+translations of some or all Invariant Sections in addition to the
+original versions of these Invariant Sections.  You may include a
+translation of this License, and all the license notices in the
+Document, and any Warranty Disclaimers, provided that you also include
+the original English version of this License and the original versions
+of those notices and disclaimers.  In case of a disagreement between
+the translation and the original version of this License or a notice
+or disclaimer, the original version will prevail.
+
+If a section in the Document is Entitled "Acknowledgements",
+"Dedications", or "History", the requirement (section 4) to Preserve
+its Title (section 1) will typically require changing the actual
+title.
+
+
+9. TERMINATION
+
+You may not copy, modify, sublicense, or distribute the Document
+except as expressly provided under this License.  Any attempt
+otherwise to copy, modify, sublicense, or distribute it is void, and
+will automatically terminate your rights under this License.
+
+However, if you cease all violation of this License, then your license
+from a particular copyright holder is reinstated (a) provisionally,
+unless and until the copyright holder explicitly and finally
+terminates your license, and (b) permanently, if the copyright holder
+fails to notify you of the violation by some reasonable means prior to
+60 days after the cessation.
+
+Moreover, your license from a particular copyright holder is
+reinstated permanently if the copyright holder notifies you of the
+violation by some reasonable means, this is the first time you have
+received notice of violation of this License (for any work) from that
+copyright holder, and you cure the violation prior to 30 days after
+your receipt of the notice.
+
+Termination of your rights under this section does not terminate the
+licenses of parties who have received copies or rights from you under
+this License.  If your rights have been terminated and not permanently
+reinstated, receipt of a copy of some or all of the same material does
+not give you any rights to use it.
+
+
+10. FUTURE REVISIONS OF THIS LICENSE
+
+The Free Software Foundation may publish new, revised versions of the
+GNU Free Documentation License from time to time.  Such new versions
+will be similar in spirit to the present version, but may differ in
+detail to address new problems or concerns.  See
+https://www.gnu.org/licenses/.
+
+Each version of the License is given a distinguishing version number.
+If the Document specifies that a particular numbered version of this
+License "or any later version" applies to it, you have the option of
+following the terms and conditions either of that specified version or
+of any later version that has been published (not as a draft) by the
+Free Software Foundation.  If the Document does not specify a version
+number of this License, you may choose any version ever published (not
+as a draft) by the Free Software Foundation.  If the Document
+specifies that a proxy can decide which future versions of this
+License can be used, that proxy's public statement of acceptance of a
+version permanently authorizes you to choose that version for the
+Document.
+
+11. RELICENSING
+
+"Massive Multiauthor Collaboration Site" (or "MMC Site") means any
+World Wide Web server that publishes copyrightable works and also
+provides prominent facilities for anybody to edit those works.  A
+public wiki that anybody can edit is an example of such a server.  A
+"Massive Multiauthor Collaboration" (or "MMC") contained in the site
+means any set of copyrightable works thus published on the MMC site.
+
+"CC-BY-SA" means the Creative Commons Attribution-Share Alike 3.0 
+license published by Creative Commons Corporation, a not-for-profit 
+corporation with a principal place of business in San Francisco, 
+California, as well as future copyleft versions of that license 
+published by that same organization.
+
+"Incorporate" means to publish or republish a Document, in whole or in 
+part, as part of another Document.
+
+An MMC is "eligible for relicensing" if it is licensed under this 
+License, and if all works that were first published under this License 
+somewhere other than this MMC, and subsequently incorporated in whole or 
+in part into the MMC, (1) had no cover texts or invariant sections, and 
+(2) were thus incorporated prior to November 1, 2008.
+
+The operator of an MMC Site may republish an MMC contained in the site
+under CC-BY-SA on the same site at any time before August 1, 2009,
+provided the MMC is eligible for relicensing.
+
+
+ADDENDUM: How to use this License for your documents
+
+To use this License in a document you have written, include a copy of
+the License in the document and put the following copyright and
+license notices just after the title page:
+
+    Copyright (c)  YEAR  YOUR NAME.
+    Permission is granted to copy, distribute and/or modify this document
+    under the terms of the GNU Free Documentation License, Version 1.3
+    or any later version published by the Free Software Foundation;
+    with no Invariant Sections, no Front-Cover Texts, and no Back-Cover Texts.
+    A copy of the license is included in the section entitled "GNU
+    Free Documentation License".
+
+If you have Invariant Sections, Front-Cover Texts and Back-Cover Texts,
+replace the "with...Texts." line with this:
+
+    with the Invariant Sections being LIST THEIR TITLES, with the
+    Front-Cover Texts being LIST, and with the Back-Cover Texts being LIST.
+
+If you have Invariant Sections without Cover Texts, or some other
+combination of the three, merge those two alternatives to suit the
+situation.
+
+If your document contains nontrivial examples of program code, we
+recommend releasing these examples in parallel under your choice of
+free software license, such as the GNU General Public License,
+to permit their use in free software.
+
+ELASTICESEARCH, 
+org.elasticsearch.client:elasticsearch-rest-client (Copyright 2009-2021 Elasticsearch) (https://repo1.maven.org/maven2/org/elasticsearch/client/elasticsearch-rest-client/7.17.3/elasticsearch-rest-client-7.17.3-sources.jar), 
+org.elasticsearch.client:elasticsearch-rest-client (Copyright 2009-2021 Elasticsearch) (https://repo1.maven.org/maven2/org/elasticsearch/client/elasticsearch-rest-client/8.4.3/elasticsearch-rest-client-8.4.3-sources.jar), 
+org.elasticsearch.client:elasticsearch-rest-client-sniffer (Copyright 2009-2021 Elasticsearch) (https://repo1.maven.org/maven2/org/elasticsearch/client/elasticsearch-rest-client-sniffer/8.4.3/elasticsearch-rest-client-sniffer-8.4.3-sources.jar), 
+org.elasticsearch.plugin:elasticsearch-scripting-painless-spi (Copyright 2009-2021 Elasticsearch) (https://repo1.maven.org/maven2/org/elasticsearch/plugin/elasticsearch-scripting-painless-spi/8.4.3/elasticsearch-scripting-painless-spi-8.4.3-sources.jar), 
+org.elasticsearch.plugin:transport-netty4 (Copyright 2009-2021 Elasticsearch) (https://repo1.maven.org/maven2/org/elasticsearch/plugin/transport-netty4/8.4.3/transport-netty4-8.4.3-sources.jar), 
+org.elasticsearch.plugin:x-pack-core (Copyright 2009-2021 Elasticsearch) (https://repo1.maven.org/maven2/org/elasticsearch/plugin/x-pack-core/8.4.3/x-pack-core-8.4.3-sources.jar), 
+org.elasticsearch:elasticsearch (Copyright 2009-2021 Elasticsearch) (https://repo1.maven.org/maven2/org/elasticsearch/elasticsearch/8.4.3/elasticsearch-8.4.3-sources.jar), 
+org.elasticsearch:elasticsearch-core (Copyright 2009-2021 Elasticsearch) (https://repo1.maven.org/maven2/org/elasticsearch/elasticsearch-core/8.4.3/elasticsearch-core-8.4.3-sources.jar), 
+org.elasticsearch:elasticsearch-logging (Copyright 2009-2021 Elasticsearch) (https://repo1.maven.org/maven2/org/elasticsearch/elasticsearch-logging/8.4.3/elasticsearch-logging-8.4.3-sources.jar), 
+org.elasticsearch:elasticsearch-lz4 (Copyright 2009-2021 Elasticsearch) (https://repo1.maven.org/maven2/org/elasticsearch/elasticsearch-lz4/8.4.3/elasticsearch-lz4-8.4.3-sources.jar), 
+org.elasticsearch:elasticsearch-plugin-classloader (Copyright 2009-2021 Elasticsearch) (https://repo1.maven.org/maven2/org/elasticsearch/elasticsearch-plugin-classloader/8.4.3/elasticsearch-plugin-classloader-8.4.3-sources.jar), 
+org.elasticsearch:elasticsearch-ssl-config (Copyright 2009-2021 Elasticsearch) (https://repo1.maven.org/maven2/org/elasticsearch/elasticsearch-ssl-config/8.4.3/elasticsearch-ssl-config-8.4.3-sources.jar), 
+org.elasticsearch:elasticsearch-x-content (Copyright 2009-2021 Elasticsearch) (https://repo1.maven.org/maven2/org/elasticsearch/elasticsearch-x-content/8.4.3/elasticsearch-x-content-8.4.3-sources.jar)
+
+
+Elastic License 2.0
+
+URL: https://www.elastic.co/licensing/elastic-license
+
+## Acceptance
+
+By using the software, you agree to all of the terms and conditions below.
+
+## Copyright License
+
+The licensor grants you a non-exclusive, royalty-free, worldwide,
+non-sublicensable, non-transferable license to use, copy, distribute, make
+available, and prepare derivative works of the software, in each case subject to
+the limitations and conditions below.
+
+## Limitations
+
+You may not provide the software to third parties as a hosted or managed
+service, where the service provides users with access to any substantial set of
+the features or functionality of the software.
+
+You may not move, change, disable, or circumvent the license key functionality
+in the software, and you may not remove or obscure any functionality in the
+software that is protected by the license key.
+
+You may not alter, remove, or obscure any licensing, copyright, or other notices
+of the licensor in the software. Any use of the licensor’s trademarks is subject
+to applicable law.
+
+## Patents
+
+The licensor grants you a license, under any patent claims the licensor can
+license, or becomes able to license, to make, have made, use, sell, offer for
+sale, import and have imported the software, in each case subject to the
+limitations and conditions in this license. This license does not cover any
+patent claims that you cause to be infringed by modifications or additions to
+the software. If you or your company make any written claim that the software
+infringes or contributes to infringement of any patent, your patent license for
+the software granted under these terms ends immediately. If your company makes
+such a claim, your patent license ends immediately for work on behalf of your
+company.
+
+## Notices
+
+You must ensure that anyone who gets a copy of any part of the software from you
+also gets a copy of these terms.
+
+If you modify the software, you must include in any modified copies of the
+software prominent notices stating that you have modified the software.
+
+## No Other Rights
+
+These terms do not imply any licenses other than those expressly granted in
+these terms.
+
+## Termination
+
+If you use the software in violation of these terms, such use is not licensed,
+and your licenses will automatically terminate. If the licensor provides you
+with a notice of your violation, and you cease all violation of this license no
+later than 30 days after you receive that notice, your licenses will be
+reinstated retroactively. However, if you violate these terms after such
+reinstatement, any additional violation of these terms will cause your licenses
+to terminate automatically and permanently.
+
+## No Liability
+
+*As far as the law allows, the software comes as is, without any warranty or
+condition, and the licensor will not be liable to you for any damages arising
+out of these terms or the use or nature of the software, under any kind of
+legal claim.*
+
+## Definitions
+
+The **licensor** is the entity offering these terms, and the **software** is the
+software the licensor makes available under these terms, including any portion
+of it.
+
+**you** refers to the individual or entity agreeing to these terms.
+
+**your company** is any legal entity, sole proprietorship, or other kind of
+organization that you work for, plus all organizations that have control over,
+are under the control of, or are under common control with that
+organization. **control** means ownership of substantially all the assets of an
+entity, or the power to direct its management and policies by vote, contract, or
+otherwise. Control can be direct or indirect.
+
+**your licenses** are all the licenses granted to you for the software under
+these terms.
+
+**use** means anything you do with the software requiring one of your licenses.
+
+**trademark** means trademarks, service marks, and similar rights.
+
+
+MongoDB, nverse_SSE.h [ITK], 
+MongoDB (Copyright © 2018 MongoDB, Inc.) (https://github.com/mongodb/mongo/tree/r4.4.17)
+
+Server Side Public License
+
+VERSION 1, OCTOBER 16, 2018
+
+Copyright © 2018 MongoDB, Inc.
+
+Everyone is permitted to copy and distribute verbatim copies of this 
+license document, but changing it is not allowed.
+TERMS AND CONDITIONS
+0. Definitions.
+
+“This License” refers to Server Side Public License.
+
+“Copyright” also means copyright-like laws that apply to other kinds 
+of works, such as semiconductor masks.
+
+“The Program” refers to any copyrightable work licensed under this 
+License. Each licensee is addressed as “you”. “Licensees” and 
+“recipients” may be individuals or organizations.
+
+To “modify” a work means to copy from or adapt all or part of the 
+work in a fashion requiring copyright permission, other than the making 
+of an exact copy. The resulting work is called a “modified version” of 
+the earlier work or a work “based on” the earlier work.
+
+A “covered work” means either the unmodified Program or a work based on 
+the Program.
+
+To “propagate” a work means to do anything with it that, without 
+permission, would make you directly or secondarily liable for infringement 
+under applicable copyright law, except executing it on a computer or 
+modifying a private copy. Propagation includes copying, distribution 
+(with or without modification), making available to the public, and in some 
+countries other activities as well.
+
+To “convey” a work means any kind of propagation that enables other parties 
+to make or receive copies. Mere interaction with a user through a computer 
+network, with no transfer of a copy, is not conveying.
+
+An interactive user interface displays “Appropriate Legal Notices” to the 
+extent that it includes a convenient and prominently visible feature that 
+(1) displays an appropriate copyright notice, and (2) tells the user that 
+there is no warranty for the work (except to the extent that warranties are 
+provided), that licensees may convey the work under this License, and how to 
+view a copy of this License. If the interface presents a list of user commands 
+or options, such as a menu, a prominent item in the list meets this criterion.
+
+1. Source Code.
+
+The “source code” for a work means the preferred form of the work for making 
+modifications to it. “Object code” means any non-source form of a work.
+
+A “Standard Interface” means an interface that either is an official standard 
+defined by a recognized standards body, or, in the case of interfaces specified 
+for a particular programming language, one that is widely used among developers 
+working in that language.
+
+The “System Libraries” of an executable work include anything, other than the 
+work as a whole, that (a) is included in the normal form of packaging a Major 
+Component, but which is not part of that Major Component, and (b) serves only 
+to enable use of the work with that Major Component, or to implement a Standard 
+Interface for which an implementation is available to the public in source code 
+form. A “Major Component”, in this context, means a major essential component 
+(kernel, window system, and so on) of the specific operating system (if any) 
+on which the executable work runs, or a compiler used to produce the work, or 
+an object code interpreter used to run it.
+
+The “Corresponding Source” for a work in object code form means all the source 
+code needed to generate, install, and (for an executable work) run the object 
+code and to modify the work, including scripts to control those activities. 
+However, it does not include the work's System Libraries, or general-purpose 
+tools or generally available free programs which are used unmodified in performing 
+those activities but which are not part of the work. For example, Corresponding 
+Source includes interface definition files associated with source files for the 
+work, and the source code for shared libraries and dynamically linked subprograms 
+that the work is specifically designed to require, such as by intimate data 
+communication or control flow between those subprograms and other parts of the 
+work.
+
+The Corresponding Source need not include anything that users can regenerate 
+automatically from other parts of the Corresponding Source.
+
+The Corresponding Source for a work in source code form is that same work.
+
+
+2. Basic Permissions.
+
+All rights granted under this License are granted for the term of copyright 
+on the Program, and are irrevocable provided the stated conditions are met. 
+This License explicitly affirms your unlimited permission to run the 
+unmodified Program, subject to section 13. The output from running a covered 
+work is covered by this License only if the output, given its content, 
+constitutes a covered work. This License acknowledges your rights of fair use 
+or other equivalent, as provided by copyright law.
+
+Subject to section 13, you may make, run and propagate covered works that you 
+do not convey, without conditions so long as your license otherwise remains 
+in force. You may convey covered works to others for the sole purpose of 
+having them make modifications exclusively for you, or provide you with 
+facilities for running those works, provided that you comply with the terms 
+of this License in conveying all material for which you do not control 
+copyright. Those thus making or running the covered works for you must do so 
+exclusively on your behalf, under your direction and control, on terms that 
+prohibit them from making any copies of your copyrighted material outside 
+their relationship with you.
+
+Conveying under any other circumstances is permitted solely under the conditions 
+stated below. Sublicensing is not allowed; section 10 makes it unnecessary.
+
+
+3. Protecting Users' Legal Rights From Anti-Circumvention Law.
+
+No covered work shall be deemed part of an effective technological measure under 
+any applicable law fulfilling obligations under article 11 of the WIPO copyright 
+treaty adopted on 20 December 1996, or similar laws prohibiting or restricting 
+circumvention of such measures.
+
+When you convey a covered work, you waive any legal power to forbid circumvention 
+of technological measures to the extent such circumvention is effected by 
+exercising rights under this License with respect to the covered work, and you 
+disclaim any intention to limit operation or modification of the work as a means 
+of enforcing, against the work's users, your or third parties' legal rights to 
+forbid circumvention of technological measures.
+
+
+4. Conveying Verbatim Copies.
+
+You may convey verbatim copies of the Program's source code as you receive it, 
+in any medium, provided that you conspicuously and appropriately publish on 
+each copy an appropriate copyright notice; keep intact all notices stating that 
+this License and any non-permissive terms added in accord with section 7 apply 
+to the code; keep intact all notices of the absence of any warranty; and give 
+all recipients a copy of this License along with the Program.
+
+You may charge any price or no price for each copy that you convey, and you may 
+offer support or warranty protection for a fee.
+
+
+5. Conveying Modified Source Versions.
+
+You may convey a work based on the Program, or the modifications to produce it 
+from the Program, in the form of source code under the terms of section 4, 
+provided that you also meet all of these conditions:
+
+    a) The work must carry prominent notices stating that you modified it, 
+    and giving a relevant date.
+    b) The work must carry prominent notices stating that it is released under 
+    this License and any conditions added under section 7. This requirement 
+    modifies the requirement in section 4 to “keep intact all notices”.
+    c) You must license the entire work, as a whole, under this License to 
+    anyone who comes into possession of a copy. This License will therefore 
+    apply, along with any applicable section 7 additional terms, to the whole 
+    of the work, and all its parts, regardless of how they are packaged. This 
+    License gives no permission to license the work in any other way, but it 
+    does not invalidate such permission if you have separately received it.
+    d) If the work has interactive user interfaces, each must display 
+    Appropriate Legal Notices; however, if the Program has interactive 
+    interfaces that do not display Appropriate Legal Notices, your work need 
+    not make them do so.
+
+A compilation of a covered work with other separate and independent works, which 
+are not by their nature extensions of the covered work, and which are not combined 
+with it such as to form a larger program, in or on a volume of a storage or 
+distribution medium, is called an “aggregate” if the compilation and its resulting 
+copyright are not used to limit the access or legal rights of the compilation's 
+users beyond what the individual works permit. Inclusion of a covered work in an 
+aggregate does not cause this License to apply to the other parts of the aggregate.
+
+
+6. Conveying Non-Source Forms.
+
+You may convey a covered work in object code form under the terms of sections 4 and 
+5, provided that you also convey the machine-readable Corresponding Source under 
+the terms of this License, in one of these ways:
+
+    a) Convey the object code in, or embodied in, a physical product (including a 
+    physical distribution medium), accompanied by the Corresponding Source fixed 
+    on a durable physical medium customarily used for software interchange.
+    b) Convey the object code in, or embodied in, a physical product (including a 
+    physical distribution medium), accompanied by a written offer, valid for at 
+    least three years and valid for as long as you offer spare parts or customer 
+    support for that product model, to give anyone who possesses the object code 
+    either (1) a copy of the Corresponding Source for all the software in the product 
+    that is covered by this License, on a durable physical medium customarily used 
+    for software interchange, for a price no more than your reasonable cost of 
+    physically performing this conveying of source, or (2) access to copy the 
+    Corresponding Source from a network server at no charge.
+    c) Convey individual copies of the object code with a copy of the written offer 
+    to provide the Corresponding Source. This alternative is allowed only occasionally 
+    and noncommercially, and only if you received the object code with such an offer, 
+    in accord with subsection 6b.
+    d) Convey the object code by offering access from a designated place (gratis or 
+    for a charge), and offer equivalent access to the Corresponding Source in the 
+    same way through the same place at no further charge. You need not require 
+    recipients to copy the Corresponding Source along with the object code. If the 
+    place to copy the object code is a network server, the Corresponding Source may 
+    be on a different server (operated by you or a third party) that supports 
+    equivalent copying facilities, provided you maintain clear directions next to the 
+    object code saying where to find the Corresponding Source. Regardless of what 
+    server hosts the Corresponding Source, you remain obligated to ensure that it is 
+    available for as long as needed to satisfy these requirements.
+    e) Convey the object code using peer-to-peer transmission, provided you inform 
+    other peers where the object code and Corresponding Source of the work are being 
+    offered to the general public at no charge under subsection 6d.
+
+A separable portion of the object code, whose source code is excluded from the 
+Corresponding Source as a System Library, need not be included in conveying the 
+object code work.
+
+A “User Product” is either (1) a “consumer product”, which means any tangible 
+personal property which is normally used for personal, family, or household purposes, 
+or (2) anything designed or sold for incorporation into a dwelling. In determining 
+whether a product is a consumer product, doubtful cases shall be resolved in favor 
+of coverage. For a particular product received by a particular user, “normally used” 
+refers to a typical or common use of that class of product, regardless of the status 
+of the particular user or of the way in which the particular user actually uses, or 
+expects or is expected to use, the product. A product is a consumer product regardless 
+of whether the product has substantial commercial, industrial or non-consumer uses, 
+unless such uses represent the only significant mode of use of the product.
+
+“Installation Information” for a User Product means any methods, procedures, 
+authorization keys, or other information required to install and execute modified 
+versions of a covered work in that User Product from a modified version of its 
+Corresponding Source. The information must suffice to ensure that the continued 
+functioning of the modified object code is in no case prevented or interfered 
+with solely because modification has been made.
+
+If you convey an object code work under this section in, or with, or specifically 
+for use in, a User Product, and the conveying occurs as part of a transaction in 
+which the right of possession and use of the User Product is transferred to the 
+recipient in perpetuity or for a fixed term (regardless of how the transaction is 
+characterized), the Corresponding Source conveyed under this section must be 
+accompanied by the Installation Information. But this requirement does not apply 
+if neither you nor any third party retains the ability to install modified object 
+code on the User Product (for example, the work has been installed in ROM).
+
+The requirement to provide Installation Information does not include a requirement 
+to continue to provide support service, warranty, or updates for a work that has 
+been modified or installed by the recipient, or for the User Product in which it 
+has been modified or installed. Access to a network may be denied when the 
+modification itself materially and adversely affects the operation of the network 
+or violates the rules and protocols for communication across the network.
+
+Corresponding Source conveyed, and Installation Information provided, in accord 
+with this section must be in a format that is publicly documented (and with an 
+implementation available to the public in source code form), and must require no 
+special password or key for unpacking, reading or copying.
+
+
+7. Additional Terms.
+
+“Additional permissions” are terms that supplement the terms of this License by 
+making exceptions from one or more of its conditions. Additional permissions that 
+are applicable to the entire Program shall be treated as though they were included 
+in this License, to the extent that they are valid under applicable law. If additional 
+permissions apply only to part of the Program, that part may be used separately under 
+those permissions, but the entire Program remains governed by this License without 
+regard to the additional permissions.
+
+When you convey a copy of a covered work, you may at your option remove any additional 
+permissions from that copy, or from any part of it. (Additional permissions may be 
+written to require their own removal in certain cases when you modify the work.) You may 
+place additional permissions on material, added by you to a covered work, for which you 
+have or can give appropriate copyright permission.
+
+Notwithstanding any other provision of this License, for material you add to a covered 
+work, you may (if authorized by the copyright holders of that material) supplement the 
+terms of this License with terms:
+
+    a) Disclaiming warranty or limiting liability differently from the terms of sections
+     15 and 16 of this License; or
+    b) Requiring preservation of specified reasonable legal notices or author attributions 
+    in that material or in the Appropriate Legal Notices displayed by works containing it; 
+    or
+    c) Prohibiting misrepresentation of the origin of that material, or requiring that 
+    modified versions of such material be marked in reasonable ways as different from 
+    the original version; or
+    d) Limiting the use for publicity purposes of names of licensors or authors of the 
+    material; or
+    e) Declining to grant rights under trademark law for use of some trade names, 
+    trademarks, or service marks; or
+    f) Requiring indemnification of licensors and authors of that material by anyone who 
+    conveys the material (or modified versions of it) with contractual assumptions of 
+    liability to the recipient, for any liability that these contractual assumptions 
+    directly impose on those licensors and authors.
+
+All other non-permissive additional terms are considered “further restrictions” within 
+the meaning of section 10. If the Program as you received it, or any part of it, contains 
+a notice stating that it is governed by this License along with a term that is a further 
+restriction, you may remove that term. If a license document contains a further restriction 
+but permits relicensing or conveying under this License, you may add to a covered work 
+material governed by the terms of that license document, provided that the further restriction 
+does not survive such relicensing or conveying.
+
+If you add terms to a covered work in accord with this section, you must place, in the 
+relevant source files, a statement of the additional terms that apply to those files, or a 
+notice indicating where to find the applicable terms.
+
+Additional terms, permissive or non-permissive, may be stated in the form of a separately 
+written license, or stated as exceptions; the above requirements apply either way.
+
+
+8. Termination.
+
+You may not propagate or modify a covered work except as expressly provided under this 
+License. Any attempt otherwise to propagate or modify it is void, and will automatically 
+terminate your rights under this License (including any patent licenses granted under the 
+third paragraph of section 11).
+
+However, if you cease all violation of this License, then your license from a particular 
+copyright holder is reinstated (a) provisionally, unless and until the copyright holder 
+explicitly and finally terminates your license, and (b) permanently, if the copyright 
+holder fails to notify you of the violation by some reasonable means prior to 60 days 
+after the cessation.
+
+Moreover, your license from a particular copyright holder is reinstated permanently if 
+the copyright holder notifies you of the violation by some reasonable means, this is 
+the first time you have received notice of violation of this License (for any work) 
+from that copyright holder, and you cure the violation prior to 30 days after your 
+receipt of the notice.
+
+Termination of your rights under this section does not terminate the licenses of parties 
+who have received copies or rights from you under this License. If your rights have been 
+terminated and not permanently reinstated, you do not qualify to receive new licenses for 
+the same material under section 10.
+
+
+9. Acceptance Not Required for Having Copies.
+
+You are not required to accept this License in order to receive or run a copy of the 
+Program. Ancillary propagation of a covered work occurring solely as a consequence of 
+using peer-to-peer transmission to receive a copy likewise does not require acceptance. 
+However, nothing other than this License grants you permission to propagate or modify any 
+covered work. These actions infringe copyright if you do not accept this License. 
+Therefore, by modifying or propagating a covered work, you indicate your acceptance of 
+this License to do so.
+
+
+10. Automatic Licensing of Downstream Recipients.
+
+Each time you convey a covered work, the recipient automatically receives a license 
+from the original licensors, to run, modify and propagate that work, subject to this 
+License. You are not responsible for enforcing compliance by third parties with this 
+License.
+
+An “entity transaction” is a transaction transferring control of an organization, or 
+substantially all assets of one, or subdividing an organization, or merging 
+organizations. If propagation of a covered work results from an entity transaction, 
+each party to that transaction who receives a copy of the work also receives whatever 
+licenses to the work the party's predecessor in interest had or could give under the 
+previous paragraph, plus a right to possession of the Corresponding Source of the work 
+from the predecessor in interest, if the predecessor has it or can get it with 
+reasonable efforts.
+
+You may not impose any further restrictions on the exercise of the rights granted or 
+affirmed under this License. For example, you may not impose a license fee, royalty, 
+or other charge for exercise of rights granted under this License, and you may not 
+initiate litigation (including a cross-claim or counterclaim in a lawsuit) alleging 
+that any patent claim is infringed by making, using, selling, offering for sale, or 
+importing the Program or any portion of it.
+
+
+11. Patents.
+
+A “contributor” is a copyright holder who authorizes use under this License of the 
+Program or a work on which the Program is based. The work thus licensed is called 
+the contributor's “contributor version”.
+
+A contributor's “essential patent claims” are all patent claims owned or controlled 
+by the contributor, whether already acquired or hereafter acquired, that would be 
+infringed by some manner, permitted by this License, of making, using, or selling 
+its contributor version, but do not include claims that would be infringed only 
+as a consequence of further modification of the contributor version. For purposes 
+of this definition, “control” includes the right to grant patent sublicenses in a 
+manner consistent with the requirements of this License.
+
+Each contributor grants you a non-exclusive, worldwide, royalty-free patent license 
+under the contributor's essential patent claims, to make, use, sell, offer for sale, 
+import and otherwise run, modify and propagate the contents of its contributor version.
+
+In the following three paragraphs, a “patent license” is any express agreement or 
+commitment, however denominated, not to enforce a patent (such as an express permission 
+to practice a patent or covenant not to sue for patent infringement). To “grant” such a 
+patent license to a party means to make such an agreement or commitment not to enforce a 
+patent against the party.
+
+If you convey a covered work, knowingly relying on a patent license, and the Corresponding 
+Source of the work is not available for anyone to copy, free of charge and under the terms 
+of this License, through a publicly available network server or other readily accessible means, 
+then you must either (1) cause the Corresponding Source to be so available, or (2) arrange to 
+deprive yourself of the benefit of the patent license for this particular work, or (3) arrange, 
+in a manner consistent with the requirements of this License, to extend the patent license to 
+downstream recipients. “Knowingly relying” means you have actual knowledge that, but for the 
+patent license, your conveying the covered work in a country, or your recipient's use of the 
+covered work in a country, would infringe one or more identifiable patents in that country 
+that you have reason to believe are valid.
+
+If, pursuant to or in connection with a single transaction or arrangement, you convey, or 
+propagate by procuring conveyance of, a covered work, and grant a patent license to some of 
+the parties receiving the covered work authorizing them to use, propagate, modify or convey a 
+specific copy of the covered work, then the patent license you grant is automatically extended 
+to all recipients of the covered work and works based on it.
+
+A patent license is “discriminatory” if it does not include within the scope of its coverage, 
+prohibits the exercise of, or is conditioned on the non-exercise of one or more of the rights 
+that are specifically granted under this License. You may not convey a covered work if you are 
+a party to an arrangement with a third party that is in the business of distributing software, 
+under which you make payment to the third party based on the extent of your activity of conveying 
+the work, and under which the third party grants, to any of the parties who would receive the 
+covered work from you, a discriminatory patent license (a) in connection with copies of the 
+covered work conveyed by you (or copies made from those copies), or (b) primarily for and in 
+connection with specific products or compilations that contain the covered work, unless you 
+entered into that arrangement, or that patent license was granted, prior to 28 March 2007.
+
+Nothing in this License shall be construed as excluding or limiting any implied license or 
+other defenses to infringement that may otherwise be available to you under applicable patent law.
+
+
+12. No Surrender of Others' Freedom.
+
+If conditions are imposed on you (whether by court order, agreement or otherwise) that contradict 
+the conditions of this License, they do not excuse you from the conditions of this License. If you 
+cannot use, propagate or convey a covered work so as to satisfy simultaneously your obligations 
+under this License and any other pertinent obligations, then as a consequence you may not use, 
+propagate or convey it at all. For example, if you agree to terms that obligate you to collect a 
+royalty for further conveying from those to whom you convey the Program, the only way you could 
+satisfy both those terms and this License would be to refrain entirely from conveying the Program.
+
+
+13. Offering the Program as a Service.
+
+If you make the functionality of the Program or a modified version available to third parties 
+as a service, you must make the Service Source Code available via network download to everyone 
+at no charge, under the terms of this License. Making the functionality of the Program or 
+modified version available to third parties as a service includes, without limitation, enabling 
+third parties to interact with the functionality of the Program or modified version remotely 
+through a computer network, offering a service the value of which entirely or primarily derives 
+from the value of the Program or modified version, or offering a service that accomplishes for 
+users the primary purpose of the Program or modified version.
+
+“Service Source Code” means the Corresponding Source for the Program or the modified version, and 
+the Corresponding Source for all programs that you use to make the Program or modified version 
+available as a service, including, without limitation, management software, user interfaces, 
+application program interfaces, automation software, monitoring software, backup software, 
+storage software and hosting software, all such that a user could run an instance of the service 
+using the Service Source Code you make available.
+
+
+14. Revised Versions of this License.
+
+MongoDB, Inc. may publish revised and/or new versions of the Server Side Public License from 
+time to time. Such new versions will be similar in spirit to the present version, but may differ 
+in detail to address new problems or concerns.
+
+Each version is given a distinguishing version number. If the Program specifies that a certain 
+numbered version of the Server Side Public License “or any later version” applies to it, you have 
+the option of following the terms and conditions either of that numbered version or of any later 
+version published by MongoDB, Inc. If the Program does not specify a version number of the Server 
+Side Public License, you may choose any version ever published by MongoDB, Inc.
+
+If the Program specifies that a proxy can decide which future versions of the Server Side Public 
+License can be used, that proxy's public statement of acceptance of a version permanently authorizes 
+you to choose that version for the Program.
+
+Later license versions may give you additional or different permissions. However, no additional 
+obligations are imposed on any author or copyright holder as a result of your choosing to follow 
+a later version.
+
+
+15. Disclaimer of Warranty.
+
+THERE IS NO WARRANTY FOR THE PROGRAM, TO THE EXTENT PERMITTED BY APPLICABLE LAW. EXCEPT WHEN 
+OTHERWISE STATED IN WRITING THE COPYRIGHT HOLDERS AND/OR OTHER PARTIES PROVIDE THE PROGRAM 
+“AS IS” WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED 
+TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE ENTIRE 
+RISK AS TO THE QUALITY AND PERFORMANCE OF THE PROGRAM IS WITH YOU. SHOULD THE PROGRAM PROVE 
+DEFECTIVE, YOU ASSUME THE COST OF ALL NECESSARY SERVICING, REPAIR OR CORRECTION.
+
+
+16. Limitation of Liability.
+
+IN NO EVENT UNLESS REQUIRED BY APPLICABLE LAW OR AGREED TO IN WRITING WILL ANY COPYRIGHT 
+HOLDER, OR ANY OTHER PARTY WHO MODIFIES AND/OR CONVEYS THE PROGRAM AS PERMITTED ABOVE, BE 
+LIABLE TO YOU FOR DAMAGES, INCLUDING ANY GENERAL, SPECIAL, INCIDENTAL OR CONSEQUENTIAL DAMAGES A
+RISING OUT OF THE USE OR INABILITY TO USE THE PROGRAM (INCLUDING BUT NOT LIMITED TO LOSS OF DATA 
+OR DATA BEING RENDERED INACCURATE OR LOSSES SUSTAINED BY YOU OR THIRD PARTIES OR A FAILURE OF THE 
+PROGRAM TO OPERATE WITH ANY OTHER PROGRAMS), EVEN IF SUCH HOLDER OR OTHER PARTY HAS BEEN ADVISED 
+OF THE POSSIBILITY OF SUCH DAMAGES.
+
+
+17. Interpretation of Sections 15 and 16.
+
+If the disclaimer of warranty and limitation of liability provided above cannot be given local 
+legal effect according to their terms, reviewing courts shall apply local law that most closely 
+approximates an absolute waiver of all civil liability in connection with the Program, unless a 
+warranty or assumption of liability accompanies a copy of the Program in return for a fee.
+
+END OF TERMS AND CONDITIONS
+
+MCD-ST [codec2]
+
+SLA0044 Rev5/February 2018
+
+BY INSTALLING COPYING, DOWNLOADING, ACCESSING OR OTHERWISE USING THIS
+SOFTWARE OR ANY PART THEREOF (AND THE RELATED DOCUMENTATION) FROM
+STMICROELECTRONICS INTERNATIONAL N.V, SWISS BRANCH AND/OR ITS AFFILIATED
+COMPANIES (STMICROELECTRONICS), THE RECIPIENT, ON BEHALF OF HIMSELF OR
+HERSELF, OR ON BEHALF OF ANY ENTITY BY WHICH SUCH RECIPIENT IS EMPLOYED
+AND/OR ENGAGED AGREES TO BE BOUND BY THIS SOFTWARE LICENSE AGREEMENT.
+
+Under STMicroelectronics’ intellectual property rights, the
+redistribution, reproduction and use in source and binary forms of the
+software or any part thereof, with or without modification, are
+permitted provided that the following conditions are met:
+1.	Redistribution of source code (modified or not) must retain any
+copyright notice, this list of conditions and the disclaimer set forth
+below as items 10 and 11.
+2.	Redistributions in binary form, except as embedded into
+microcontroller or microprocessor device manufactured by or for
+STMicroelectronics or a software update for such device, must reproduce
+any copyright notice provided with the binary code, this list of
+conditions, and the disclaimer set forth below as items 10 and 11, in
+documentation and/or other materials provided with the distribution.
+3.	Neither the name of STMicroelectronics nor the names of other
+contributors to this software may be used to endorse or promote products
+derived from this software or part thereof without specific written
+permission.
+4.	This software or any part thereof, including modifications and/or
+derivative works of this software, must be used and execute solely and
+exclusively on or in combination with a microcontroller or
+microprocessor device manufactured by or for STMicroelectronics.
+5.	No use, reproduction or redistribution of this software partially or
+totally may be done in any manner that would subject this software to
+any Open Source Terms. “Open Source Terms” shall mean any open source
+license which requires as part of distribution of software that the
+source code of such software is distributed therewith or otherwise made
+available, or open source license that substantially complies with the
+Open Source definition specified at www.opensource.org and any other
+comparable open source license such as for example GNU General Public
+License (GPL), Eclipse Public License (EPL), Apache Software License,
+BSD license or MIT license.
+6.	STMicroelectronics has no obligation to provide any maintenance,
+support or updates for the software.
+7.	The software is and will remain the exclusive property of
+STMicroelectronics and its licensors. The recipient will not take any
+action that jeopardizes STMicroelectronics and its licensors'
+proprietary rights or acquire any rights in the software, except the
+limited rights specified hereunder.
+8.	The recipient shall comply with all applicable laws and regulations
+affecting the use of the software or any part thereof including any
+applicable export control law or regulation.
+9.	Redistribution and use of this software or any part thereof other
+than as permitted under this license is void and will automatically
+terminate your rights under this license. 
+10.	THIS SOFTWARE IS PROVIDED BY STMICROELECTRONICS AND CONTRIBUTORS "AS
+IS" AND ANY EXPRESS, IMPLIED OR STATUTORY WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+PARTICULAR PURPOSE AND NON-INFRINGEMENT OF THIRD PARTY INTELLECTUAL
+PROPERTY RIGHTS, WHICH ARE DISCLAIMED TO THE FULLEST EXTENT PERMITTED BY
+LAW. IN NO EVENT SHALL STMICROELECTRONICS OR CONTRIBUTORS BE LIABLE FOR
+ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+POSSIBILITY OF SUCH DAMAGE.
+11.	EXCEPT AS EXPRESSLY PERMITTED HEREUNDER, NO LICENSE OR OTHER RIGHTS,
+WHETHER EXPRESS OR IMPLIED, ARE GRANTED UNDER ANY PATENT OR OTHER
+INTELLECTUAL PROPERTY RIGHTS OF STMICROELECTRONICS OR ANY THIRD PARTY.
+ 
+mfx_android_config.h Proprietary [intel-mediasdk]
+
+INTEL CORPORATION PROPRIETARY INFORMATION
+This software is supplied under the terms of a license agreement or
+nondisclosure
+agreement with Intel Corporation and may not be copied or disclosed
+except in
+accordance with the terms of that agreement
+Copyright(c) 2011-2018 Intel Corporation. All Rights Reserved.
+
+
+END OF UNIQUE (SLC REQD) NON-IBM-LICENSE INFORMATION
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+END OF NON-IBM-LICENSE INFORMATION
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+END OF NON-IBM-LICENSE INFORMATION FILE
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+
+L/N: L-ASAY-CJ9F4D
+D/N: L-ASAY-CJ9F4D
+P/N: L-ASAY-CJ9F4D

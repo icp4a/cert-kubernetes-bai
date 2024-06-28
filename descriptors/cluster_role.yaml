@@ -1,0 +1,115 @@
+###############################################################################
+#
+# Licensed Materials - Property of IBM
+#
+# (C) Copyright IBM Corp. 2020, 2022. All Rights Reserved.
+#
+# US Government Users Restricted Rights - Use, duplication or
+# disclosure restricted by GSA ADP Schedule Contract with IBM Corp.
+#
+###############################################################################
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: ibm-bai-operator
+  labels:
+    app.kubernetes.io/instance: ibm-bai
+    app.kubernetes.io/managed-by: ibm-bai
+    app.kubernetes.io/name: ibm-bai
+    release: 24.0.0
+rules:
+  - apiGroups:
+    - security.openshift.io
+    resources:
+    - securitycontextconstraints
+    resourceNames:
+    - restricted
+    verbs:
+    - use
+  - apiGroups:
+    - extensions
+    resources:
+    - podsecuritypolicies
+    verbs:
+    - create
+    - delete
+    - get
+    - list
+    - patch
+    - update
+    - watch
+  - apiGroups:
+    - policy
+    resources:
+    - podsecuritypolicies
+    verbs:
+    - create
+    - delete
+    - get
+    - list
+    - patch
+    - update
+    - watch
+  - apiGroups:
+    - route.openshift.io
+    resources:
+    - routes
+    verbs:
+    - get
+  - apiGroups:
+    - ""
+    resources:
+    - configmaps
+    - secrets
+    - persistentvolumes
+    verbs:
+    - get
+    - create
+    - patch
+    - update
+    - delete
+  - apiGroups:
+    - operator.ibm.com
+    resources:
+    - operandrequests
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+    - operator.ibm.com
+    resources:
+    - operandrequests/status
+    verbs:
+      - get
+  - apiGroups:
+    - operator.openshift.io
+    resources:
+    - ingresscontrollers
+    verbs:
+      - get
+  - apiGroups:
+    - operators.coreos.com
+    resources:
+    - subscriptions
+    - clusterserviceversions
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+    - ""
+    resources:
+    - pods
+    verbs:
+    - get
+    - list
