@@ -60,7 +60,7 @@ spec:
     images:
       keytool_init_container:
         repository: cp.icr.io/cp/cp4a/bai/dba-keytool-initcontainer
-        tag: "24.0.0"
+        tag: "BAIS-24.0.0-IF001"
 
       ## All CP4A components should use this pull_policy as the default, but it can override by each component
       pull_policy: IfNotPresent
@@ -285,46 +285,58 @@ spec:
     application_setup:
       image:
         repository: cp.icr.io/cp/cp4a/bai/insights-engine-application-setup
-        tag: "24.0.0"
+        tag: "BAIS-24.0.0-IF001"
       # The back-off limit property specifies the number of retries before the setup job is considered failed. Default: 6.
       backoff_limit: 7
       resources:
         requests:
           ## TODO: validate values or remove
           # The minimum memory required, including JVM heap and file system cache, to start the application setup pod.
-          memory: "50Mi"
+          memory: "350Mi"
           # The minimum amount of CPU required to start the application setup pod.
           cpu: "200m"
+          # The minimum ephemeral storage required to start the application setup pod.
+          ephemeral_storage: "50Mi"
         limits:
           # The maximum memory, including JVM heap and file system cache, to allocate to the application setup pod.
-          memory: "120Mi"
+          memory: "350Mi"
+          # The maximum amount of CPU required to allocate to the application setup pod.
+          cpu: "200m"
+          # The maximum ephemeral storage required to allocate to the application setup pod.
+          ephemeral_storage: "67Mi"
 
     # Setup of Elasticsearch for BAI.
     setup:
       image:
         repository: cp.icr.io/cp/cp4a/bai/bai-setup
-        tag: "24.0.0"
+        tag: "BAIS-24.0.0-IF001"
       # The back-off limit property specifies the number of retries before the setup job is considered failed. Default: 6.
       backoff_limit: 7
       resources:
         requests:
           # The minimum memory required, including JVM heap and file system cache, to start the setup pod.
-          memory: "50Mi"
+          memory: "350Mi"
           # The minimum amount of CPU required to start the setup pod.
           cpu: "200m"
+          # The minimum ephemeral storage required to start the setup pod.
+          ephemeral_storage: "500Mi"
         limits:
           # The maximum memory, including JVM heap and file system cache, to allocate to the setup pod.
-          memory: "120Mi"
+          memory: "350Mi"
+          # The maximum amount of CPU required to allocate to the setup pod.
+          cpu: "200m"
+          # The maximum ephemeral storage required to allocate to the setup pod.
+          ephemeral_storage: "500Mi"
 
     # The BAI Management service. Provides public and internal REST endpoints to manage BAI event processing.
     management:
       image:
         repository: cp.icr.io/cp/cp4a/bai/insights-engine-management
-        tag: "24.0.0"
+        tag: "BAIS-24.0.0-IF001"
       backend:
         image:
           repository: cp.icr.io/cp/cp4a/bai/insights-engine-management-backend
-          tag: "24.0.0"
+          tag: "BAIS-24.0.0-IF001"
       # You can use this parameter to customize the hostname of the management service route.
       # If not set, the value of shared_configuration.sc_deployment_hostname_suffix is used.
       # hostname: "management.bai.{{ shared_configuration.sc_deployment_hostname_suffix }}"
@@ -391,7 +403,7 @@ spec:
       # Allows to enable the automatic deployment of an OpenShift route to the Flink web interface.
       # On ROKS, if you set the sc_ingress_enable parameter to true, an Ingress is deployed for the Flink web user interface.
       # Default: false
-      create_route: true
+      create_route: false
       # Optional: Enables SSL with an existing certificate for the automatic creation of the OpenShift route
       # for the Flink UI.
       # If not specified, the value of shared_configuration.external_tls_certificate_secret parameter is used.
@@ -438,7 +450,7 @@ spec:
       install: false
       image:
         repository: cp.icr.io/cp/cp4a/bai/bai-bpmn
-        tag: "24.0.0"
+        tag: "BAIS-24.0.0-IF001"
       # The path to the savepoint or checkpoint from which a job will recover.
       # You can use this path to restart the job from a previous state in case of failure.
       # To use the default workflow of the job, leave this option empty.
@@ -453,6 +465,21 @@ spec:
       # Set this parameter to true if you want time series
       # to be written to Elasticsearch indexes.
       force_elasticsearch_timeseries: false
+      resources:
+        requests:
+          # The minimum amount of CPU required to start the bpmn pod.
+          cpu: "200m"
+          # The minimum memory required, including JVM heap and file system cache, to start the bpmn pod.
+          memory: "350Mi"
+          # The minimum ephemeral storage required to start the bpmn pod.
+          ephemeral_storage: "500Mi"
+        limits:
+          # The maximum amount of CPU required to allocate to the bpmn pod.
+          cpu: "300m"
+          # The maximum memory, including JVM heap and file system cache, to allocate to the bpmn pod.
+          memory: "500Mi"
+          # The maximum ephemeral storage required to allocate to the bpmn pod.
+          ephemeral_storage: "500Mi"
 
     # The Flink job for processing BAW Advanced events.
     # Disabled by default. Can be enabled by setting bawadv.install to true.
@@ -461,7 +488,7 @@ spec:
       install: false
       image:
         repository: cp.icr.io/cp/cp4a/bai/bai-bawadv
-        tag: "24.0.0"
+        tag: "BAIS-24.0.0-IF001"
       # The path to the savepoint or checkpoint from which a job will recover.
       # You can use this path to restart the job from a previous state in case of failure.
       # To use the default workflow of the job, leave this option empty.
@@ -469,6 +496,21 @@ spec:
       # The number of parallel instances (task slots) to use for running the processing job.
       # For High Availability, use at least 2 parallel instances.
       parallelism: 2
+      resources:
+        requests:
+          # The minimum amount of CPU required to start the bawadv pod.
+          cpu: "200m"
+          # The minimum memory required, including JVM heap and file system cache, to start the bawadv pod.
+          memory: "350Mi"
+          # The minimum ephemeral storage required to start the bawadv pod.
+          ephemeral_storage: "500Mi"
+        limits:
+          # The maximum amount of CPU required to allocate to the bawadv pod.
+          cpu: "300m"
+          # The maximum memory, including JVM heap and file system cache, to allocate to the bawadv pod.
+          memory: "500Mi"
+          # The maximum ephemeral storage required to allocate to the bawadv pod.
+          ephemeral_storage: "500Mi"
 
     # The Flink job for processing ICM events.
     # Enabled automatically if BAI is selected as an optional component of
@@ -478,7 +520,7 @@ spec:
       install: false
       image:
         repository: cp.icr.io/cp/cp4a/bai/bai-icm
-        tag: "24.0.0"
+        tag: "BAIS-24.0.0-IF001"
       # The path to the savepoint or checkpoint from which a job will recover.
       # You can use this path to restart the job from a previous state in case of failure.
       # To use the default workflow of the job, leave this option empty.
@@ -491,6 +533,21 @@ spec:
       # Set this parameter to true if you want time series
       # to be written to Elasticsearch indexes.
       force_elasticsearch_timeseries: false
+      resources:
+        requests:
+          # The minimum amount of CPU required to start the icm pod.
+          cpu: "200m"
+          # The minimum memory required, including JVM heap and file system cache, to start the icm pod.
+          memory: "350Mi"
+          # The minimum ephemeral storage required to start the icm pod.
+          ephemeral_storage: "500Mi"
+        limits:
+          # The maximum amount of CPU required to allocate to the icm pod.
+          cpu: "300m"
+          # The maximum memory, including JVM heap and file system cache, to allocate to the icm pod.
+          memory: "500Mi"
+          # The maximum ephemeral storage required to allocate to the icm pod.
+          ephemeral_storage: "500Mi"
 
     # The Flink job for processing ODM events.
     # Enabled automatically if BAI is selected as an optional component of
@@ -501,7 +558,7 @@ spec:
       install: false
       image:
         repository: cp.icr.io/cp/cp4a/bai/bai-flink
-        tag: "24.0.0"
+        tag: "BAIS-24.0.0-IF001"
       # The path to the savepoint or checkpoint from which a job will recover.
       # You can use this path to restart the job from a previous state in case of failure.
       # To use the default workflow of the job, leave this option empty.
@@ -509,6 +566,21 @@ spec:
       # The number of parallel instances (task slots) to use for running the processing job.
       # For High Availability, use at least 2 parallel instances.
       parallelism: 2
+      resources:
+        requests:
+          # The minimum amount of CPU required to start the odm pod.
+          cpu: "200m"
+          # The minimum memory required, including JVM heap and file system cache, to start the odm pod.
+          memory: "350Mi"
+          # The minimum ephemeral storage required to start the odm pod.
+          ephemeral_storage: "500Mi"
+        limits:
+          # The maximum amount of CPU required to allocate to the odm pod.
+          cpu: "300m"
+          # The maximum memory, including JVM heap and file system cache, to allocate to the odm pod.
+          memory: "500Mi"
+          # The maximum ephemeral storage required to allocate to the odm pod.
+          ephemeral_storage: "500Mi"
 
     # The Flink job for processing ADS events.
     # Enabled automatically if BAI is selected as an optional component of
@@ -518,7 +590,7 @@ spec:
       install: false
       image:
         repository: cp.icr.io/cp/cp4a/bai/bai-flink
-        tag: "24.0.0"
+        tag: "BAIS-24.0.0-IF001"
       # The path to the savepoint or checkpoint from which a job will recover.
       # You can use this path to restart the job from a previous state in case of failure.
       # To use the default workflow of the job, leave this option empty.
@@ -526,6 +598,21 @@ spec:
       # The number of parallel instances (task slots) to use for running the processing job.
       # For High Availability, use at least 2 parallel instances.
       parallelism: 2
+      resources:
+        requests:
+          # The minimum amount of CPU required to start the ads pod.
+          cpu: "200m"
+          # The minimum memory required, including JVM heap and file system cache, to start the ads pod.
+          memory: "350Mi"
+          # The minimum ephemeral storage required to start the ads pod.
+          ephemeral_storage: "500Mi"
+        limits:
+          # The maximum amount of CPU required to allocate to the ads pod.
+          cpu: "300m"
+          # The maximum memory, including JVM heap and file system cache, to allocate to the ads pod.
+          memory: "500Mi"
+          # The maximum ephemeral storage required to allocate to the ads pod.
+          ephemeral_storage: "500Mi"
 
     # The Flink job for processing Content events.
     # Enabled automatically if BAI is selected as an optional component of
@@ -535,7 +622,7 @@ spec:
       install: false
       image:
         repository: cp.icr.io/cp/cp4a/bai/bai-content
-        tag: "24.0.0"
+        tag: "BAIS-24.0.0-IF001"
       # The path to the savepoint or checkpoint from which a job will recover.
       # You can use this path to restart the job from a previous state in case of failure.
       # To use the default workflow of the job, leave this option empty.
@@ -543,6 +630,21 @@ spec:
       # The number of parallel instances (task slots) to use for running the processing job.
       # For High Availability, use at least 2 parallel instances.
       parallelism: 2
+      resources:
+        requests:
+          # The minimum amount of CPU required to start the content pod.
+          cpu: "200m"
+          # The minimum memory required, including JVM heap and file system cache, to start the content pod.
+          memory: "350Mi"
+          # The minimum ephemeral storage required to start the content pod.
+          ephemeral_storage: "500Mi"
+        limits:
+          # The maximum amount of CPU required to allocate to the content pod.
+          cpu: "300m"
+          # The maximum memory, including JVM heap and file system cache, to allocate to the content pod.
+          memory: "500Mi"
+          # The maximum ephemeral storage required to allocate to the content pod.
+          ephemeral_storage: "500Mi"
 
     # The Flink job for processing Navigator events.
     # Enabled automatically if BAI is selected as an optional component of
@@ -552,7 +654,7 @@ spec:
       install: false
       image:
         repository: cp.icr.io/cp/cp4a/bai/bai-flink
-        tag: "24.0.0"
+        tag: "BAIS-24.0.0-IF001"
       # The path to the savepoint or checkpoint from which a job will recover.
       # You can use this path to restart the job from a previous state in case of failure.
       # To use the default workflow of the job, leave this option empty.
@@ -560,18 +662,33 @@ spec:
       # The number of parallel instances (task slots) to use for running the processing job.
       # For High Availability, use at least 2 parallel instances.
       parallelism: 2
+      resources:
+        requests:
+          # The minimum amount of CPU required to start the Navigator pod.
+          cpu: "200m"
+          # The minimum memory required, including JVM heap and file system cache, to start the Navigator pod.
+          memory: "350Mi"
+          # The minimum ephemeral storage required to start the Navigator pod.
+          ephemeral_storage: "500Mi"
+        limits:
+          # The maximum amount of CPU required to allocate to the Navigator pod.
+          cpu: "300m"
+          # The maximum memory, including JVM heap and file system cache, to allocate to the Navigator pod.
+          memory: "500Mi"
+          # The maximum ephemeral storage required to allocate to the Navigator pod.
+          ephemeral_storage: "500Mi"
       
     # Configuration of initialization containers.
     init_image:
       image:
         repository: cp.icr.io/cp/cp4a/bai/bai-init
-        tag: "24.0.0"
+        tag: "BAIS-24.0.0-IF001"
 
     # Business data dashboarding.
     business_performance_center:
       image:
         repository: cp.icr.io/cp/cp4a/bai/insights-engine-cockpit
-        tag: "24.0.0"
+        tag: "BAIS-24.0.0-IF001"
       # Set to false to disable Business Performance Center. Default: true.
       install: true
 
@@ -593,7 +710,7 @@ spec:
       # init_ums:
       #   image:
       #     repository: cp.icr.io/cp/cp4a/aae/dba-umsregistration-initjob
-      #     tag: "24.0.0"
+      #     tag: "BAIS-24.0.0-IF001"
       ## For SaaS
       # oidc:
       #   # The internal communication with single-sign-on (SSO) service.

@@ -1018,6 +1018,9 @@ function create_property_file(){
             ${SED_COMMAND} "s|LDAP_GROUP_MEMBER_ID_MAP=\"\"|LDAP_GROUP_MEMBER_ID_MAP=\"memberOf:member\"|g" ${LDAP_PROPERTY_FILE}
             ${SED_COMMAND} "s|LC_USER_FILTER=\"\"|LC_USER_FILTER=\"(\&(sAMAccountName=%v)(objectcategory=user))\"|g" ${LDAP_PROPERTY_FILE}
             ${SED_COMMAND} "s|LC_GROUP_FILTER=\"\"|LC_GROUP_FILTER=\"(\&(cn=%v)(objectcategory=group))\"|g" ${LDAP_PROPERTY_FILE}
+            # For https://jsw.ibm.com/browse/DBACLD-155190 where the GC PORT and GC HOST should be optional parameters
+            ${SED_COMMAND} "s|LC_AD_GC_HOST=\"\"|LC_AD_GC_HOST=\"<Optional>\"|g" ${LDAP_PROPERTY_FILE}
+            ${SED_COMMAND} "s|LC_AD_GC_PORT=\"\"|LC_AD_GC_PORT=\"<Optional>\"|g" ${LDAP_PROPERTY_FILE}
         elif [[ $LDAP_TYPE == "TDS" ]]; then
             ${SED_COMMAND} "s|LDAP_USER_NAME_ATTRIBUTE=\"\"|LDAP_USER_NAME_ATTRIBUTE=\"*:uid\"|g" ${LDAP_PROPERTY_FILE}
             ${SED_COMMAND} "s|LDAP_USER_DISPLAY_NAME_ATTR=\"\"|LDAP_USER_DISPLAY_NAME_ATTR=\"cn\"|g" ${LDAP_PROPERTY_FILE}
@@ -1283,9 +1286,12 @@ function create_property_file(){
     fi
     echo "" >> ${USER_PROFILE_PROPERTY_FILE}
 
-
-    ${SED_COMMAND} "s|LDAP_BIND_DN_PASSWORD=\"\"|LDAP_BIND_DN_PASSWORD=\"{Base64}<Required>\"|g" ${LDAP_PROPERTY_FILE}
-    ${SED_COMMAND} "s|=\"\"|=\"<Required>\"|g" ${LDAP_PROPERTY_FILE}
+    # For https://jsw.ibm.com/browse/DBACLD-154784 The error should be thrown when we select 'yes' to configure one LDAP.
+    # Convert SELECTED_LDAP to lowercase so that it will match any variation of "yes"
+    if [[ "${SELECTED_LDAP,,}" == "yes" ]]; then
+        ${SED_COMMAND} "s|LDAP_BIND_DN_PASSWORD=\"\"|LDAP_BIND_DN_PASSWORD=\"{Base64}<Required>\"|g" ${LDAP_PROPERTY_FILE}
+        ${SED_COMMAND} "s|=\"\"|=\"<Required>\"|g" ${LDAP_PROPERTY_FILE}
+    fi
 
     INFO "Created all property files for BAI stand-alone"
     
