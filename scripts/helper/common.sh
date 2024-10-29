@@ -16,6 +16,7 @@
 # PARENT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
 
 TEMP_FOLDER=${CUR_DIR}/.tmp
+mkdir -p $TEMP_FOLDER
 
 # Directory for common service script
 COMMON_SERVICES_SCRIPT_FOLDER=${CUR_DIR}/cpfs/installer_scripts/cp3pt0-deployment
@@ -62,25 +63,38 @@ LDAP_SECRET_FILE=${SECRET_FILE_FOLDER}/ldap-bind-secret.yaml
 # Release/Patch version for CP4BA
 # BAI_RELEASE_BASE is for fetch content/foundation operator pod, only need to change for major release.
 BAI_RELEASE_BASE="24.0.0"
-BAI_PATCH_VERSION="GA"
-# BAI_CSV_VERSION is for checking CP4BA operator upgrade status, need to update for each IFIX
-BAI_CSV_VERSION="v24.0.0"
+
+BAI_PATCH_VERSION="IF001"
+# BAI_CSV_VERSION is for checking BAI operator upgrade status, need to update for each IFIX
+BAI_CSV_VERSION="v24.0.1"
+# BAI_CHANNEL_VERSION is for switch BAI operator upgrade status, need to update for major release
+BAI_CHANNEL_VERSION="v24.0"
 # CS_OPERATOR_VERSION is for checking CPFS operator upgrade status, need to update for each IFIX
-CS_OPERATOR_VERSION="v4.6.2"
+CS_OPERATOR_VERSION="v4.6.6"
 # CS_CHANNEL_VERSION is for for CPFS script -c option, need to update for each IFIX
 CS_CHANNEL_VERSION="v4.6"
 # CERT_LICENSE_OPERATOR_VERSION is for checking IBM cert-manager/licensing operator upgrade status, need to update for each IFIX
-CERT_LICENSE_OPERATOR_VERSION="v4.2.4"
+CERT_LICENSE_OPERATOR_VERSION="v4.2.8"
 # CERT_LICENSE_CHANNEL_VERSION is for for IBM cert-manager/licensing script -c option, need to update for each IFIX
 CERT_LICENSE_CHANNEL_VERSION="v4.2"
 # CS_CATALOG_VERSION is for CPFS script -s option, need to update for each IFIX
-CS_CATALOG_VERSION="ibm-cs-install-catalog-v4-6-2"
+CS_CATALOG_VERSION="ibm-cs-install-catalog-v4-6-6"
 # ZEN_OPERATOR_VERSION is for checking ZenService operator upgrade status, need to update for each IFIX
-ZEN_OPERATOR_VERSION="v5.1.4"
+ZEN_OPERATOR_VERSION="v5.1.8"
+# BTS_CHANNEL_VERSION is for for BTS, need to update for each IFIX
+BTS_CHANNEL_VERSION="v3.34"
+# BTS_CATALOG_VERSION is for BTS 3.34.0.
+BTS_CATALOG_VERSION="bts-operator-v3-34-0"
 # REQUIREDVER_BTS is for checking bts operator upgrade status before run removal_iaf.sh, need to update for each IFIX
-REQUIREDVER_BTS="3.33.1"
+REQUIREDVER_BTS="3.34.0"
 # REQUIREDVER_POSTGRESQL is for checking postgresql operator upgrade status before run removal_iaf.sh, need to update for each IFIX
-REQUIREDVER_POSTGRESQL="1.18.10"
+REQUIREDVER_POSTGRESQL="1.18.12"
+# EVENTS_OPERATOR_VERSION is for checking IBM Events operator upgrade status, need to update for each IFIX
+EVENTS_OPERATOR_VERSION="v5.0.1"
+
+CERT_MANAGER_PROJECT="ibm-cert-manager"
+LICENSE_MANAGER_PROJECT="ibm-licensing"
+DEDICATED_CS_PROJECT="cs-control"
 
 # Directory for upgrade operator and prerequisites
 UPGRADE_TEMP_FOLDER=${TEMP_FOLDER}/upgrade
@@ -139,6 +153,15 @@ function prop_db_oracle_server_property_file() {
     grep "^${1}=" ${DB_SERVER_INFO_PROPERTY_FILE}|cut -d'"' -f2
 }
 
+# set CLI_CMD var
+if which oc >/dev/null 2>&1; then
+    CLI_CMD=oc
+elif which kubectl >/dev/null 2>&1; then
+    CLI_CMD=kubectl
+else
+    echo -e  "\x1B[1;31mUnable to locate Kubernetes CLI or OpenShift CLI. You must install it to run this script.\x1B[0m" && \
+    exit 1
+fi
 
 function set_global_env_vars() {
     readonly unameOut="$(uname -s)"
@@ -246,7 +269,9 @@ function install_ibm_jre(){
             mkdir -p /opt/ibm/java
             tar -xzf $tmp_file --strip-components=1 -C /opt/ibm/java
             #  add keytool to system PATH.
-            echo -n "Add keytool to system environment variable PATH..."; sudo -s export PATH="/opt/ibm/java/jre/bin/:$PATH"; export PATH="/opt/ibm/java/jre/bin/:$PATH"; echo "PATH=$PATH:/opt/ibm/java/jre/bin/" >> ~/.bashrc; source ~/.bashrc;echo "done."
+            echo -n "Add keytool to system environment variable PATH..."; sudo -s export PATH="/opt/ibm/java/jre/bin/:$PATH"; export PATH="/opt/ibm/java/jre/bin/:$PATH"; echo "PATH=$PATH:/opt/ibm/java/jre/bin/" >> ~/.bashrc;echo "done."
+            info "IBM JRE has been installed and system enviroment variable PATH was configured. Please run command \"source ~/.bashrc\" before running the validate command again. Exiting this script."
+            exit 1
         fi
     elif [[ ${machine} = "Mac" ]]; then
         echo -n "IBM's Java JRE is not available for Mac OS X. Install valid JRE for Mac OS X manually refer to MacOS document"; echo "done.";

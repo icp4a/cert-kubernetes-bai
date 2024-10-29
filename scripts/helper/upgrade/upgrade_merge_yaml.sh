@@ -1,24 +1,199 @@
 # Directory for upgrade deployment for CP4BA multiple deployment
-UPGRADE_DEPLOYMENT_FOLDER=${CUR_DIR}/cp4ba-upgrade/project/$1
-UPGRADE_DEPLOYMENT_PROPERTY_FILE=${UPGRADE_DEPLOYMENT_FOLDER}/cp4ba_upgrade.property
+UPGRADE_DEPLOYMENT_FOLDER=${CUR_DIR}/bai-upgrade/project/$1
+UPGRADE_DEPLOYMENT_PROPERTY_FILE=${UPGRADE_DEPLOYMENT_FOLDER}/bai_upgrade.property
 
 UPGRADE_DEPLOYMENT_CR=${UPGRADE_DEPLOYMENT_FOLDER}/custom_resource
 UPGRADE_DEPLOYMENT_CR_BAK=${UPGRADE_DEPLOYMENT_CR}/backup
 
-UPGRADE_DEPLOYMENT_CONTENT_CR=${UPGRADE_DEPLOYMENT_CR}/content.yaml
-UPGRADE_DEPLOYMENT_CONTENT_CR_TMP=${UPGRADE_DEPLOYMENT_CR}/.content_tmp.yaml
-UPGRADE_DEPLOYMENT_CONTENT_CR_BAK=${UPGRADE_DEPLOYMENT_CR_BAK}/content_cr_backup.yaml
+UPGRADE_DEPLOYMENT_BAI_CR=${UPGRADE_DEPLOYMENT_CR}/insightsengine.yaml
+UPGRADE_DEPLOYMENT_BAI_CR_TMP=${UPGRADE_DEPLOYMENT_CR}/.insightsengine_tmp.yaml
+UPGRADE_DEPLOYMENT_BAI_CR_BAK=${UPGRADE_DEPLOYMENT_CR_BAK}/insightsengine_cr_backup.yaml
 
-UPGRADE_DEPLOYMENT_ICP4ACLUSTER_CR=${UPGRADE_DEPLOYMENT_CR}/icp4acluster.yaml
-UPGRADE_DEPLOYMENT_ICP4ACLUSTER_CR_TMP=${UPGRADE_DEPLOYMENT_CR}/.icp4acluster_tmp.yaml
-UPGRADE_DEPLOYMENT_ICP4ACLUSTER_CR_BAK=${UPGRADE_DEPLOYMENT_CR_BAK}/icp4acluster_cr_backup.yaml
-
-UPGRADE_DEPLOYMENT_WFPS_CR=${UPGRADE_DEPLOYMENT_CR}/wfps.yaml
-UPGRADE_DEPLOYMENT_WFPS_CR_TMP=${UPGRADE_DEPLOYMENT_CR}/.wfps_tmp.yaml
-UPGRADE_DEPLOYMENT_WFPS_CR_BAK=${UPGRADE_DEPLOYMENT_CR_BAK}/wfps_cr_backup.yaml
 
 UPGRADE_CS_ZEN_FILE=${UPGRADE_DEPLOYMENT_CR}/.cs_zen_parameter.yaml
 UPGRADE_DEPLOYMENT_BAI_TMP=${UPGRADE_DEPLOYMENT_CR}/.bai_tmp.yaml
+UPGRADE_BAI_SHARED_INFO_CM_FILE=${UPGRADE_DEPLOYMENT_CR}/ibm_bai_shared_info.yaml
+
+
+#Function to create the bai shared info Configmap
+function create_ibm_bai_shared_info_cm_yaml(){
+    mkdir -p ${UPGRADE_DEPLOYMENT_CR}
+cat << EOF > ${UPGRADE_BAI_SHARED_INFO_CM_FILE}
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: ibm-bai-shared-info
+  namespace: <bai_namespace>
+  labels:
+    app.kubernetes.io/managed-by: Operator
+    app.kubernetes.io/name: ibm-bai-shared-info
+    app.kubernetes.io/version: <cr_version>
+    release: <cr_version>
+  ownerReferences:
+    - apiVersion: bai.ibm.com/v1
+      kind: InsightsEngine
+      name: <cr_metaname>
+      uid: <cr_uid>
+data:
+  bai_operator_of_last_reconcile: <csv_version>
+EOF
+}
+
+function convert_olm_cr(){
+    local cr_file=$1
+    EXISTING_PATTERN_ARR=()
+    EXISTING_OPT_COMPONENT_ARR=()
+    # check the cr is olm format or not
+    olm_cr_flag=`cat $cr_file | ${YQ_CMD} r - spec.olm_ibm_license`
+    if [[ ! -z $olm_cr_flag ]]; then
+        olm_cr_flag="Yes"
+
+        local OLM_PATTERN_CR_MAPPING=("spec.olm_production_content"
+                                "spec.olm_production_application"
+                                "spec.olm_production_decisions"
+                                "spec.olm_production_decisions_ads"
+                                "spec.olm_production_document_processing"
+                                "spec.olm_production_workflow"
+                                "spec.olm_production_workflow_process_service")
+        local SCRIPT_PATTERN_CR_MAPPING=("content"
+                                "application"
+                                "decisions"
+                                "decisions_ads"
+                                "document_processing"
+                                "workflow"
+                                "workflow-process-service")
+
+
+        for i in "${!OLM_PATTERN_CR_MAPPING[@]}"; do
+            # echo "Element $i: ${OLM_PATTERN_CR_MAPPING[$i]}"
+            olm_pattern_flag=`cat $cr_file | ${YQ_CMD} r - ${OLM_PATTERN_CR_MAPPING[$i]}`
+            if [[ $olm_pattern_flag == "true" ]]; then
+                EXISTING_PATTERN_ARR=( "${EXISTING_PATTERN_ARR[@]}" "${SCRIPT_PATTERN_CR_MAPPING[$i]}" )
+                if [[ ${SCRIPT_PATTERN_CR_MAPPING[$i]} == "workflow" ]]; then
+                    olm_pattern_flag=`cat $cr_file | ${YQ_CMD} r - spec.olm_production_workflow_deploy_type`
+                    EXISTING_PATTERN_ARR=( "${EXISTING_PATTERN_ARR[@]}" "$olm_pattern_flag" )
+                    if [[ $olm_pattern_flag == "workflow_authoring" ]]; then
+                        EXISTING_OPT_COMPONENT_ARR=( "${EXISTING_OPT_COMPONENT_ARR[@]}" "baw_authoring" )
+                    fi
+                fi
+                if [[ ${SCRIPT_PATTERN_CR_MAPPING[$i]} == "document_processing" ]]; then
+                    olm_pattern_flag=`cat $cr_file | ${YQ_CMD} r - spec.olm_production_option.adp.document_processing_runtime`
+                    if [[ $olm_pattern_flag == "true" ]]; then
+                        EXISTING_PATTERN_ARR=( "${EXISTING_PATTERN_ARR[@]}" "document_processing_runtime" )
+                    elif [[ $olm_pattern_flag == "false" ]]; then
+                        EXISTING_PATTERN_ARR=( "${EXISTING_PATTERN_ARR[@]}" "document_processing_designer" )
+                    fi
+                fi
+            elif [[ -z $olm_pattern_flag ]]; then
+                ${YQ_CMD} w -i ${cr_file} ${OLM_PATTERN_CR_MAPPING[$i]} "false"
+            fi
+        done
+
+        local OLM_OPTIONAL_COMPONENT_CR_MAPPING=("spec.olm_production_option.adp.cmis"
+                                                "spec.olm_production_option.adp.css"
+                                                "spec.olm_production_option.adp.document_processing_runtime"
+                                                "spec.olm_production_option.adp.es"
+                                                "spec.olm_production_option.adp.tm"
+
+                                                "spec.olm_production_option.ads.ads_designer"
+                                                "spec.olm_production_option.ads.ads_runtime"
+                                                "spec.olm_production_option.ads.bai"
+
+                                                "spec.olm_production_option.application.app_designer"
+                                                "spec.olm_production_option.application.ae_data_persistence"
+
+                                                "spec.olm_production_option.content.bai"
+                                                "spec.olm_production_option.content.cmis"
+                                                "spec.olm_production_option.content.css"
+                                                "spec.olm_production_option.content.es"
+                                                "spec.olm_production_option.content.iccsap"
+                                                "spec.olm_production_option.content.ier"
+                                                "spec.olm_production_option.content.tm"
+
+                                                "spec.olm_production_option.decisions.decisionCenter"
+                                                "spec.olm_production_option.decisions.decisionRunner"
+                                                "spec.olm_production_option.decisions.decisionServerRuntime"
+                                                "spec.olm_production_option.decisions.bai"
+
+                                                "spec.olm_production_option.wfps_authoring.bai"
+                                                "spec.olm_production_option.wfps_authoring.pfs"
+                                                "spec.olm_production_option.wfps_authoring.kafka"
+
+                                                "spec.olm_production_option.workfow_authoring.bai"
+                                                "spec.olm_production_option.workfow_authoring.pfs"
+                                                "spec.olm_production_option.workfow_authoring.kafka"
+                                                "spec.olm_production_option.workfow_authoring.ae_data_persistence"
+
+                                                "spec.olm_production_option.workfow_runtime.bai"
+                                                "spec.olm_production_option.workfow_runtime.kafka"
+                                                "spec.olm_production_option.workfow_runtime.opensearch"
+                                                "spec.olm_production_option.workfow_runtime.elasticsearch")
+        for i in "${!OLM_OPTIONAL_COMPONENT_CR_MAPPING[@]}"; do
+            # echo "Element $i: ${OLM_OPTIONAL_COMPONENT_CR_MAPPING[$i]}"
+
+            # migration from elasticsearch to opensearch in workflow_runtime
+            if [[ ${OLM_OPTIONAL_COMPONENT_CR_MAPPING[$i]} == "spec.olm_production_option.workfow_runtime.elasticsearch" ]]; then
+                olm_optional_component_flag=`cat $cr_file | ${YQ_CMD} r - ${OLM_OPTIONAL_COMPONENT_CR_MAPPING[$i]}`
+                if [[ $olm_optional_component_flag == "true" ]]; then
+                    ${YQ_CMD} w -i ${cr_file} spec.olm_production_option.workfow_runtime.opensearch "true"
+                elif [[ $olm_optional_component_flag == "false" ]]; then
+                    ${YQ_CMD} w -i ${cr_file} spec.olm_production_option.workfow_runtime.opensearch "false"
+                elif [[ -z $olm_optional_component_flag ]]; then
+                    olm_workflow_runtime_flag=`cat $cr_file | ${YQ_CMD} r - spec.olm_production_workflow_deploy_type`
+                    if [[ $olm_workflow_runtime_flag == "workflow_runtime" ]]; then
+                        ${YQ_CMD} w -i ${cr_file} spec.olm_production_option.workfow_runtime.opensearch "true"
+                    fi
+                fi
+                ${YQ_CMD} d -i $cr_file ${OLM_OPTIONAL_COMPONENT_CR_MAPPING[$i]}
+            fi
+
+            # PFS is requird from 21.0.3/22.0.2 to 24.0.0 for workflow_authoring
+            if [[ ${OLM_OPTIONAL_COMPONENT_CR_MAPPING[$i]} == "spec.olm_production_option.workfow_authoring.pfs" ]]; then
+                olm_optional_component_flag=`cat $cr_file | ${YQ_CMD} r - ${OLM_OPTIONAL_COMPONENT_CR_MAPPING[$i]}`
+                if [[ $olm_optional_component_flag == "true" ]]; then
+                    ${YQ_CMD} w -i ${cr_file} spec.olm_production_option.workfow_authoring.pfs "true"
+                elif [[ $olm_optional_component_flag == "false" ]]; then
+                    ${YQ_CMD} w -i ${cr_file} spec.olm_production_option.workfow_authoring.pfs "false"
+                elif [[ -z $olm_optional_component_flag ]]; then
+                    olm_workfow_authoring_flag=`cat $cr_file | ${YQ_CMD} r - spec.olm_production_workflow_deploy_type`
+                    if [[ $olm_workfow_authoring_flag == "workflow_authoring" ]]; then
+                        ${YQ_CMD} w -i ${cr_file} spec.olm_production_option.workfow_authoring.pfs "true"
+                    fi
+                fi
+            fi
+
+            # remove ae_data_persistence and enable olm_production_application
+            if [[ ${OLM_OPTIONAL_COMPONENT_CR_MAPPING[$i]} == "spec.olm_production_option.workfow_authoring.ae_data_persistence" ]]; then
+                olm_optional_component_flag=`cat $cr_file | ${YQ_CMD} r - ${OLM_OPTIONAL_COMPONENT_CR_MAPPING[$i]}`
+                if [[ $olm_optional_component_flag == "true" ]]; then
+                    ${YQ_CMD} w -i ${cr_file} spec.olm_production_application "true"
+                    ${YQ_CMD} w -i ${cr_file} spec.olm_production_option.application.ae_data_persistence "true"
+                fi
+                ${YQ_CMD} d -i $cr_file ${OLM_OPTIONAL_COMPONENT_CR_MAPPING[$i]}
+            fi
+
+            olm_optional_component_flag=`cat $cr_file | ${YQ_CMD} r - ${OLM_OPTIONAL_COMPONENT_CR_MAPPING[$i]}`
+            if [[ $olm_optional_component_flag == "true" ]]; then
+                OIFS=$IFS
+                IFS='.' read -r -a array <<< "${OLM_OPTIONAL_COMPONENT_CR_MAPPING[$i]}"
+                last_element="${array[-1]}"
+                EXISTING_OPT_COMPONENT_ARR=( "${EXISTING_OPT_COMPONENT_ARR[@]}" "$last_element" )
+                IFS=$OIFS
+            elif [[ -z $olm_pattern_flag && ${OLM_OPTIONAL_COMPONENT_CR_MAPPING[$i]} != "spec.olm_production_option.workfow_authoring.ae_data_persistence" && ${OLM_OPTIONAL_COMPONENT_CR_MAPPING[$i]} != "spec.olm_production_option.workfow_runtime.elasticsearch" ]]; then
+                ${YQ_CMD} w -i ${cr_file} ${OLM_OPTIONAL_COMPONENT_CR_MAPPING[$i]} "false"
+            fi
+        done
+
+        # remove duplicate element
+        UNIQUE_COMPONENTS=$(printf "%s\n" "${EXISTING_OPT_COMPONENT_ARR[@]}" | sort -u)
+        EXISTING_OPT_COMPONENT_ARR=($UNIQUE_COMPONENTS)
+
+        # echo "EXISTING_PATTERN_ARR: ${EXISTING_PATTERN_ARR[*]}"
+        # echo "EXISTING_OPT_COMPONENT_ARR: ${EXISTING_OPT_COMPONENT_ARR[*]}"
+    else
+        olm_cr_flag="No"
+    fi
+}
 
 function create_upgrade_property(){
 

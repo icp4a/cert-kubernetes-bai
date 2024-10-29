@@ -281,10 +281,12 @@ function select_private_catalog(){
     echo "${YELLOW_TEXT}[NOTES] You can install the IBM Business Automation Insights deployment as either a private catalog (namespace scope) or the global catalog namespace (GCN). The private option uses the same target namespace of the IBM Business Automation Insights deployment, the GCN uses the openshift-marketplace namespace.${RESET_TEXT}"
     while true; do
         if [[ -z "$BAI_AUTO_PRIVATE_CATALOG" ]]; then
-            printf "\x1B[1mDo you want to deploy IBM Business Automation Insights using private catalog? (Yes/No, default: No): \x1B[0m"
+            # for defect https://jsw.ibm.com/browse/DBACLD-153503 where we had to update the script to set private catalog as the default option
+            printf "\x1B[1mDo you want to deploy IBM Business Automation Insights using private catalog? (Yes/No, default: Yes): \x1B[0m"
             read -rp "" ans
         else
-            printf "\x1B[1mDo you want to deploy IBM Business Automation Insights using private catalog? (Yes/No, default: No): $BAI_AUTO_PRIVATE_CATALOG\x1B[0m\n"
+            # for defect https://jsw.ibm.com/browse/DBACLD-153503 where we had to update the script to set private catalog as the default option
+            printf "\x1B[1mDo you want to deploy IBM Business Automation Insights using private catalog? (Yes/No, default: Yes): $BAI_AUTO_PRIVATE_CATALOG\x1B[0m\n"
             ans=$BAI_AUTO_PRIVATE_CATALOG
         fi
         case "$ans" in
@@ -302,6 +304,12 @@ function select_private_catalog(){
             ;;
         esac
     done
+
+    # for defect https://jsw.ibm.com/browse/DBACLD-153503 where we had to update the script to set private catalog as the default option
+    #handing the default case
+    if [ -z "$ans" ]; then
+        PRIVATE_CATALOG="Yes"
+    fi
 
     # if [[ $PRIVATE_CATALOG == "Yes" ]]; then
     #     while [[ $project_name == "" ]];

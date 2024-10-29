@@ -29,6 +29,9 @@ NUM=$#
 TEMPFILE="_TMP.yaml"
 DEBUG=0
 z_or_power_ENV="false"
+RERUN="false"
+CLEANUP="false"
+ARGUMENTS=""
 
 # ---------- Command variables ----------
 
@@ -45,25 +48,35 @@ LOG_FILE="preload_data_log_$(date +'%Y%m%d%H%M%S').log"
 trap 'error "Error occurred in function $FUNCNAME at line $LINENO"' ERR
 
 function main() {
+    ARGUMENTS="$@"
     parse_arguments "$@"
     save_log "cp3pt0-deployment/logs" "preload_data_log" "$DEBUG"
     trap cleanup_log EXIT
     prereq
-    # run backup preload
-    backup_preload_mongo
-    # copy im credentials
-    copy_resource "secret" "platform-auth-idp-credentials"
-    copy_resource "secret" "platform-auth-ldaps-ca-cert"
-    copy_resource "secret" "platform-oidc-credentials"
-    copy_resource "secret" "oauth-client-secret"
-    copy_resource "configmap" "ibm-cpp-config"
-    copy_resource "configmap" "common-web-ui-config"
-    copy_resource "configmap" "platform-auth-idp"
-    copy_resource "commonservice" "common-service" "preload-common-service-from-$FROM_NAMESPACE"
-    copy_resource "secret" "icp-mongodb-client-cert"
-    copy_resource "secret" "mongodb-root-ca-cert"
-    copy_resource "secret" "icp-mongodb-admin"
-    # any extra config
+    if [[ $CLEANUP == "false" ]]; then
+      if [[ $RERUN == "true" ]]; then
+        info "Rerun specified..."
+        deletemongocopy
+      fi
+      # run backup preload
+      backup_preload_mongo
+      # copy im credentials
+      copy_resource "secret" "platform-auth-idp-credentials"
+      copy_resource "secret" "platform-auth-ldaps-ca-cert"
+      copy_resource "secret" "platform-oidc-credentials"
+      copy_resource "secret" "oauth-client-secret"
+      copy_resource "configmap" "ibm-cpp-config"
+      copy_resource "configmap" "common-web-ui-config"
+      copy_resource "configmap" "platform-auth-idp"
+      copy_resource "commonservice" "common-service" "preload-common-service-from-$FROM_NAMESPACE"
+      copy_resource "secret" "icp-mongodb-client-cert"
+      copy_resource "secret" "mongodb-root-ca-cert"
+      copy_resource "secret" "icp-mongodb-admin"
+      # any extra config
+    else
+      info "Cleanup selected. Cleaning MongoDB in services namespace $TO_NAMESPACE"
+      deletemongocopy
+    fi
 }
 
 function parse_arguments() {
@@ -87,6 +100,12 @@ function parse_arguments() {
         --services-ns)
             shift
             TO_NAMESPACE=$1
+            ;;
+        --rerun)
+            RERUN="true"
+            ;;
+        --cleanup)
+            CLEANUP="true"
             ;;
         -v | --debug)
             shift
@@ -116,9 +135,12 @@ function print_usage() {
     echo "   --yq string                                    Optional. File path to yq CLI. Default uses yq in your PATH"
     echo "   --original-cs-ns string                        Required. Namespace to migrate Cloud Pak 2 Foundational services data from."
     echo "   --services-ns string                           Required. Namespace to migrate Cloud Pak 2 Foundational services data too"
+    echo "   --rerun                                        Optional. If specified, will cleanup the previous attempt's mongo copy installed in specified services namespace before executing script."
+    echo "   --cleanup                                      Optional. Overrides --rerun. If specified, will cleanup the previous attempt's mongo copy installed in specified services namespace without executing the rest of the script."
     echo "   -v, --debug integer                            Optional. Verbosity of logs. Default is 0. Set to 1 for debug logs"
     echo "   -h, --help                                     Print usage information"
     echo ""
+    echo "NOTE: using --rerun will delete any mongo instance installed in the namespace specified with --services-ns parameter. Verify the parameters entered are correct."
 }
 
 function prereq() {
@@ -237,13 +259,13 @@ function pre_req_bpm() {
 
   info "Copying mongodb from namespace $FROM_NAMESPACE to namespace $TO_NAMESPACE"
  
-  runningmongo=$(${OC} get po icp-mongodb-0 --no-headers --ignore-not-found -n $FROM_NAMESPACE | awk '{print $3}')
+  runningmongo=$(${OC} get po icp-mongodb-0 --no-headers --ignore-not-found -n $FROM_NAMESPACE -o=jsonpath='{.status.phase}')
   if [[ -z "$runningmongo" ]] || [[ "$runningmongo" != "Running" ]]; then
     error "Mongodb is not running in Namespace $FROM_NAMESPACE"
     exit -1
   fi
 
-  runningmongo=$(${OC} get po icp-mongodb-0 --no-headers --ignore-not-found -n $TO_NAMESPACE | awk '{print $3}')
+  runningmongo=$(${OC} get po icp-mongodb-0 --no-headers --ignore-not-found -n $TO_NAMESPACE -o=jsonpath='{.status.phase}')
   if [[ ! -z "$runningmongo" ]]; then
     error "Mongodb is deployed in namespace $TO_NAMESPACE - this script depends on mongo being uninitialzed in the target namespace"
     exit -1
@@ -353,8 +375,7 @@ function dumpmongo() {
   if [[ "$currentns" -ne "$FROM_NAMESPACE" ]]; then
     error "Cannot switch to $FROM_NAMESPACE"
   fi
-  
-  fsgroup=$(${OC} get project $FROM_NAMESPACE -o=jsonpath='{.metadata.annotations.openshift\.io/sa\.scc\.uid-range}' | tr "\/" " " | awk '{print $1}')
+
   ibm_mongodb_image=$(${OC} get pod icp-mongodb-0 -n $FROM_NAMESPACE -o=jsonpath='{range .spec.containers[0]}{.image}{end}')
 
   if [[ $z_or_power_ENV == "false" ]]; then
@@ -369,20 +390,9 @@ spec:
   backoffLimit: 20
   template:
     spec:
-      securityContext:
-        fsGroup: $fsgroup
       containers:
       - name: cs-mongodb-backup
         image: $ibm_mongodb_image
-        securityContext:
-          capabilities:
-            drop:
-              - ALL
-          privileged: false
-          runAsNonRoot: true
-          runAsUser: $fsgroup
-          allowPrivilegeEscalation: false
-          readOnlyRootFilesystem: false
         resources:
           limits:
             cpu: 500m
@@ -424,6 +434,7 @@ spec:
         secret:
           secretName: mongodb-root-ca-cert
       restartPolicy: OnFailure
+      serviceAccountName: ibm-mongodb-operand
 EOF
   else #s390x environments do not recognize --ssl options
     info "Z or Power cluster detected"
@@ -481,21 +492,10 @@ spec:
   completions: 1
   backoffLimit: 20
   template:
-    securityContext:
-        fsGroup: $fsgroup
     spec:
       containers:
       - name: cs-mongodb-backup
         image: $ibm_mongodb_image
-        securityContext:
-          capabilities:
-            drop:
-              - ALL
-          privileged: false
-          runAsNonRoot: true
-          runAsUser: $fsgroup
-          allowPrivilegeEscalation: false
-          readOnlyRootFilesystem: false
         resources:
           limits:
             cpu: 500m
@@ -537,6 +537,7 @@ spec:
         secret:
           secretName: mongodb-root-ca-cert
       restartPolicy: OnFailure
+      serviceAccountName: ibm-mongodb-operand
 EOF
   fi
 
@@ -590,12 +591,8 @@ function swapmongopvc() {
     if [[ -z $stgclass ]]; then
       error "Cannnot get storage class name from PVC mongodbdir-icp-mongodb-0 in $FROM_NAMESPACE"
     fi
-  else
-    debug1 "Preload run on ROKS, not setting storageclass name"
-    stgclass=""
-  fi
-
-  cat <<EOF >$TEMPFILE
+    
+    cat <<EOF >$TEMPFILE
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -611,6 +608,42 @@ spec:
   volumeMode: Filesystem
   volumeName: $VOL
 EOF
+
+  else
+    debug1 "Preload run on ROKS, not setting storageclass name"
+    deprecated_region='{.metadata.labels.failure-domain\.beta\.kubernetes\.io\/region}'
+    deprecated_zone='{.metadata.labels.failure-domain\.beta\.kubernetes\.io\/zone}'
+
+    deprecated_region_label='failure-domain.beta.kubernetes.io/region'
+    not_deprecated_region_label='topology.kubernetes.io/region'
+    deprecated_zone_label='failure-domain.beta.kubernetes.io/zone'
+    not_deprecated_zone_label='topology.kubernetes.io/zone'
+
+    region=$("${OC}" get pv $VOL -o=jsonpath=$deprecated_region)
+    zone=$("${OC}" get pv $VOL -o=jsonpath=$deprecated_zone)
+
+    if [[ $region != "" ]]; then
+        debug1 "Replacing depracated PV labels"
+        "${OC}" label pv $VOL $not_deprecated_region_label=$region $deprecated_region_label- $not_deprecated_zone_label=$zone $deprecated_zone_label- --overwrite 
+    fi
+
+    cat <<EOF >$TEMPFILE
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: cs-mongodump
+  namespace: $TO_NAMESPACE
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 20Gi
+  volumeMode: Filesystem
+  volumeName: $VOL
+EOF
+  fi
+
 
   ${OC} create -f $TEMPFILE
 
@@ -665,7 +698,7 @@ spec:
       containers:
       - name: icp-mongodb-restore
         image: $ibm_mongodb_image
-        command: ["bash", "-c", "cat /cred/mongo-certs/tls.crt /cred/mongo-certs/tls.key > /work-dir/mongo.pem; cat /cred/cluster-ca/tls.crt /cred/cluster-ca/tls.key > /work-dir/ca.pem; mongorestore --host rs0/icp-mongodb:27017 --username \$ADMIN_USER --password \$ADMIN_PASSWORD --authenticationDatabase admin --ssl --sslCAFile /work-dir/ca.pem --sslPEMKeyFile /work-dir/mongo.pem /dump/dump"]
+        command: ["bash", "-c", "cat /cred/mongo-certs/tls.crt /cred/mongo-certs/tls.key > /work-dir/mongo.pem; cat /cred/cluster-ca/tls.crt /cred/cluster-ca/tls.key > /work-dir/ca.pem; mongorestore --db platform-db --host rs0/icp-mongodb-0.icp-mongodb.$TO_NAMESPACE.svc.cluster.local --port \$MONGODB_SERVICE_PORT --username \$ADMIN_USER --password \$ADMIN_PASSWORD --authenticationDatabase admin --ssl --sslCAFile /work-dir/ca.pem --sslPEMKeyFile /work-dir/mongo.pem /dump/dump/platform-db --drop"]
         resources:
           limits:
             cpu: 500m
@@ -706,6 +739,7 @@ spec:
         secret:
           secretName: mongodb-root-ca-cert
       restartPolicy: Never
+      serviceAccountName: ibm-mongodb-operand
 EOF
   else
     debug1 "Applying z/power restore job"
@@ -724,7 +758,7 @@ spec:
       containers:
       - name: icp-mongodb-restore
         image: $ibm_mongodb_image
-        command: ["bash", "-c", "cat /cred/mongo-certs/tls.crt /cred/mongo-certs/tls.key > /work-dir/mongo.pem; cat /cred/cluster-ca/tls.crt /cred/cluster-ca/tls.key > /work-dir/ca.pem; mongorestore --host rs0/icp-mongodb:27017 --username \$ADMIN_USER --password \$ADMIN_PASSWORD --authenticationDatabase admin /dump/dump"]
+        command: ["bash", "-c", "cat /cred/mongo-certs/tls.crt /cred/mongo-certs/tls.key > /work-dir/mongo.pem; cat /cred/cluster-ca/tls.crt /cred/cluster-ca/tls.key > /work-dir/ca.pem; mongorestore --db platform-db --host rs0/icp-mongodb-0.icp-mongodb.$TO_NAMESPACE.svc.cluster.local --port \$MONGODB_SERVICE_PORT --username \$ADMIN_USER --password \$ADMIN_PASSWORD --authenticationDatabase admin /dump/dump/platform-db --drop"]
         resources:
           limits:
             cpu: 500m
@@ -765,6 +799,7 @@ spec:
         secret:
           secretName: mongodb-root-ca-cert
       restartPolicy: Never
+      serviceAccountName: ibm-mongodb-operand
 EOF
   fi
 
@@ -1859,7 +1894,7 @@ EOF
     info "Waiting for MongoDB copy to initialize"
     sleep 10
     ${OC} get po icp-mongodb-0 --no-headers
-    status=$(${OC} get po icp-mongodb-0 --no-headers | awk '{print $3}')
+    status=$(${OC} get po icp-mongodb-0 --no-headers -o=jsonpath='{.status.phase}')
   done
 
   success "Temporary Mongo copy deployed to namespace $TO_NAMESPACE"
@@ -1897,25 +1932,24 @@ function deletemongocopy {
   ${OC} delete cm namespace-scope --ignore-not-found
   
   #delete mongodump pvc and pv
-  VOL=$(${OC} get pvc cs-mongodump -o=jsonpath='{.spec.volumeName}')
+  VOL=$(${OC} get pvc cs-mongodump -o=jsonpath='{.spec.volumeName}' --ignore-not-found)
   if [[ -z "$VOL" ]]; then
-    error "Volume for pvc cs-mongodump not found in $TO_NAMESPACE"
+    warning "Volume for pvc cs-mongodump not found in $TO_NAMESPACE. It may have already been deleted."
+  else
+    ${OC} patch pv $VOL -p '{"spec": { "persistentVolumeReclaimPolicy" : "Delete" }}'
+    ${OC} delete pvc cs-mongodump -n $TO_NAMESPACE --ignore-not-found --timeout=10s
+    if [ $? -ne 0 ]; then
+      info "Failed to delete pvc cs-mongodump, patching its finalizer to null..."
+      ${OC} patch pvc cs-mongodump -n $TO_NAMESPACE --type="json" -p '[{"op": "remove", "path":"/metadata/finalizers"}]' --ignore-not-found
+    fi
+    ${OC} delete pv $VOL --ignore-not-found --timeout=10s
+    if [ $? -ne 0 ]; then
+      info "Failed to delete pv $VOL, patching its finalizer to null..."
+      ${OC} patch pv $VOL --type="json" -p '[{"op": "remove", "path":"/metadata/finalizers"}]'
+    fi
   fi
 
-  ${OC} patch pv $VOL -p '{"spec": { "persistentVolumeReclaimPolicy" : "Delete" }}'
-  
-  ${OC} delete pvc cs-mongodump -n $TO_NAMESPACE --ignore-not-found --timeout=10s
-  if [ $? -ne 0 ]; then
-    info "Failed to delete pvc cs-mongodump, patching its finalizer to null..."
-    ${OC} patch pvc cs-mongodump -n $TO_NAMESPACE --type="json" -p '[{"op": "remove", "path":"/metadata/finalizers"}]'
-  fi
-  ${OC} delete pv $VOL --ignore-not-found --timeout=10s
-  if [ $? -ne 0 ]; then
-    info "Failed to delete pv $VOL, patching its finalizer to null..."
-    ${OC} patch pv $VOL --type="json" -p '[{"op": "remove", "path":"/metadata/finalizers"}]'
-  fi
-
-  success "MongoDB restored to new namespace $TO_NAMESPACE"
+  success "MongoDB removed from services namespace $TO_NAMESPACE"
 
 } # deletemongocopy
 
@@ -2046,6 +2080,10 @@ function success() {
 
 function error() {
     msg "\33[31m[✘] ${1}\33[0m"
+    echo "The script can be re-run using one of the following commands:"
+    echo "For simple cleanup to prepare another run: ./preload_data.sh --cleanup $ARGUMENTS"
+    echo "For an immediate re-run of preload_data: ./preload_data.sh --rerun $ARGUMENTS"
+    echo "Run ./preload_data.sh --help to see usage."
     exit 1
 }
 
