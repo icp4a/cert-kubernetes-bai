@@ -1,0 +1,196 @@
+###############################################################################
+#
+# Licensed Materials - Property of IBM
+#
+# (C) Copyright IBM Corp. 2021. All Rights Reserved.
+#
+# US Government Users Restricted Rights - Use, duplication or
+# disclosure restricted by GSA ADP Schedule Contract with IBM Corp.
+#
+###############################################################################
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ibm-bai-insights-engine-operator
+  labels:
+    app.kubernetes.io/instance: ibm-bai
+    app.kubernetes.io/managed-by: ibm-bai
+    app.kubernetes.io/name: ibm-bai
+    release: 24.0.1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: ibm-bai-insights-engine-operator
+  strategy: {}
+  template:
+    metadata:
+      annotations:
+        productChargedContainers: ""
+        productID: eb91d896dbbc4472861b9d2b71cebd68
+        productMetric: VIRTUAL_PROCESSOR_CORE
+        productName: IBM Business Automation Insights
+        productVersion: 24.0.1
+      labels:
+        app.kubernetes.io/instance: ibm-bai
+        app.kubernetes.io/managed-by: olm
+        app.kubernetes.io/name: ibm-bai
+        name: ibm-bai-insights-engine-operator
+        com.ibm.bai.networking/egress-deny-all: "true"
+        com.ibm.bai.networking/egress-allow-same-namespace: "true"
+        com.ibm.bai.networking/egress-allow-k8s-services: "true"
+        com.ibm.bai.networking/egress-allow-cpfs: "true"
+        com.ibm.bai.networking/egress-allow-all: "true"
+    spec:
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - preference:
+                matchExpressions:
+                  - key: kubernetes.io/arch
+                    operator: In
+                    values:
+                      - amd64
+                      - s390x
+                      - ppc64le
+              weight: 3
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/arch
+                    operator: In
+                    values:
+                      - amd64
+                      - s390x
+                      - ppc64le
+      initContainers:
+        - name: folder-prepare-container
+          image: icr.io/cpopen/icp4a-insights-engine-operator@sha256:781fecbba99a5e7f4ff80b49c840f7f7260c4696ec16438b88f74cec85325f7f
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            readOnlyRootFilesystem: true
+          resources:
+            limits:
+              cpu: "1"
+              ephemeral-storage: 800Mi
+              memory: 2Gi
+            requests:
+              cpu: 500m
+              ephemeral-storage: 50Mi
+              memory: 256Mi
+          volumeMounts:
+            - name: ansible-folder-pvc
+              mountPath: /ansible-folder
+            - name: tmp-folder-pvc
+              mountPath: /tmp-folder
+            - name: log-folder-pvc
+              mountPath: /log-folder
+            - name: ibm-folder-pvc
+              mountPath: /ibm-folder
+          command:
+            - "/bin/sh"
+            - "-ec"
+            - >
+              set -ex &&
+              rm -rf /tmp-folder/* && rm -rf /ansible-folder/* && rm -rf /log-folder/* && rm -rf /ibm-folder/* && 
+              mkdir -p /ansible-folder/.ansible &&
+              cp -rp /opt/ansible/* /ansible-folder &&
+              cp -rp /opt/ansible/.ansible/* /ansible-folder/.ansible &&
+              cp -rp /opt/ibm/* /ibm-folder
+      containers:
+        - args:
+            - --leader-elect
+            - --zap-encoder=console
+          env:
+            - name: COCKPIT_IMAGES
+              value: >
+                24.0.1=cp.icr.io/cp/cp4a/bai/insights-engine-cockpit@sha256:e9715cb1d8121583c87069caf70e2b1192203ca5d12871eb016692148c59dd5c                      
+            - name: APPLICATION_SETUP_IMAGES
+              value: >
+                24.0.1=cp.icr.io/cp/cp4a/bai/insights-engine-application-setup@sha256:21ba40e68edc471a61967631bbe4f55227742056b68e4868a5df874ccbefbdad
+            - name: MANAGEMENT_IMAGES
+              value: >
+                24.0.1=cp.icr.io/cp/cp4a/bai/insights-engine-management@sha256:5745bfb5a8604a707bca593f8b67582103c501f35353601964130c0cf58b7a2f
+            - name: MANAGEMENT_BACKEND_IMAGES
+              value: >
+                24.0.1=cp.icr.io/cp/cp4a/bai/insights-engine-management-backend@sha256:cf84705e4e1dfdd55ed384f1212709e959bd8ec7c1f17acee35991a113625f09
+            - name: MINIMAL_IMAGES
+              value: >
+                24.0.1=cp.icr.io/cp/cp4a/bai/bai-init@sha256:3eff33a5d337cdcdadda5e76581fa3680407a3b1fc4be5ad47322d27c0691474
+            - name: INIT_KEYTOOL_IMAGES
+              value: >
+                24.0.1=cp.icr.io/cp/cp4a/bai/dba-keytool-initcontainer@sha256:e17580e09fe40a45ac7d46f4e58a845fbbed7cec8f781f9c84850e42ade086c2
+            - name: UMS_REGISTRATION_IMAGES
+              value: >
+                24.0.1=cp.icr.io/cp/cp4a/bai/dba-umsregistration-initjob@sha256:137e8d1ab6e04cbff9686efa3a9a9431c05d6d9767e2f9a5c048de6adee9b1ed
+            - name: OPERATOR_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: WATCH_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.annotations['olm.targetNamespaces']
+            - name: ANSIBLE_GATHERING
+              value: smart
+            - name: MAX_CONCURRENT_RECONCILES_INSIGHTSENGINE_BAI_IBM_COM
+              value: "10"
+            - name: bai_license
+              value: BAI
+          image: icr.io/cpopen/icp4a-insights-engine-operator@sha256:781fecbba99a5e7f4ff80b49c840f7f7260c4696ec16438b88f74cec85325f7f
+          imagePullPolicy: IfNotPresent
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 6789
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          name: manager
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 6789
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            limits:
+              cpu: "1"
+              ephemeral-storage: 800Mi
+              memory: 2Gi
+            requests:
+              cpu: 500m
+              ephemeral-storage: 50Mi
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            privileged: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+          volumeMounts:
+            - name: ansible-folder-pvc
+              mountPath: /opt/ansible
+            - name: tmp-folder-pvc
+              mountPath: /tmp
+            - name: log-folder-pvc
+              mountPath: /logs
+            - name: ibm-folder-pvc
+              mountPath: /opt/ibm
+      securityContext:
+        runAsNonRoot: true
+      serviceAccountName: ibm-bai-insights-engine-operator
+      terminationGracePeriodSeconds: 10
+      volumes:
+        - name: tmp-folder-pvc
+          emptyDir: {}
+        - name: ansible-folder-pvc
+          emptyDir: {}
+        - name: log-folder-pvc
+          emptyDir: {}
+        - name: ibm-folder-pvc
+          emptyDir: {}
+      hostIPC: false
+      hostPID: false
+      hostNetwork: false
