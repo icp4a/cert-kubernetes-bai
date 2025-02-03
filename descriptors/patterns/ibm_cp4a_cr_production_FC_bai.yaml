@@ -54,7 +54,7 @@ spec:
     #  localhost_profile: # Local path of custom seccomp profile when type `Localhost` is used. The custom profile must be accessible by the pod and must exist locally on all worker nodes.  For example: `/profiles/fine-grained.json`.
     
     ## Optional setting for customzing the host of OpenSearch Route. The default Route host will be `opensearch.{meta.namespace}.router-canonicalhostname` if parameter is undefined or value is empty
-    openseach_configuration:
+    opensearch_configuration:
       route_host:
 
     images:

@@ -23,7 +23,7 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   labels:
-    cp4ba: test-only
+    bai: test-only
   name: ${sample_pvc_name}
 spec:
   accessModes:

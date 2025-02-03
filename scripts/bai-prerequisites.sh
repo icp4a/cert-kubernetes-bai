@@ -42,11 +42,12 @@ function show_help() {
     echo "Options:"
     echo "  -h  Display help"
     echo "  -m  The valid mode types are: [property], [generate], or [validate]"
-    echo "      STEP1: Run the script in [property] mode. Creates property files (LDAP property file) with default values (BASE DN/BIND DN ...)."
-    echo "      STEP2: Modify the LDAP/user property files with your values."
-    echo "      STEP3: Run the script in [generate] mode. Generates the YAML templates for the secrets based on the values in the property files."
-    echo "      STEP4: Create the databases and secrets by using the modified YAML templates for the secrets."
-    echo "      STEP5: Run the script in [validate] mode. Checks the secrets are created before you install IBM Business Automation Insights."
+    echo ""
+    echo "  STEP1: Run the script in [property] mode. It creates property files (LDAP property file) with default values (BASE DN/BIND DN ...)."
+    echo "  STEP2: Modify the LDAP/user property files with your values."
+    echo "  STEP3: Run the script in [generate] mode. Generates the YAML templates for the secrets based on the values in the property files."
+    echo "  STEP4: Create the databases and secrets by using the modified YAML templates for the secrets."
+    echo "  STEP5: Run the script in [validate] mode. Checks the secrets are created before you install IBM Business Automation Insights."
 }
 
 function prompt_license(){
@@ -55,7 +56,7 @@ function prompt_license(){
     echo -e "\x1B[1;31mIMPORTANT: Review the IBM Business Automation Insights stand-alone license information here: \n\x1B[0m"
     echo -e "\x1B[1;31mhttps://www14.software.ibm.com/cgi-bin/weblap/lap.pl?li_formnum=L-PSZC-SHQFWS\n\x1B[0m"
 
-    read -rsn1 -p"Press any key to continue";echo
+    prompt_press_any_key_to_continue
 
     printf "\n"
     while true; do
@@ -69,7 +70,7 @@ function prompt_license(){
             break
             ;;
         "n"|"N"|"no"|"No"|"NO"|"")
-            echo -e "Exiting...\n"
+            echo -e "The license agreement was not accepted. The license agreement must be accepted to continue. The script is exiting...\n"
             exit 0
             ;;
         *)
@@ -92,7 +93,7 @@ function validate_utility_tool_for_validation(){
                 break
                 ;;
             "n"|"N"|"no"|"No"|"NO")
-                info "Must install the Kubernetes CLI to continue the next validation"
+                info "Kubernetes CLI must be installed to continue the next validation"
                 exit 1
                 ;;
             *)
@@ -113,7 +114,7 @@ function validate_utility_tool_for_validation(){
                 break
                 ;;
             "n"|"N"|"no"|"No"|"NO")
-                info "Must install the IBM JRE or other JRE to continue the next validation"
+                info "IBM JRE or other JRE must be installed for the next validation"
                 exit 1
                 ;;
             *)
@@ -168,7 +169,7 @@ function validate_utility_tool_for_validation(){
                 break
                 ;;
             "n"|"N"|"no"|"No"|"NO")
-                info "Must install the OpenSSL to continue next validation"
+                info "OpenSSL must be installed for the next validationn"
                 exit 1
                 ;;
             *)
@@ -210,7 +211,7 @@ function select_flink_job(){
     }
     menu() {
         clear
-        echo -e "\x1B[1mWhich component you want to enable the Flink job for: \x1B[0m"
+        echo -e "\x1B[1mWhich are the components you want to enable the Flink job for: \x1B[0m"
         for i in ${!options[@]}; do
             containsElement "${options_cr_val[i]}" "${EXISTING_PATTERN_ARR[@]}"
             retVal=$?
@@ -260,7 +261,7 @@ function select_flink_job(){
 
     if [ "${#flink_job_arr[@]}" -eq "0" ]; then
         FLINK_JOB_SELECTED="None"
-        warning "None components selected for flink job, continue... \n"
+        warning "None of the components were selected for the Flink job. Continuing...... \n"
         sleep 3
         # exit 1
     else
@@ -279,7 +280,68 @@ function select_flink_job(){
     # read -rsn1 -p"Press any key to continue (DEBUG MODEL)";echo
 }
 
+# Function that checks if there are any missing quotes in any property files after the user updates the property files
+function check_missing_quotes(){
+    missing_quotes=0
+    property_files=("${USER_PROFILE_PROPERTY_FILE}" "${DB_SERVER_INFO_PROPERTY_FILE}" "${DB_NAME_USER_PROPERTY_FILE}" "${LDAP_PROPERTY_FILE}" "${EXTERNAL_LDAP_PROPERTY_FILE}")
+    for input_file in "${property_files[@]}"; do
+        # Check if the property file exists
+        if [ ! -f "$input_file" ]; then
+            continue
+        fi
+        # Array to store incorrect entries
+        incorrect_values=()
+
+        while IFS= read -r line || [ -n "$line" ]; do
+            # Skip comment lines or empty lines
+            if [[ $line =~ ^[[:space:]]*# ]] || [[ -z $line ]]; then
+                continue
+            fi
+
+            # Skip lines that are completely empty or contain only whitespace
+            if [[ "$line" =~ ^[[:space:]]*$ ]]; then
+                continue
+            fi
+
+            # Ensure the line contains '=' before processing
+            if [[ $line != *"="* ]]; then
+                continue
+            fi
+
+            # Extract the key and value
+            key=$(echo "$line" | cut -d'=' -f1)
+            value=$(echo "$line" | cut -d'=' -f2-)
+
+            # Check if the value is enclosed in quotes
+            if [[ ! $value =~ ^\".*\"$ ]]; then
+                # Add to the list of incorrect values
+                incorrect_values+=("$key")
+            fi
+        done < "$input_file"
+
+        # Output results
+        if [ ! ${#incorrect_values[@]} -eq 0 ]; then
+            missing_quotes=1
+            error "Validation failed: The following values in the property file located at \"${input_file}\" are not enclosed in quotes:"
+            printf "\n"
+            echo "---------------------------------------------------------------"
+            for entry in "${incorrect_values[@]}"; do
+                echo "  - $entry"
+            done
+            echo "---------------------------------------------------------------"
+
+        fi
+    done
+    if [[ "$missing_quotes" == 1 ]] ; then
+        info "[NEXT_STEPS]: Reference the table above and ensure all values in all property files are enclosed in quotes and re-run cp4a-prerequisites.sh script in generate mode."
+        exit 1
+    fi
+}
+
 function check_property_file(){
+    # Function to check for missing quotes in any of the property files
+    # For https://jsw.ibm.com/browse/DBACLD-161426
+    check_missing_quotes
     local empty_value_tag=0
     value_empty=`grep '="<Required>"' "${USER_PROFILE_PROPERTY_FILE}" | wc -l`  >/dev/null 2>&1
     if [ $value_empty -ne 0 ] ; then
@@ -287,60 +349,18 @@ function check_property_file(){
         empty_value_tag=1
     fi
 
-    value_empty=`grep '="<Required>"' "${DB_SERVER_INFO_PROPERTY_FILE}" | wc -l`  >/dev/null 2>&1
-    if [ $value_empty -ne 0 ] ; then
-        error "Found invalid value(s) \"<Required>\" in property file \"${DB_SERVER_INFO_PROPERTY_FILE}\", please input the correct value."
-        empty_value_tag=1
-    fi
-
-    value_empty=`grep '^<DB_SERVER_NAME>.' "${DB_NAME_USER_PROPERTY_FILE}" | wc -l`  >/dev/null 2>&1
-    if [ $value_empty -ne 0 ] ; then
-        error "Please change prefix \"<DB_SERVER_NAME>\" to assign database used by component to which database server or instance in property file \"${DB_NAME_USER_PROPERTY_FILE}\"."
-        empty_value_tag=1
-    fi
-
-    # check DB_SERVER_LIST contains doc char
-    tmp_dbservername=$(prop_db_server_property_file DB_SERVER_LIST)
-    tmp_dbservername=$(sed -e 's/^"//' -e 's/"$//' <<<"$tmp_dbservername")
-    value_empty=`echo "${tmp_dbservername}" | grep '\.' | wc -l`  >/dev/null 2>&1
-    if [ $value_empty -ne 0 ] ; then
-        error "Found dot character(.) from the value of \"DB_SERVER_LIST\" parameter in property file \"${DB_SERVER_INFO_PROPERTY_FILE}\"."
-        empty_value_tag=1
-    fi
-
-    # check ADP_PROJECT_DB_SERVER contain <DB_SERVER_NAME>
-    if [[ " ${flink_job_cr_arr[@]}" =~ "document_processing" ]]; then
-        tmp_dbserver="$(prop_db_name_user_property_file ADP_PROJECT_DB_SERVER)"
-        tmp_dbserver=$(sed -e 's/^"//' -e 's/"$//' <<<"$tmp_dbserver")
-        value_empty=`echo $tmp_dbserver | grep '<DB_SERVER_NAME>' | wc -l`  >/dev/null 2>&1
+    if [[ $SELECTED_LDAP == "Yes" ]]; then
+        value_empty=`grep '="{Base64}<Required>"' "${LDAP_PROPERTY_FILE}" | wc -l`  >/dev/null 2>&1
         if [ $value_empty -ne 0 ] ; then
-            error "Please change \"<DB_SERVER_NAME>\" for \"ADP_PROJECT_DB_SERVER\" parameter to assign database used by component to which database server or instance in property file \"${DB_NAME_USER_PROPERTY_FILE}\"."
+            error "Found invalid value(s) \"{Base64}<Required>\" in property file \"${LDAP_PROPERTY_FILE}\", please input the correct value."
             empty_value_tag=1
         fi
-    fi
-
-    value_empty=`grep '="<Required>"' "${DB_NAME_USER_PROPERTY_FILE}" | wc -l`  >/dev/null 2>&1
-    if [ $value_empty -ne 0 ] ; then
-        error "Found invalid value(s) \"<Required>\" in property file \"${DB_NAME_USER_PROPERTY_FILE}\", please input the correct value."
-        empty_value_tag=1
-    fi
-
-    value_empty=`grep -v '^# .*.CHOS_DB_USER_PASSWORD="<yourpassword>"' "${DB_NAME_USER_PROPERTY_FILE}" | grep '="<yourpassword>"' | wc -l`  >/dev/null 2>&1
-    if [ $value_empty -ne 0 ] ; then
-        error "Found invalid value(s) \"<yourpassword>\" in property file \"${DB_NAME_USER_PROPERTY_FILE}\", please input the correct value."
-        empty_value_tag=1
-    fi
-
-    value_empty=`grep -v '^# .*.CHOS_DB_USER_NAME="<youruser1>"' "${DB_NAME_USER_PROPERTY_FILE}" | grep '="<youruser1>"' | wc -l`  >/dev/null 2>&1
-    if [ $value_empty -ne 0 ] ; then
-        error "Found invalid value(s) \"<youruser1>\" in property file \"${DB_NAME_USER_PROPERTY_FILE}\", please input the correct value."
-        empty_value_tag=1
-    fi
-
-    value_empty=`grep '="<Required>"' "${LDAP_PROPERTY_FILE}" | wc -l`  >/dev/null 2>&1
-    if [ $value_empty -ne 0 ] ; then
-        error "Found invalid value(s) \"<Required>\" in property file \"${LDAP_PROPERTY_FILE}\", please input the correct value."
-        empty_value_tag=1
+        
+        value_empty=`grep '="<Required>"' "${LDAP_PROPERTY_FILE}" | wc -l`  >/dev/null 2>&1
+        if [ $value_empty -ne 0 ] ; then
+            error "Found invalid value(s) \"<Required>\" in property file \"${LDAP_PROPERTY_FILE}\", please input the correct value."
+            empty_value_tag=1
+        fi
     fi
 
     if [[ $SET_EXT_LDAP == "Yes" ]]; then
@@ -351,155 +371,13 @@ function check_property_file(){
         fi
     fi
 
-    # check prefix in db property is correct element of DB_SERVER_LIST
-    tmp_db_array=$(prop_db_server_property_file DB_SERVER_LIST)
-    tmp_db_array=$(sed -e 's/^"//' -e 's/"$//' <<<"$tmp_db_array")
-    OIFS=$IFS
-    IFS=',' read -ra db_server_array <<< "$tmp_db_array"
-    IFS=$OIFS
-
-    # check DB_NAME_USER_PROPERTY_FILE
-    prefix_array=($(grep '=\"' ${DB_NAME_USER_PROPERTY_FILE} | cut -d'=' -f1 | cut -d'.' -f1 | grep -Ev 'ADP_PROJECT_DB_NAME|ADP_PROJECT_DB_SERVER|ADP_PROJECT_DB_USER_NAME|ADP_PROJECT_DB_USER_PASSWORD|ADP_PROJECT_ONTOLOGY'))
-    for item in ${prefix_array[*]}
-    do
-        if [[ ! ( "${item}" == \#* ) ]]; then
-            if [[ ! (" ${db_server_array[@]}" =~ "${item}") ]]; then
-                error "The prefix \"$item\" is not in the definition DB_SERVER_LIST=\"${tmp_db_array}\", please check follow example to configure \"${DB_NAME_USER_PROPERTY_FILE}\" again."
-                echo -e "***************** example *****************"
-                echo -e "if DB_SERVER_LIST=\"DBSERVER1\""
-                echo -e "You need to change"
-                echo -e "<DB_SERVER_NAME>.GCD_DB_NAME=\"GCDDB\""
-                echo -e "to"
-                echo -e "DBSERVER1.GCD_DB_NAME=\"GCDDB\""
-                echo -e "***************** example *****************"
-                empty_value_tag=1
-                break
-            fi
-        fi
-    done
-
-    # check DB_SERVER_INFO_PROPERTY_FILE
-    prefix_array=($(grep '=\"' ${DB_SERVER_INFO_PROPERTY_FILE} | cut -d'=' -f1 | cut -d'.' -f1 | tail -n +2))
-    for item in ${prefix_array[*]}
-    do
-        if [[ ! (" ${db_server_array[@]}" =~ "${item}") ]]; then
-            error "The prefix \"$item\" is not in the definition DB_SERVER_LIST=\"${tmp_db_array}\", please check follow example to configure \"${DB_SERVER_INFO_PROPERTY_FILE}\" again."
-            echo -e "********************* example *********************"
-            echo -e "if DB_SERVER_LIST=\"DBSERVER1\""
-            echo -e "You need to change"
-            echo -e "<DB_SERVER_NAME>.DATABASE_SERVERNAME=\"samplehost\""
-            echo -e "to"
-            echo -e "DBSERVER1.DATABASE_SERVERNAME=\"samplehost\""
-            echo -e "********************* example *********************"
-            empty_value_tag=1
-            break
-        fi
-    done
-
     if [[ "$empty_value_tag" == "1" ]]; then
         exit 1
-    fi
-
-    # Check the PostgreSQL DATABASE_SSL_ENABLE/POSTGRESQL_SSL_CLIENT_SERVER
-    for item in ${db_server_array[*]}
-    do
-        db_ssl_flag="$(prop_db_server_property_file ${item}.DATABASE_SSL_ENABLE)"
-        client_auth_flag="$(prop_db_server_property_file ${item}.POSTGRESQL_SSL_CLIENT_SERVER)"
-        db_ssl_flag=$(sed -e 's/^"//' -e 's/"$//' <<<"$db_ssl_flag")
-        client_auth_flag=$(sed -e 's/^"//' -e 's/"$//' <<<"$client_auth_flag")
-        db_ssl_flag_tmp=$(echo $db_ssl_flag | tr '[:upper:]' '[:lower:]')
-        client_auth_flag_tmp=$(echo $client_auth_flag | tr '[:upper:]' '[:lower:]')
-        if [[ ($db_ssl_flag_tmp == "no" || $db_ssl_flag_tmp == "false" || $db_ssl_flag_tmp == "" || -z $db_ssl_flag_tmp) && ($client_auth_flag_tmp == "yes" || $client_auth_flag_tmp == "true") ]]; then
-            error "The property \"${item}.DATABASE_SSL_ENABLE\" is \"$db_ssl_flag\", but the property \"${item}.POSTGRESQL_SSL_CLIENT_SERVER\" is \"$client_auth_flag\""
-            echo -e "********************* example *********************"
-            echo -e "if ${item}.DATABASE_SSL_ENABLE=\"False\""
-            echo -e "You also need to change"
-            echo -e "${item}.POSTGRESQL_SSL_CLIENT_SERVER=\"False\""
-            echo -e "********************* example *********************"
-            error_value_tag=1
-        fi
-    done
-
-    # check BAN.LTPA_PASSWORD same as CONTENT.LTPA_PASSWORD
-    if [[ " ${flink_job_cr_arr[@]}" =~ "workflow-runtime" || " ${flink_job_cr_arr[@]}" =~ "workflow-authoring" || " ${flink_job_cr_arr[@]}" =~ "content" || " ${flink_job_cr_arr[@]}" =~ "document_processing" || "${optional_component_cr_arr[@]}" =~ "ae_data_persistence" ]]; then
-        content_tmp_ltpapwd="$(prop_user_profile_property_file CONTENT.LTPA_PASSWORD)"
-        ban_tmp_ltpapwd="$(prop_user_profile_property_file BAN.LTPA_PASSWORD)"
-        content_tmp_ltpapwd=$(sed -e 's/^"//' -e 's/"$//' <<<"$content_tmp_ltpapwd")
-        ban_tmp_ltpapwd=$(sed -e 's/^"//' -e 's/"$//' <<<"$ban_tmp_ltpapwd")
-
-        if [[ (! -z "$content_tmp_ltpapwd") && (! -z "$ban_tmp_ltpapwd") ]]; then
-            if [[ "$ban_tmp_ltpapwd" != "$content_tmp_ltpapwd" ]]; then
-                fail "The CONTENT.LTPA_PASSWORD: \"$content_tmp_ltpapwd\" is NOT equal to BAN.LTPA_PASSWORD: \"$ban_tmp_ltpapwd\"."
-                echo "The value of CONTENT.LTPA_PASSWORD must be equal to the value of BAN.LTPA_PASSWORD."
-                error_value_tag=1
-            fi
-        else
-            if [[ -z "$content_tmp_ltpapwd" ]]; then
-                fail "The CONTENT.LTPA_PASSWORD is empty, it is required one valid value."
-                error_value_tag=1
-            fi
-            if [[ -z "$ban_tmp_ltpapwd" ]]; then
-                fail "The BAN.LTPA_PASSWORD is empty, it is required one valid value."
-                error_value_tag=1
-            fi
-        fi
     fi
 
     # Check keystorePassword in ibm-fncm-secret and ibm-ban-secret must exceed 16 characters when fips enabled.
     # FIPS is always false (not supported)
     fips_flag="false"
-
-    if [[ " ${flink_job_cr_arr[@]}" =~ "workflow-runtime" || " ${flink_job_cr_arr[@]}" =~ "workflow-authoring" || " ${flink_job_cr_arr[@]}" =~ "workstreams" || " ${flink_job_cr_arr[@]}" =~ "content" || " ${flink_job_cr_arr[@]}" =~ "document_processing" || "${optional_component_cr_arr[@]}" =~ "ae_data_persistence" ]]; then
-        if [[ (! -z $fips_flag) && $fips_flag == "true" ]]; then
-            content_tmp_keystorepwd="$(prop_user_profile_property_file CONTENT.KEYSTORE_PASSWORD)"
-            if [[ ! -z $content_tmp_keystorepwd ]]; then
-                content_tmp_keystorepwd=$(sed -e 's/^"//' -e 's/"$//' <<<"$content_tmp_keystorepwd")
-                if [[ ${#content_tmp_keystorepwd} -lt 16 ]]; then
-                    fail "CONTENT.KEYSTORE_PASSWORD must exceed 16 characters when fips enabled in BAI_user_profile.property."
-                    error_value_tag=1
-                fi
-            fi
-        fi
-    fi
-
-    if [[ " ${foundation_component_arr[@]}" =~ "BAN" ]]; then
-        if [[ (! -z $fips_flag) && $fips_flag == "true" ]]; then
-            ban_tmp_keystorepwd="$(prop_user_profile_property_file BAN.KEYSTORE_PASSWORD)"
-            if [[ ! -z $ban_tmp_keystorepwd ]]; then
-                ban_tmp_keystorepwd=$(sed -e 's/^"//' -e 's/"$//' <<<"$ban_tmp_keystorepwd")
-                if [[ ${#ban_tmp_keystorepwd} -lt 16 ]]; then
-                    fail "BAN.KEYSTORE_PASSWORD must exceed 16 characters when fips enabled in BAI_user_profile.property."
-                    error_value_tag=1
-                fi
-            fi
-        fi
-    fi
-
-    if [[ " ${optional_component_cr_arr[@]}" =~ "iccsap" ]]; then
-        if [[ (! -z $fips_flag) && $fips_flag == "true" ]]; then
-            iccsap_tmp_keystorepwd="$(prop_user_profile_property_file ICCSAP.KEYSTORE_PASSWORD)"
-            if [[ ! -z $iccsap_tmp_keystorepwd ]]; then
-                iccsap_tmp_keystorepwd=$(sed -e 's/^"//' -e 's/"$//' <<<"$iccsap_tmp_keystorepwd")
-                if [[ ${#iccsap_tmp_keystorepwd} -lt 16 ]]; then
-                    fail "ICCSAP.KEYSTORE_PASSWORD must exceed 16 characters when fips enabled in BAI_user_profile.property."
-                    error_value_tag=1
-                fi
-            fi
-        fi
-    fi
-
-    if [[ " ${optional_component_cr_arr[@]}" =~ "ier" ]]; then
-        if [[ (! -z $fips_flag) && $fips_flag == "true" ]]; then
-            ier_tmp_keystorepwd="$(prop_user_profile_property_file IER.KEYSTORE_PASSWORD)"
-            if [[ ! -z $ier_tmp_keystorepwd ]]; then
-                ier_tmp_keystorepwd=$(sed -e 's/^"//' -e 's/"$//' <<<"$ier_tmp_keystorepwd")
-                if [[ ${#ier_tmp_keystorepwd} -lt 16 ]]; then
-                    fail "IER.KEYSTORE_PASSWORD must exceed 16 characters when fips enabled in BAI_user_profile.property."
-                    error_value_tag=1
-                fi
-            fi
-        fi
-    fi
 
     # Check the directory for certificate should be different for IM/Zen/BTS/cp4ba_tls_issuer
     # IM metastore external Postgres DB
@@ -569,9 +447,9 @@ function check_property_file(){
 
 function create_prerequisites() {
     rm -rf $SECRET_FILE_FOLDER
-    INFO "Generating YAML template for secret required by BAI stand-alone deployment based on property file"
+    INFO "Generating YAML templates for secrets required by BAI stand-alone deployment based on property file"
     printf "\n"
-    wait_msg "Creating YAML template for secret"
+    wait_msg "Creating YAML templates for secrets"
 
     if [[ $SELECTED_LDAP == "Yes" ]]; then
         # Create LDAP bind secret
@@ -580,7 +458,11 @@ function create_prerequisites() {
         tmp_dbuser="$(prop_ldap_property_file LDAP_BIND_DN)"
         ${SED_COMMAND} "s|\"<LDAP_BIND_DN>\"|\"$tmp_dbuser\"|g" ${LDAP_SECRET_FILE}
 
+        # For https://jsw.ibm.com/browse/DBACLD-157020
+        # Function that updates the secret template with the base64 password
         tmp_ldapuserpwd="$(prop_ldap_property_file LDAP_BIND_DN_PASSWORD)"
+        update_secret_template_passwords $tmp_ldapuserpwd "ldapPassword" "$LDAP_SECRET_FILE"
+
         if [[ "${tmp_ldapuserpwd:0:8}" == "{Base64}"  ]]; then
             temp_val=$(echo "$tmp_ldapuserpwd" | sed -e "s/^{Base64}//" | base64 --decode) 
             ${SED_COMMAND} "s|\"<LDAP_PASSWORD>\"|'$(printf '%q' $temp_val)'|g" ${LDAP_SECRET_FILE}
@@ -596,15 +478,10 @@ function create_prerequisites() {
             tmp_dbuser="$(prop_ext_ldap_property_file LDAP_BIND_DN)"
             ${SED_COMMAND} "s|\"<LDAP_BIND_DN>\"|\"$tmp_dbuser\"|g" ${EXT_LDAP_SECRET_FILE}
 
+            # For https://jsw.ibm.com/browse/DBACLD-157020
+            # Function that updates the secret template with the base64 password
             tmp_ldapuserpwd="$(prop_ext_ldap_property_file LDAP_BIND_DN_PASSWORD)"
-            if [[ "${tmp_ldapuserpwd:0:8}" == "{Base64}"  ]]; then
-                temp_val=$(echo "$tmp_ldapuserpwd" | sed -e "s/^{Base64}//" | base64 --decode) 
-                ${SED_COMMAND} "s|\"<LDAP_PASSWORD>\"|'$(printf '%q' $temp_val)'|g" ${EXT_LDAP_SECRET_FILE}
-            else
-                ${SED_COMMAND} "s|\"<LDAP_PASSWORD>\"|\"$tmp_ldapuserpwd\"|g" ${EXT_LDAP_SECRET_FILE}
-            fi
-            # ${SED_COMMAND} "s|\"<LDAP_PASSWORD>\"|\"$tmp_dbuserpwd\"|g" ${EXT_LDAP_SECRET_FILE}
-
+            update_secret_template_passwords $tmp_ldapuserpwd "ldapPassword" "$EXT_LDAP_SECRET_FILE"
         fi
     fi
 
@@ -1288,7 +1165,7 @@ function create_property_file(){
 
     # For https://jsw.ibm.com/browse/DBACLD-154784 The error should be thrown when we select 'yes' to configure one LDAP.
     # Convert SELECTED_LDAP to lowercase so that it will match any variation of "yes"
-    if [[ "${SELECTED_LDAP,,}" == "yes" ]]; then
+    if [[ "$(echo "${SELECTED_LDAP}" | tr '[:upper:]' '[:lower:]')" == "yes" ]]; then
         ${SED_COMMAND} "s|LDAP_BIND_DN_PASSWORD=\"\"|LDAP_BIND_DN_PASSWORD=\"{Base64}<Required>\"|g" ${LDAP_PROPERTY_FILE}
         ${SED_COMMAND} "s|=\"\"|=\"<Required>\"|g" ${LDAP_PROPERTY_FILE}
     fi
@@ -1376,7 +1253,7 @@ function select_external_postgresdb_for_im(){
     printf "\n"
     echo ""
     while true; do
-        printf "\x1B[1mDo you want to use an external Postgres DB \x1B[0m${RED_TEXT}[YOU NEED TO CREATE THIS POSTGRESQL DB BY YOURSELF FIRST BEFORE APPLY BAI CUSTOM RESOURCE]${RESET_TEXT} \x1B[1mas IM metastore DB for this BAI deployment?\x1B[0m ${YELLOW_TEXT}(Notes: IM service can use an external Postgres DB to store IM data. If select \"Yes\", IM service uses an external Postgres DB as IM metastore DB. If select \"No\", IM service uses an embedded cloud native postgresql DB as IM metastore DB.)${RESET_TEXT} (Yes/No, default: No): "
+        printf "\x1B[1mDo you want to use an external Postgres DB \x1B[0m${RED_TEXT}[YOU NEED TO CREATE THIS POSTGRESQL DB BY YOURSELF FIRST BEFORE YOU APPLY THE BAI CUSTOM RESOURCE]${RESET_TEXT} \x1B[1mas IM metastore DB for this BAI deployment?\x1B[0m ${YELLOW_TEXT}(Notes: IM service can use an external Postgres DB to store IM data. If you select \"Yes\", IM service uses an external Postgres DB as IM metastore DB. If you select \"No\", IM service uses an embedded cloud native postgresql DB as IM metastore DB.)${RESET_TEXT} (Yes/No, default: No): "
         read -rp "" ans
         case "$ans" in
         "y"|"Y"|"yes"|"Yes"|"YES")
@@ -1398,7 +1275,7 @@ function select_external_postgresdb_for_zen(){
     printf "\n"
     echo ""
     while true; do
-        printf "\x1B[1mDo you want to use an external Postgres DB \x1B[0m${RED_TEXT}[YOU NEED TO CREATE THIS POSTGRESQL DB BY YOURSELF FIRST BEFORE APPLY BAI CUSTOM RESOURCE]${RESET_TEXT}\x1B[1m as Zen metastore DB for this BAI deployment?\x1B[0m ${YELLOW_TEXT}(Notes: Zen stores all metadata such as users, groups, service instances, vault integration, secret references in metastore DB. If select \"Yes\", Zen service uses an external Postgres DB as Zen metastore DB. If select \"No\", Zen service uses an embedded cloud native postgresql DB as Zen metastore DB )${RESET_TEXT} (Yes/No, default: No): "
+        printf "\x1B[1mDo you want to use an external Postgres DB \x1B[0m${RED_TEXT}[YOU NEED TO CREATE THIS POSTGRESQL DB BY YOURSELF FIRST BEFORE YOU APPLY THE BAI CUSTOM RESOURCE]${RESET_TEXT}\x1B[1m as BTS metastore DB for this BAI deployment?\x1B[0m ${YELLOW_TEXT}(Notes: BTS service can use an external Postgres DB to store meta data. If you select \"Yes\", BTS service uses an external Postgres DB as BTS metastore DB. If you select \"No\", BTS service uses an embedded cloud native postgresql DB as BTS metastore DB )${RESET_TEXT} (Yes/No, default: No): "
         read -rp "" ans
         case "$ans" in
         "y"|"Y"|"yes"|"Yes"|"YES")
@@ -1536,7 +1413,7 @@ function select_fips_enable(){
 function select_ldap_type(){
     printf "\n"
     while true; do
-        printf "\x1B[1mDo you want to configure one LDAP for this IBM Business Automation Insights stand-alone deployment? (Yes/No, default: Yes): \x1B[0m"
+        printf "\x1B[1mDo you want to configure an LDAP for this IBM Business Automation Insights stand-alone deployment?(Yes/No, default: Yes): \x1B[0m"
         read -rp "" ans
         case "$ans" in
         "y"|"Y"|"yes"|"Yes"|"YES"|"")
@@ -1558,7 +1435,7 @@ function select_ldap_type(){
         select_ldap_user_for_zen
         printf "\n"
         COLUMNS=12
-        echo -e "\x1B[1mWhat is the LDAP type that is used for this deployment? \x1B[0m"
+        echo -e "\x1B[1mWhat is the LDAP type that will be used for this deployment? \x1B[0m"
         options=("Microsoft Active Directory" "IBM Tivoli Directory Server / Security Directory Server" "Custom")
         PS3='Enter a valid option [1 to 3]: '
         select opt in "${options[@]}"
@@ -1602,7 +1479,7 @@ function select_ldap_user_for_zen(){
 function select_iam_default_admin(){
     printf "\n"
     while true; do
-        echo -e "\x1B[33;5mATTENTION: \x1B[0m\x1B[1;31mIf you are unable to use [cpadmin] as the default IAM admin user due to it having the same user name in your LDAP Directory, you need to change the Cloud Pak administrator username. See: \" https://www.ibm.com/docs/en/cloud-paks/foundational-services/4.6?topic=configurations-changing-cluster-administrator-access-credentials#name\"\x1B[0m"
+        echo -e "\x1B[33;5mATTENTION: \x1B[0m\x1B[1;31mIf you are unable to use [cpadmin] as the default IAM admin user due to it being already used in your LDAP Directory, you need to change the Cloud Pak administrator username. See: \" https://www.ibm.com/docs/en/cloud-paks/foundational-services/4.6?topic=configurations-changing-cluster-administrator-access-credentials#name\"\x1B[0m"
         printf "\x1B[1mDo you want to use the default IAM admin user: [cpadmin] (Yes/No, default: Yes): \x1B[0m"
         read -rp "" ans
         case "$ans" in
@@ -1701,7 +1578,7 @@ function select_profile_type(){
         done
         echo -e "\x1B[1;31mExisting profile size type found in CR: \"$existing_profile_type\"\x1B[0m"
         # echo -e "\x1B[1;31mDo not need to select again.\n\x1B[0m"
-        read -rsn1 -p"Press any key to continue ...";echo        
+        prompt_press_any_key_to_continue        
     fi
 }
 
@@ -1779,7 +1656,7 @@ function generate_create_secret_script(){
 
 
 function validate_secret_in_cluster(){
-    INFO "Checking the Kubernetes secret required by BAI stand-alone existing in cluster or not" 
+    INFO "Checking if the secrets required by BAI stand-alone are found in the cluster" 
     local files=()
     SECRET_CREATE_PASSED="true"
     files=($(find $SECRET_FILE_FOLDER -name '*.yaml'))
@@ -1787,7 +1664,7 @@ function validate_secret_in_cluster(){
     do
         secret_name_tmp=`cat $item | ${YQ_CMD} r - metadata.name`
         if [ -z "$secret_name_tmp" ]; then
-            error "Not found secret name in YAML file: \"$item\"! Please check and fix it"
+            error "secret name not found in YAML file: \"$item\"! Please check and fix it"
             exit 1
         else
             secret_name_tmp=$(sed -e 's/^"//' -e 's/"$//' <<<"$secret_name_tmp")
@@ -1795,18 +1672,18 @@ function validate_secret_in_cluster(){
             if [[ $secret_name_tmp != "ibm-zen-metastore-edb-cm" && $secret_name_tmp != "im-datastore-edb-cm" && $secret_name_tmp != "ibm-bts-config-extension" ]]; then
                 secret_exists=`kubectl get secret $secret_name_tmp --ignore-not-found | wc -l`  >/dev/null 2>&1
                 if [ "$secret_exists" -ne 2 ] ; then
-                    error "Not found secret \"$secret_name_tmp\" in Kubernetes cluster! please create it first before deployment CP4BA"
+                    error "Secret \"$secret_name_tmp\" not found in Kubernetes cluster! please create it before deploying BAI Standalone."
                     SECRET_CREATE_PASSED="false"
                 else
-                    success "Found secret \"$secret_name_tmp\" in Kubernetes cluster, PASSED!"              
+                    success "Secret \"$secret_name_tmp\" found in Kubernetes cluster, PASSED!"              
                 fi
             else
                 secret_exists=`kubectl get configmap $secret_name_tmp --ignore-not-found | wc -l`  >/dev/null 2>&1
                 if [ "$secret_exists" -ne 2 ] ; then
-                    error "Not found configMap \"$secret_name_tmp\" in Kubernetes cluster! please create it first before deployment CP4BA"
+                    error "ConfigMap \"$secret_name_tmp\" not found in Kubernetes cluster! please create it before deploying BAI Standalone"
                     SECRET_CREATE_PASSED="false"
                 else
-                    success "Found configMap \"$secret_name_tmp\" in Kubernetes cluster, PASSED!"              
+                    success "ConfigMap \"$secret_name_tmp\" found in Kubernetes cluster, PASSED!"              
                 fi
             fi
         fi
@@ -1838,15 +1715,15 @@ function validate_secret_in_cluster(){
             secret_name_tmp=$(sed -e 's/^"//' -e 's/"$//' <<<"$secret_name_tmp")
             secret_exists=`kubectl get secret $secret_name_tmp --ignore-not-found | wc -l`  >/dev/null 2>&1
             if [ "$secret_exists" -ne 2 ] ; then
-                error "Not found secret \"$secret_name_tmp\" in Kubernetes cluster! please create it firstly before deployment BAI stand-alone"
+                error "Secret \"$secret_name_tmp\" not found in Kubernetes cluster! please create it before deploying BAI Standalone."
                 SECRET_CREATE_PASSED="false"
             else
-                success "Found secret \"$secret_name_tmp\" in Kubernetes cluster, PASSED!"              
+                success "Secret \"$secret_name_tmp\" found in Kubernetes cluster, PASSED!"              
             fi
         fi
     done
     if [[ $SECRET_CREATE_PASSED == "false" ]]; then
-        info "Please create secret in Kubernetes cluster correctly, exiting..."
+        info "Please create all the secrets required ,exiting..."
         exit 1
     else
         INFO "All secrets created in Kubernetes cluster, PASSED!"
@@ -1861,19 +1738,19 @@ function validate_prerequisites(){
     INFO "Checking Medium/Fast/Block storage class required by BAI stand-alone" 
 
     tmp_storage_classname=$(prop_user_profile_property_file BAI_STANDALONE.MEDIUM_FILE_STORAGE_CLASSNAME)
-    sample_pvc_name="cp4ba-test-medium-pvc-$RANDOM"
+    sample_pvc_name="bai-test-medium-pvc-$RANDOM"
     verify_storage_class_valid $tmp_storage_classname "ReadWriteMany" $sample_pvc_name
 
     tmp_storage_classname=$(prop_user_profile_property_file BAI_STANDALONE.FAST_FILE_STORAGE_CLASSNAME)
-    sample_pvc_name="cp4ba-test-fase-pvc-$RANDOM"
+    sample_pvc_name="bai-test-fase-pvc-$RANDOM"
     verify_storage_class_valid $tmp_storage_classname "ReadWriteMany" $sample_pvc_name
 
     tmp_storage_classname=$(prop_user_profile_property_file BAI_STANDALONE.BLOCK_STORAGE_CLASS_NAME)
-    sample_pvc_name="cp4ba-test-block-pvc-$RANDOM"
+    sample_pvc_name="bai-test-block-pvc-$RANDOM"
     verify_storage_class_valid $tmp_storage_classname "ReadWriteOnce" $sample_pvc_name
 
     if [[ $verification_sc_passed == "No" ]]; then
-        kubectl delete pvc -l cp4ba=test-only >/dev/null 2>&1
+        kubectl delete pvc -l bai=test-only >/dev/null 2>&1
         exit 0
     fi
     # Validate Secret for BAI stand-alone
@@ -1881,7 +1758,7 @@ function validate_prerequisites(){
 
     # Validate LDAP connection for BAI stand-alone
     if [[ ! ("${#flink_job_cr_arr[@]}" -eq "1" && "${flink_job_cr_arr[@]}" =~ "workflow-process-service" && $LDAP_WFPS_AUTHORING == "No") ]]; then
-        INFO "Checking LDAP connection required by BAI stand-alone" 
+        INFO "Checking the LDAP connection required by BAI stand-alone" 
         tmp_servername="$(prop_ldap_property_file LDAP_SERVER)"
         tmp_serverport="$(prop_ldap_property_file LDAP_PORT)"
         tmp_basdn="$(prop_ldap_property_file LDAP_BASE_DN)"
@@ -1921,7 +1798,7 @@ function validate_prerequisites(){
         dbuser=$(sed -e 's/^"//' -e 's/"$//' <<<"$dbuser")
         dbuserpwd="changit" # client auth does not need dbuserpwd
 
-        info "Checking connection for IM metastore external Postgres database \"${dbname}\" belongs to database instance \"${dbserver}\"...."
+        info "Checking connection for IM metastore external Postgres database \"${dbname}\" that belongs to database instance \"${dbserver}\"...."
 
         postgres_cafile="${im_external_db_cert_folder}/root.crt"
         postgres_clientkeyfile="${im_external_db_cert_folder}/client.key"
@@ -1949,7 +1826,7 @@ function validate_prerequisites(){
         warning "Execute: java -Dsemeru.fips=$fips_flag -Duser.language=en -Duser.country=US -Dcom.ibm.jsse2.overrideDefaultTLS=true -Djavax.net.ssl.trustStoreType=PKCS12 -cp \"${DB_JDBC_NAME}/postgresql-42.7.2.jar:${DB_CONNECTION_JAR_PATH}/PostgresJDBCConnection.jar\" PostgresConnection -h $dbserver -p $dbport -db $dbname -u $dbuser -pwd ****** -sslmode verify-ca -ca $postgres_cafile -clientkey ${im_external_db_cert_folder}/clientkey.pk8 -clientcert $postgres_clientcertfile" && \
         fail "Unable to connect to database \"$dbname\" on database server \"$dbserver\", please check configuration again."
         [[ retVal_verify_db_tmp -eq 0 ]] && \
-        success "Checked DB connection for \"$dbname\" on database server \"$dbserver\", PASSED!"
+        success "The DB connection check for \"$dbname\" on database server \"$dbserver\" PASSED!"
     fi
 
     tmp_flag=$(sed -e 's/^"//' -e 's/"$//' <<<"$(prop_tmp_property_file EXTERNAL_POSTGRESDB_FOR_ZEN_FLAG)")
@@ -1997,7 +1874,7 @@ function validate_prerequisites(){
         warning "Execute: java -Dsemeru.fips=$fips_flag -Duser.language=en -Duser.country=US -Dcom.ibm.jsse2.overrideDefaultTLS=true -Djavax.net.ssl.trustStoreType=PKCS12 -cp \"${DB_JDBC_NAME}/postgresql-42.7.2.jar:${DB_CONNECTION_JAR_PATH}/PostgresJDBCConnection.jar\" PostgresConnection -h $dbserver -p $dbport -db $dbname -u $dbuser -pwd ****** -sslmode verify-ca -ca $postgres_cafile -clientkey ${zen_external_db_cert_folder}/clientkey.pk8 -clientcert $postgres_clientcertfile" && \
         fail "Unable to connect to database \"$dbname\" on database server \"$dbserver\", please check configuration again."
         [[ retVal_verify_db_tmp -eq 0 ]] && \
-        success "Checked DB connection for \"$dbname\" on database server \"$dbserver\", PASSED!"
+        success "The DB connection check for \"$dbname\" on database server \"$dbserver\" PASSED!"
     fi
 
     tmp_flag=$(sed -e 's/^"//' -e 's/"$//' <<<"$(prop_tmp_property_file EXTERNAL_POSTGRESDB_FOR_BTS_FLAG)")
@@ -2017,7 +1894,7 @@ function validate_prerequisites(){
         dbuser=$(sed -e 's/^"//' -e 's/"$//' <<<"$dbuser")
         dbuserpwd="changit" # client auth does not need dbuserpwd
 
-        info "Checking connection for BTS metastore external Postgres database \"${dbname}\" belongs to database instance \"${dbserver}\"...."
+        info "Checking connection for BTS metastore external Postgres database \"${dbname}\" that belongs to database instance \"${dbserver}\"...."
 
         postgres_cafile="${bts_external_db_cert_folder}/root.crt"
         postgres_clientkeyfile="${bts_external_db_cert_folder}/client.key"
@@ -2045,10 +1922,10 @@ function validate_prerequisites(){
         warning "Execute: java -Dsemeru.fips=$fips_flag -Duser.language=en -Duser.country=US -Dcom.ibm.jsse2.overrideDefaultTLS=true -Djavax.net.ssl.trustStoreType=PKCS12 -cp \"${DB_JDBC_NAME}/postgresql-42.7.2.jar:${DB_CONNECTION_JAR_PATH}/PostgresJDBCConnection.jar\" PostgresConnection -h $dbserver -p $dbport -db $dbname -u $dbuser -pwd ****** -sslmode verify-ca -ca $postgres_cafile -clientkey ${bts_external_db_cert_folder}/clientkey.pk8 -clientcert $postgres_clientcertfile" && \
         fail "Unable to connect to database \"$dbname\" on database server \"$dbserver\", please check configuration again."
         [[ retVal_verify_db_tmp -eq 0 ]] && \
-        success "Checked DB connection for \"$dbname\" on database server \"$dbserver\", PASSED!"
+        success "The DB connection check for \"$dbname\" on database server \"$dbserver\" PASSED!"
     fi
 
-    info "If all prerequisites check PASSED, you can run bai-deployment.sh script to deploy BAI stand-alone. Otherwise, please check configuration again."
+    info "If all prerequisites check have PASSED, you can run bai-deployment.sh script to deploy BAI stand-alone. Otherwise, please check configuration again."
     info "After BAI stand-alone is deployed, please refer to documentation for post-deployment steps."
 }
 ################################################
@@ -2094,12 +1971,13 @@ fi
 if [[ $RUNTIME_MODE == "generate" ]]; then
     # reload db type and OS number
     load_property_before_generate
+    check_property_file
     if [[ $SELECTED_LDAP == "Yes" ]]; then
         create_prerequisites
         clean_up_temp_file
         generate_create_secret_script
     else
-        warning "None LDAP selected, so without secret YAML template to be created"
+        warning "No LDAP configuration was selected, so the secret YAML template will not be generated."
         sleep 2
     fi
 fi

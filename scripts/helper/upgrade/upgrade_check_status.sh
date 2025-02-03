@@ -19,6 +19,10 @@ function check_bai_operator_version(){
     for ((retry=0;retry<=${maxRetry};retry++)); do
         bai_operator_csv_name=$(kubectl get csv -n $project_name --no-headers --ignore-not-found | grep "IBM Business Automation Insights" | awk '{print $1}')
         bai_operator_csv_version=$(kubectl get csv $bai_operator_csv_name -n $project_name --no-headers --ignore-not-found -o 'jsonpath={.spec.version}')
+        if [[ ! -z $BAI_ORIGINAL_CSV_VERSION ]]; then
+            BAI_ORIGINAL_CSV_VERSION=$(sed -e 's/^"//' -e 's/"$//' <<<"$BAI_ORIGINAL_CSV_VERSION")
+            bai_operator_csv_version=$BAI_ORIGINAL_CSV_VERSION
+        fi
 
         if [[ "$bai_operator_csv_version" == "${BAI_CSV_VERSION//v/}" ]]; then
             success "The current IBM Business Automation Insights Operator is already ${BAI_CSV_VERSION//v/}"
@@ -277,7 +281,7 @@ function check_operator_status(){
     if [[ "$check_mode" == "full" ]]; then
         local maxRetry=20
         echo "****************************************************************************"
-        info "Checking for IBM Business Automation Insights stand-alone (CP4BA) multi-pattern operator pod initialization"
+        info "Checking for IBM Business Automation Insights stand-alone (BAI S) operator pod initialization"
         for ((retry=0;retry<=${maxRetry};retry++)); do
             isReady=$(kubectl get csv ibm-bai-insights-engine-operator.$BAI_CSV_VERSION --no-headers --ignore-not-found -n $project_name -o jsonpath='{.status.phase}')
             # isReady=$(kubectl exec $cpe_pod_name -c ${meta_name}-cpe-deploy -n $project_name -- cat /opt/ibm/version.txt |grep -F "P8 Content Platform Engine 23.0.1")
@@ -477,7 +481,8 @@ function show_bai_upgrade_status() {
         printf "\n"
         step_num=1
         echo "${YELLOW_TEXT}[NEXT ACTION]${RESET_TEXT}:"
-        echo "${YELLOW_TEXT}  * After the status of upgrade for Zen Service components showing as ${RESET_TEXT}${GREEN_TEXT}\"Done\"${RESET_TEXT}${YELLOW_TEXT}, the BAI deployment upgrade can be monitored by monitoring the logs of the ibm-insights-engine-operator.${RESET_TEXT}"
+        # https://jsw.ibm.com/browse/DBACLD-158711 updating the upgrade status
+        echo "${YELLOW_TEXT}  * After the status of upgrade for Zen Service components showing as ${RESET_TEXT}${GREEN_TEXT}\"Completed\"${RESET_TEXT}${YELLOW_TEXT}, the BAI deployment upgrade can be monitored by monitoring the logs of the ibm-insights-engine-operator.${RESET_TEXT}"
         echo "  - ${YELLOW_TEXT} Retrieve the the logs of of the insights engine operator pod by exiting the script and running \"kubectl logs $(kubectl get pod -n $project_name|grep ibm-bai-insights-engine-operator|awk '{print $1}') \"${RESET_TEXT}"
     fi
 }
