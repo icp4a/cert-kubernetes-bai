@@ -161,7 +161,7 @@ function install_cert_license_operator(){
         OLM_CATALOG=${PARENT_DIR}/descriptors/op-olm/catalog_source.yaml
         kubectl apply -f $OLM_CATALOG >/dev/null 2>&1
         if [ $? -eq 0 ]; then
-            success "IBM Business Automation Insights Operator catalog source Updated!"
+            success "IBM Business Automation Insights Operator catalog source has been updated!"
 
         else
             fail "IBM Business Automation Insights Operator catalog source update failed"
@@ -170,7 +170,7 @@ function install_cert_license_operator(){
     else
         kubectl apply -f $OLM_CATALOG_TMP >/dev/null 2>&1
         if [ $? -eq 0 ]; then
-            success "IBM Business Automation Insights Operator catalog source Updated!"
+            success "IBM Business Automation Insights Operator catalog source has been updated!"
         else
             fail "IBM Business Automation Insights Operator catalog source update failed"
             exit 1
@@ -224,7 +224,7 @@ function install_cert_license_operator(){
     fi
     printf "\n"
     maxRetry=30
-    info "Waiting for IBM Cert Manager Operator ready..."
+    info "Waiting for IBM Cert Manager Operator to be ready..."
     for ((retry=0;retry<=${maxRetry};retry++)); do
         isReadyWebhook=$(kubectl get pod -l=app.kubernetes.io/instance=cert-manager,app.kubernetes.io/name=ibm-cert-manager-webhook -o 'custom-columns=NAME:.metadata.name,PHASE:.status.phase,READY:.status.containerStatuses[0].ready' --all-namespaces --no-headers| grep 'Running' | grep 'true' | awk '{print $1}')
         isReadyCertmanager=$(kubectl get pod -l=app.kubernetes.io/instance=cert-manager,app.kubernetes.io/name=ibm-cert-manager-controller -o 'custom-columns=NAME:.metadata.name,PHASE:.status.phase,READY:.status.containerStatuses[0].ready' --all-namespaces --no-headers| grep 'Running' | grep 'true' | awk '{print $1}')
@@ -233,7 +233,7 @@ function install_cert_license_operator(){
 
         if [[ -z $isReadyWebhook || -z $isReadyCertmanager || -z $isReadyCainjector || -z $isReadyCertmanagerOperator ]]; then
             if [[ $retry -eq ${maxRetry} ]]; then
-                fail "Timeout to wait for IBM Cert Manager Operator ready"
+                fail "Timeout to wait for IBM Cert Manager Operator to be ready"
                 exit 1
             else
                 sleep 20
@@ -251,7 +251,7 @@ function install_cert_license_operator(){
         fi
     done
 
-    info "Waiting for IBM Licensing Operator ready..."
+    info "Waiting for IBM Licensing Operator to be ready..."
     for ((retry=0;retry<=${maxRetry};retry++)); do
         isReadyLicenseOperator=$(kubectl get pod -l=app.kubernetes.io/name=ibm-licensing,name=ibm-licensing-operator -o 'custom-columns=NAME:.metadata.name,PHASE:.status.phase,READY:.status.containerStatuses[0].ready' --all-namespaces --no-headers| grep 'Running' | grep 'true' | awk '{print $1}')
         isReadyLicenseService=$(kubectl get pod -l=app.kubernetes.io/name=ibm-licensing-service-instance,app=ibm-licensing-service-instance -o 'custom-columns=NAME:.metadata.name,PHASE:.status.phase,READY:.status.containerStatuses[0].ready' --all-namespaces --no-headers| grep 'Running' | grep 'true' | awk '{print $1}')
@@ -281,10 +281,12 @@ function select_private_catalog(){
     echo "${YELLOW_TEXT}[NOTES] You can install the IBM Business Automation Insights deployment as either a private catalog (namespace scope) or the global catalog namespace (GCN). The private option uses the same target namespace of the IBM Business Automation Insights deployment, the GCN uses the openshift-marketplace namespace.${RESET_TEXT}"
     while true; do
         if [[ -z "$BAI_AUTO_PRIVATE_CATALOG" ]]; then
-            printf "\x1B[1mDo you want to deploy IBM Business Automation Insights using private catalog? (Yes/No, default: No): \x1B[0m"
+            # for defect https://jsw.ibm.com/browse/DBACLD-153503 where we had to update the script to set private catalog as the default option
+            printf "\x1B[1mDo you want to deploy IBM Business Automation Insights using private catalog? (Yes/No, default: Yes): \x1B[0m"
             read -rp "" ans
         else
-            printf "\x1B[1mDo you want to deploy IBM Business Automation Insights using private catalog? (Yes/No, default: No): $BAI_AUTO_PRIVATE_CATALOG\x1B[0m\n"
+            # for defect https://jsw.ibm.com/browse/DBACLD-153503 where we had to update the script to set private catalog as the default option
+            printf "\x1B[1mDo you want to deploy IBM Business Automation Insights using private catalog? (Yes/No, default: Yes): $BAI_AUTO_PRIVATE_CATALOG\x1B[0m\n"
             ans=$BAI_AUTO_PRIVATE_CATALOG
         fi
         case "$ans" in
@@ -302,6 +304,12 @@ function select_private_catalog(){
             ;;
         esac
     done
+
+    # for defect https://jsw.ibm.com/browse/DBACLD-153503 where we had to update the script to set private catalog as the default option
+    #handing the default case
+    if [ -z "$ans" ]; then
+        PRIVATE_CATALOG="Yes"
+    fi
 
     # if [[ $PRIVATE_CATALOG == "Yes" ]]; then
     #     while [[ $project_name == "" ]];
@@ -547,7 +555,7 @@ EOF
     ${CLI_CMD} delete -f ${TEMP_FOLDER}/ibm-cp4ba-common-config-configmap.yaml >/dev/null 2>&1
     ${CLI_CMD} apply -f ${TEMP_FOLDER}/ibm-cp4ba-common-config-configmap.yaml >/dev/null 2>&1
     if [ $? -eq 0 ]; then
-        success "Created ibm-cp4ba-common-config configMap for this IBM Business Automation Insights deployment in the project \"$project_name_cs_service\"."
+        success "ibm-cp4ba-common-config configMap for this IBM Business Automation Insights deployment in the project \"$project_name_cs_service\" has been created."
         sleep 3
     else
         warning "Failed to create ibm-cp4ba-common-config configMap for this IBM Business Automation Insights deployment in the project \"$project_name_cs_service\"!"
@@ -1203,7 +1211,7 @@ function prepare_olm_install() {
     sed "s/REPLACE_NAMESPACE/$temp_project_name/g" ${OLM_SUBSCRIPTION} > ${OLM_SUBSCRIPTION_TMP}
 
     if [[ $PRIVATE_CATALOG == "Yes" ]]; then
-        sed -i "s/sourceNamespace: .*/sourceNamespace: $temp_project_name/g" ${OLM_SUBSCRIPTION_TMP}
+        ${SED_COMMAND} "s/sourceNamespace: .*/sourceNamespace: $temp_project_name/g" ${OLM_SUBSCRIPTION_TMP}
     fi
 
     ${YQ_CMD} w -i ${OLM_SUBSCRIPTION_TMP} spec.source "ibm-bai-operator-catalog"
@@ -1330,13 +1338,13 @@ function prepare_olm_install() {
 function setup_separate_operator(){
     if [[ $MULTIPLE_DEPLOYMENT = "No" ]]; then
         if [[ $PRIVATE_CATALOG == "Yes" ]]; then
-            info "Setting up the separate of operator and service for $BAI_FULL_NAME."
+            info "Setting up the separation of operator and services for $BAI_FULL_NAME."
             $COMMON_SERVICES_SCRIPT_FOLDER/setup_tenant.sh --operator-namespace $project_name_operator --services-namespace $project_name_cs_service --yq "$CPFS_YQ_PATH" -c $CS_CHANNEL_VERSION -s $CS_CATALOG_VERSION --enable-private-catalog --license-accept
-            success "Finished setting up the separate of operator and service for $BAI_FULL_NAME."
+            success "Finished Setting up the separation of operator and services for $BAI_FULL_NAME."
         else
-            info "Setting up the separate of operator and service for $BAI_FULL_NAME."
+            info "Setting up the separation of operator and services for $BAI_FULL_NAME."
             $COMMON_SERVICES_SCRIPT_FOLDER/setup_tenant.sh --operator-namespace $project_name_operator --services-namespace $project_name_cs_service --yq "$CPFS_YQ_PATH" -c $CS_CHANNEL_VERSION -s $CS_CATALOG_VERSION -n openshift-marketplace --license-accept
-            success "Finished setting up the separate of operator and service for $BAI_FULL_NAME."
+            success "Finished Setting up the separation of operator and services for $BAI_FULL_NAME."
         fi
     elif [[ $MULTIPLE_DEPLOYMENT = "Yes" ]]; then
         local namespace_number=${#project_name_bai_service[@]}
@@ -1348,13 +1356,13 @@ function setup_separate_operator(){
         done
 
         if [[ $PRIVATE_CATALOG == "Yes" ]]; then
-            info "Setting up the separate of operator and service for $BAI_FULL_NAME."
+            info "Setting up the separation of operator and services for $BAI_FULL_NAME."
             $COMMON_SERVICES_SCRIPT_FOLDER/setup_tenant.sh --operator-namespace $project_name_operator --services-namespace $project_name_cs_service --tethered-namespaces $bai_service_namespace_joined --yq "$CPFS_YQ_PATH" -c $CS_CHANNEL_VERSION -s $CS_CATALOG_VERSION --enable-private-catalog --license-accept
-            success "Finished setting up the separate of operator and service for $BAI_FULL_NAME."
+            success "Finished Setting up the separation of operator and services for $BAI_FULL_NAME."
         else
-            info "Setting up the separate of operator and service for $BAI_FULL_NAME."
+            info "Setting up the separation of operator and services for $BAI_FULL_NAME."
             $COMMON_SERVICES_SCRIPT_FOLDER/setup_tenant.sh --operator-namespace $project_name_operator --services-namespace $project_name_cs_service --tethered-namespaces $bai_service_namespace_joined --yq "$CPFS_YQ_PATH" -c $CS_CHANNEL_VERSION -s $CS_CATALOG_VERSION -n openshift-marketplace --license-accept
-            success "Finished setting up the separate of operator and service for $BAI_FULL_NAME."
+            success "Finished Setting up the separation of operator and services for $BAI_FULL_NAME."
         fi
     fi
 }
@@ -1758,7 +1766,7 @@ function check_airgap_mode(){
     # clear
     if [ -z "$BAI_AUTO_AIGRAP_MODE" ]; then
         COLUMNS=12
-        echo -e "\x1B[1mDo you wish setup your cluster for a online based IBM Business Automation Insights deployment or for a airgap/offline based IBM Business Automation Insights deployment: \x1B[0m"
+        echo -e "\x1B[1mDo you wish to setup the cluster for an online based IBM Business Automation Insights deployment or for an airgap/offline based IBM Business Automation Insights deployment: \x1B[0m"
 
 
         options=("Online" "Offline/Airgap")
@@ -1780,7 +1788,7 @@ function check_airgap_mode(){
         done
     else
         AIRGAP_INSTALL=$BAI_AUTO_AIGRAP_MODE
-        echo -e "\x1B[1mDo you wish setup your cluster for a online based IBM Business Automation Insights deployment or for a airgap/offline based IBM Business Automation Insights deployment :\x1B[0m $BAI_AUTO_AIGRAP_MODE"
+        echo -e "\x1B[1mDo you wish to setup the cluster for an online based IBM Business Automation Insights deployment or for an airgap/offline based IBM Business Automation Insights deployment :\x1B[0m $BAI_AUTO_AIGRAP_MODE"
     fi
 }
 
@@ -1852,7 +1860,7 @@ function select_platform(){
 function select_deployment_type(){
     printf "\n"
     DEPLOYMENT_TYPE="production"
-    info "${YELLOW_TEXT}IBM Business Automation Insights only supports production deployment${RESET_TEXT}"
+    info "${YELLOW_TEXT}IBM Business Automation Insights only supports production deployment.${RESET_TEXT}"
     # read -rsn1 -p"Press any key to continue ...";echo
 
 }
@@ -1964,7 +1972,6 @@ function check_platform_version(){
         # PLATFORM_VERSION="3.11"
         PLATFORM_VERSION="4.4OrLater"
         echo -e "\x1B[1;31mIMPORTANT: Only support OCp4.4 or Later, exit...\n\x1B[0m"
-        read -rsn1 -p"Press any key to continue";echo
         exit 1
     fi
     # OpenShift 4.0-4.2, install Cloud Pak foundational services 3.3

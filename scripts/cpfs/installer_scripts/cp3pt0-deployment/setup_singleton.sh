@@ -231,11 +231,19 @@ function is_migrate_licensing() {
     fi
 
     title "Check migrating LTSR ibm-licensing-operator"
-    
-    local ns=$("$OC" get deployments -A | grep ibm-licensing-operator | cut -d ' ' -f1)
-    if [ -z "$ns" ]; then
+    # wait for ibm-licensing-operator instance 
+    local licensing_operator_exist=$("$OC" get deployment -A | (grep ibm-licensing-operator || echo "fail"))  
+    if [[ $licensing_operator_exist != "fail" ]]; then
+        wait_for_licensing_instance_deployment
+    else
         info "No LTSR ibm-licensing-operator to migrate, skipping"
         return 0
+    fi
+
+    local licensing_service_count=$("$OC" get deployments -A | grep ibm-licensing-service-instance | wc -l)
+    # If multiple Licensing service deployment is found, it should error out
+    if [ "$licensing_service_count" -ge 2 ]; then
+        error "More than one ibm-licensing-service-instance found in namespace: $ns. There should be only one ibm-licensing-service-instance each cluster."
     fi
 
     local version=$("$OC" get ibmlicensings.operator.ibm.com instance -o jsonpath='{.spec.version}' --ignore-not-found)
@@ -250,6 +258,9 @@ function is_migrate_licensing() {
             error "An ibm-licensing-operator already installed in namespace: $ns, please do not set parameter '-licensingNs $LICENSING_NAMESPACE"
         fi
         LICENSING_NAMESPACE="$ns"
+        if [[ $ENABLE_PRIVATE_CATALOG -eq 1 ]]; then
+            LIS_SOURCE_NS="$ns" 
+        fi
         return 0
     fi
 
@@ -259,6 +270,9 @@ function is_migrate_licensing() {
             error "An ibm-license-service-reporter-operator already installed in namespace: $lsr_ns, expected namespace is: $LSR_NAMESPACE"
         fi
         LSR_NAMESPACE="$lsr_ns"
+        if [[ $ENABLE_PRIVATE_CATALOG -eq 1 ]]; then
+            LSR_SOURCE_NS="$lsr_ns" 
+        fi
     fi
 
     get_and_validate_arguments
@@ -270,7 +284,11 @@ function is_migrate_licensing() {
     if [[ "$CUSTOMIZED_LICENSING_NAMESPACE" -eq 1 ]] && [[ "$CONTROL_NS" != "$LICENSING_NAMESPACE" ]]; then
         error "Licensing Migration could only be done in $CONTROL_NS, please do not set parameter '-licensingNs $LICENSING_NAMESPACE'"
     fi
+
     LICENSING_NAMESPACE="$CONTROL_NS"
+    if [[ $ENABLE_PRIVATE_CATALOG -eq 1 ]]; then
+        LIS_SOURCE_NS="$ns" 
+    fi
 }
 
 function cert_manager_deployment_check(){
@@ -327,6 +345,9 @@ function install_cert_manager() {
                 error "An ibm-cert-manager-operator already installed in namespace: $webhook_ns, please do not set parameter '-cmNs $CERT_MANAGER_NAMESPACE"
             fi
             CERT_MANAGER_NAMESPACE="$webhook_ns"
+            if [[ $ENABLE_PRIVATE_CATALOG -eq 1 ]]; then
+                CM_SOURCE_NS="$webhook_ns" 
+            fi
         else
             warning "Cluster has a RedHat cert-manager or Helm cert-manager, skipping"
             return 0
@@ -370,7 +391,7 @@ function install_licensing() {
         info "There is no ibm-licensing-operator-app Subscription installed\n"
     fi
 
-    local ns=$("$OC" get deployments -A | grep ibm-licensing-operator | cut -d ' ' -f1)
+    local ns=$("$OC" get deployments -A | grep ibm-licensing-service-instance | cut -d ' ' -f1)
     if [ ! -z "$ns" ]; then
         if [ "$ns" != "$LICENSING_NAMESPACE" ]; then
             error "An ibm-licensing-operator already installed in namespace: $ns, expected namespace is: $LICENSING_NAMESPACE"
@@ -570,6 +591,7 @@ function pre_req() {
 
     # Using private catalog
     if [[ $ENABLE_PRIVATE_CATALOG -eq 1 ]]; then
+        warning "Flag --enable-private-catalog is enabled, please make sure the CatalogSource is deployed in the same namespace as operator"
         CM_SOURCE_NS="${CERT_MANAGER_NAMESPACE}"
         LIS_SOURCE_NS="${LICENSING_NAMESPACE}"
         LSR_SOURCE_NS="${LSR_NAMESPACE}"

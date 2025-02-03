@@ -9,14 +9,19 @@
 #
 ###############################################################################
 
+# Import common utilities and environment variables
+CUR_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+PARENT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
+source ${CUR_DIR}/helper/common.sh
+
 #Options
 HELP="false"
 
 while getopts 'n:s:h' OPTION; do
 	case "$OPTION" in
-	n)	CP4BA_NAMESPACE=$OPTARG
+	n)	BAI_NAMESPACE=$OPTARG
 		;;
-    s)  CP4BA_SERVICE_NAMESPACE=$OPTARG
+    s)  BAI_SERVICE_NAMESPACE=$OPTARG
         ;;
 	h)
 		HELP="true"
@@ -48,92 +53,118 @@ if [ $? -gt 0 ]; then
   echo -e "\x1B[1;31mError: Not logged in to OCP cluster. Please login to an OCP cluster. \x1B[0m" && exit 1
 fi
 
-# CP4BA Namespace check
-while [ -z "$CP4BA_NAMESPACE" ]; do
+# BAI Standalone Namespace check
+while [ -z "$BAI_NAMESPACE" ]; do
 	printf "\x1B[1mEnter namespace of your BAI deployment: \x1B[0m"
 	read -rp "" ans 
-    CP4BA_NAMESPACE=$ans
-    if [ -z "$(oc get project "${CP4BA_NAMESPACE}" 2>/dev/null)" ]; then
-	    echo -e "\x1B[1;31mError: Namespace ${CP4BA_NAMESPACE} does not exist. Please re-enter the namespace.\x1B[0m"
-        CP4BA_NAMESPACE=""
+    BAI_NAMESPACE=$ans
+    if [ -z "$(oc get project "${BAI_NAMESPACE}" 2>/dev/null)" ]; then
+	    echo -e "\x1B[1;31mError: Namespace ${BAI_NAMESPACE} does not exist. Please re-enter the namespace.\x1B[0m"
+        BAI_NAMESPACE=""
     fi
     echo
 done
 
 # Get Operand namespace from user
-if [ -z "$CP4BA_SERVICE_NAMESPACE" ]; then
-    printf "\x1B[1m\nDid you install BAI Standalone with Separation of Duties?:? (Yes/No, default: Yes) \x1B[0m"
-    read -rp "" ans 
-    ans=$(echo "${ans}" | tr '[:upper:]' '[:lower:]')
-    case "$ans" in
-        "y"|"yes"|"")
-            while [ -z "$CP4BA_SERVICE_NAMESPACE" ]; do
-                printf "\x1B[1mEnter Operand namespace of your BAI deployment: \x1B[0m"
-                read -rp "" ans 
-                CP4BA_SERVICE_NAMESPACE=$ans
-                if [ -z "$(oc get project "${CP4BA_SERVICE_NAMESPACE}" 2>/dev/null)" ]; then
-                    echo -e "\x1B[1;31mError: Namespace ${CP4BA_SERVICE_NAMESPACE} does not exist. Please re-enter the namespace.\x1B[0m"
-                    CP4BA_SERVICE_NAMESPACE=""
+if [ -z "$BAI_SERVICE_NAMESPACE" ]; then
+    # For https://jsw.ibm.com/browse/DBACLD-157622
+    # Update the default answer for Seperation of Duties to No
+    #fixes a potential scenario of no input passed to the next step
+	max_retries=0
+	while [ $max_retries -lt 4 ]; do
+        printf "\x1B[1m\nDid you install BAI Standalone with Separation of Duties? (Yes/No, default: No) \x1B[0m"
+        read -rp "" ans
+        # If the user provides no input, set the default to 'No'
+        if [ -z "$ans" ]; then
+            ans="No"
+        fi
+
+        ans=$(echo "${ans}" | tr '[:upper:]' '[:lower:]')
+        case "$ans" in
+            "y"|"yes"|"")
+                max_counter=0
+				while [ $max_counter -lt 4 ]; do
+                    printf "\x1B[1mEnter Operand namespace of your BAI deployment: \x1B[0m"
+                    read -rp "" ans 
+                    BAI_SERVICE_NAMESPACE=$ans
+                    if [ -z "$(oc get project "${BAI_SERVICE_NAMESPACE}" 2>/dev/null)" ]; then
+                        echo -e "\x1B[1;31mError: Namespace ${BAI_SERVICE_NAMESPACE} does not exist. Please re-enter the namespace.\x1B[0m"
+                        BAI_SERVICE_NAMESPACE=""
+                        max_counter=$(($max_counter + 1))
+                    else
+                        break
+                    fi
+                    echo
+                done
+                if [[ -z "$BAI_SERVICE_NAMESPACE" ]]; then
+                    error "Maximum retries for incorrect inputs exceeded. The script will now exit.."
+                    exit
                 fi
-                echo
-            done
-            echo -e "\x1B[1mGetting Operator Namespace... \x1B[0m"
-            CP4BA_NAMESPACE=$(oc get cm ibm-cp4ba-common-config -n $CP4BA_SERVICE_NAMESPACE --ignore-not-found -o jsonpath="{ .data.operators_namespace}")
-            if [[ -z "$CP4BA_NAMESPACE" ]]; then
-                echo -e "\x1B[31;5mError: ibm-cp4ba-common-config ConfigMap not found in ${CP4BA_SERVICE_NAMESPACE} \x1B[0m\n"
-                exit 1
-            fi 
-        ;;
-        "n"|"no")
-            CP4BA_SERVICE_NAMESPACE=$CP4BA_NAMESPACE
-        ;;
-        *)
-        warning "Answer must be 'Yes' or 'No'"
-    esac
+                echo -e "\x1B[1mGetting Operator Namespace... \x1B[0m"
+                BAI_NAMESPACE=$(oc get cm ibm-cp4ba-common-config -n $BAI_SERVICE_NAMESPACE --ignore-not-found -o jsonpath="{ .data.operators_namespace}")
+                if [[ -z "$BAI_NAMESPACE" ]]; then
+                    echo -e "\x1B[31;5mError: ibm-cp4ba-common-config ConfigMap not found in ${BAI_SERVICE_NAMESPACE} \x1B[0m\n"
+                    exit 1
+                fi
+                break
+            ;;
+            "n"|"no")
+                BAI_SERVICE_NAMESPACE=$BAI_NAMESPACE
+                break
+            ;;
+            *)
+            error "Answer must be 'Yes' or 'No'"
+            max_retries=$(($max_retries + 1))
+        esac
+    done
+    if [[ $max_retries == 4 ]]; then
+		error "Maximum retries for incorrect inputs exceeded. The script will now exit.."
+		exit
+    fi
 fi
 
-# Validate CP4BA_NAMESPACE env var is for existing namespace
-if [ -z "$(oc get project "${CP4BA_SERVICE_NAMESPACE}" 2>/dev/null)" ]; then
-	echo -e "\x1B[1;31mError: Namespace ${CP4BA_SERVICE_NAMESPACE} does not exist. Specify an existing namespace where BAI is deployed.\x1B[0m" && exit 1
+# Validate BAI_NAMESPACE env var is for existing namespace
+if [ -z "$(oc get project "${BAI_SERVICE_NAMESPACE}" 2>/dev/null)" ]; then
+	echo -e "\x1B[1;31mError: Namespace ${BAI_SERVICE_NAMESPACE} does not exist. Specify an existing namespace where BAI is deployed.\x1B[0m" && exit 1
 fi
 
 # Check for namespace to prvent accidental deletion to other important namespaces.
-if [[ "$CP4BA_SERVICE_NAMESPACE" == openshift* ]]; then
+if [[ "$BAI_SERVICE_NAMESPACE" == openshift* ]]; then
     echo -e "\x1B[1;31mThe current namespace should not be 'openshift' or start with 'openshift'. It should be the namespace where BAI is installed. The script aborted. \x1B[0m"
     exit 1
-elif [[ "$CP4BA_SERVICE_NAMESPACE" == kube* ]]; then
+elif [[ "$BAI_SERVICE_NAMESPACE" == kube* ]]; then
     echo -e "\x1B[1;31mThe current namespace should not be 'kube' or start with 'kube'. It should be the namespace where BAI is installed. The script aborted. \x1B[0m"
     exit 1
-elif [[ "$CP4BA_SERVICE_NAMESPACE" == "services" ]]; then
+elif [[ "$BAI_SERVICE_NAMESPACE" == "services" ]]; then
     echo -e "\x1B[1;31mThe current namespace should not be 'services'. It should be the namespace where BAI is installed. The script aborted. \x1B[0m"
     exit 1
-elif [[ "$CP4BA_SERVICE_NAMESPACE" == "default" ]]; then
+elif [[ "$BAI_SERVICE_NAMESPACE" == "default" ]]; then
     echo -e "\x1B[1;31mThe current namespace should not be 'default'. It should be the namespace where BAI is installed. The script aborted. \x1B[0m"
     exit 1
-elif [[ "$CP4BA_SERVICE_NAMESPACE" == "calico-system" ]]; then
+elif [[ "$BAI_SERVICE_NAMESPACE" == "calico-system" ]]; then
     echo -e "\x1B[1;31mThe current namespace should not be 'calico-system'. It should be the namespace where BAI is installed. The script aborted. \x1B[0m"
     exit 1
-elif [[ "$CP4BA_SERVICE_NAMESPACE" == "ibm-cert-store" ]]; then
+elif [[ "$BAI_SERVICE_NAMESPACE" == "ibm-cert-store" ]]; then
     echo -e "\x1B[1;31mThe current namespace should not be 'ibm-cert-store'. It should be the namespace where BAI is installed. The script aborted. \x1B[0m"
     exit 1
-elif [[ "$CP4BA_SERVICE_NAMESPACE" == "ibm-observe" ]]; then
+elif [[ "$BAI_SERVICE_NAMESPACE" == "ibm-observe" ]]; then
     echo -e "\x1B[1;31mThe current namespace should not be 'ibm-observe'. It should be the namespace where BAI is installed. The script aborted. \x1B[0m"
     exit 1
-elif [[ "$CP4BA_SERVICE_NAMESPACE" == "ibm-odf-validation-webhook" ]]; then
+elif [[ "$BAI_SERVICE_NAMESPACE" == "ibm-odf-validation-webhook" ]]; then
     echo -e "\x1B[1;31mThe current namespace should not be 'default'. It should be the namespace where BAI is installed. The script aborted. \x1B[0m"
     exit 1
-elif [[ "$CP4BA_SERVICE_NAMESPACE" == "ibm-system" ]]; then
+elif [[ "$BAI_SERVICE_NAMESPACE" == "ibm-system" ]]; then
     echo -e "\x1B[1;31mThe current namespace should not be 'ibm-system'. It should be the namespace where BAI is installed. The script aborted. \x1B[0m"
     exit 1
 fi
 
-echo -e "The BAI namespace entered: ${CP4BA_SERVICE_NAMESPACE}"
-if [[ "$CP4BA_SERVICE_NAMESPACE" != "$CP4BA_NAMESPACE" ]]; then
-    echo -e "The BAI operator namespace is ${CP4BA_NAMESPACE}\n"
+echo -e "The BAI namespace entered: ${BAI_SERVICE_NAMESPACE}"
+if [[ "$BAI_SERVICE_NAMESPACE" != "$BAI_NAMESPACE" ]]; then
+    echo -e "The BAI operator namespace is ${BAI_NAMESPACE}\n"
 fi
 
 # Check if user is logged in to OCP cluster.
-oc project
+oc project $BAI_SERVICE_NAMESPACE
 if [ $? -gt 0 ]; then
   echo -e "\x1B[1;31mError: Not logged in to OCP cluster. Please login to an OCP cluster. \x1B[0m" && exit 1
 fi
@@ -166,43 +197,46 @@ function delete_resource() {
 
 # Clean up clients
 echo -e "\x1B[1mCleaning up Clients... \x1B[0m\n"
-delete_resource client "${CP4BA_SERVICE_NAMESPACE}"
+delete_resource client "${BAI_SERVICE_NAMESPACE}"
 echo -e "\n\x1B[1mFinsished cleaning up all Clients. \x1B[0m\n"
 # Clean up zenExtension
 echo -e "\x1B[1mCleaning up zenExtensions... \x1B[0m\n"
-delete_resource zenextension "${CP4BA_SERVICE_NAMESPACE}"
+delete_resource zenextension "${BAI_SERVICE_NAMESPACE}"
 echo -e "\n\x1B[1mFinsihed cleaning up all zenExtensions. \x1B[0m\n"
 # Clean up zen-metastore-edb secret
 echo -e "\x1B[1mCleaning up zen-metastore-edb secrets... \x1B[0m\n"
 for i in $(oc get secrets --no-headers|awk '{print $1}'| grep 'zen-metastore-edb'); do
-    oc delete secret "$i" -n "$CP4BA_SERVICE_NAMESPACE"
+    oc delete secret "$i" -n "$BAI_SERVICE_NAMESPACE"
 done
 echo -e "\n\x1B[1mFinsihed cleaning up all zen-metastore-edb related secrets. \x1B[0m\n"
 
 # Clean up cs-ca-certificate secret
 echo -e "\x1B[1mCleaning up cs-ca-certificate-secret secret... \x1B[0m\n"
-oc delete secret cs-ca-certificate-secret -n "$CP4BA_SERVICE_NAMESPACE"
+oc delete secret cs-ca-certificate-secret -n "$BAI_SERVICE_NAMESPACE"
 echo -e "\n\x1B[1mFinsihed cleaning up cs-ca-certificate-secret secret. \x1B[0m\n"
 
 # delete FlinkDeployment CR
 echo "Deleting FlinkDeployment CR"
-delete_resource FlinkDeployment $CP4BA_SERVICE_NAMESPACE
+delete_resource FlinkDeployment $BAI_SERVICE_NAMESPACE
+# <https://jsw.ibm.com/browse/DBACLD-156830?> - Need to add a full name for flinkdeployments, as there could be another flinkdeployment CRD
+delete_resource flinkdeployments.flink.ibm.com $BAI_SERVICE_NAMESPACE
+delete_resource flinkdeployments.flink.apache.org $BAI_SERVICE_NAMESPACE
 
 # delete FlinkSessionJobs
 echo "Deleting FlinkSessionJobs"
-delete_resource FlinkSessionJobs $CP4BA_SERVICE_NAMESPACE
+delete_resource FlinkSessionJobs $BAI_SERVICE_NAMESPACE
 
 # delete Flink operator certificate
-oc patch secret/flink-operator-cert -p '{"metadata":{"finalizers":[]}}' --type=merge -n $CP4BA_SERVICE_NAMESPACE
+oc patch secret/flink-operator-cert -p '{"metadata":{"finalizers":[]}}' --type=merge -n $BAI_SERVICE_NAMESPACE
 echo "Deleting secret "
-oc delete secret flink-operator-cert -n $CP4BA_SERVICE_NAMESPACE --ignore-not-found=true --wait=true 
-if [[ "$CP4BA_SERVICE_NAMESPACE" != "$CP4BA_NAMESPACE" ]]; then
-    oc patch secret/flink-operator-cert -p '{"metadata":{"finalizers":[]}}' --type=merge -n $CP4BA_NAMESPACE
-    oc delete secret flink-operator-cert -n $CP4BA_NAMESPACE --ignore-not-found=true --wait=true 
+oc delete secret flink-operator-cert -n $BAI_SERVICE_NAMESPACE --ignore-not-found=true --wait=true 
+if [[ "$BAI_SERVICE_NAMESPACE" != "$BAI_NAMESPACE" ]]; then
+    oc patch secret/flink-operator-cert -p '{"metadata":{"finalizers":[]}}' --type=merge -n $BAI_NAMESPACE
+    oc delete secret flink-operator-cert -n $BAI_NAMESPACE --ignore-not-found=true --wait=true 
 fi
 
 # delete common service
-delete_resource CommonService ${CP4BA_SERVICE_NAMESPACE}
-delete_resource CommonService ${CP4BA_NAMESPACE}
+delete_resource CommonService ${BAI_SERVICE_NAMESPACE}
+delete_resource CommonService ${BAI_NAMESPACE}
 
 echo -e "\x1B[1m \nBAI clean up has completed.\x1B[0m\n"

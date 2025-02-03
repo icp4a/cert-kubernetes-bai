@@ -17,7 +17,7 @@ YQ=yq
 ENABLE_LICENSING=0
 MINIMAL_RBAC_ENABLED=0
 MINIMAL_RBAC=""
-CHANNEL="v4.6"
+CHANNEL="v4.10"
 MAINTAINED_CHANNEL="v4.2"
 SOURCE="opencloud-operators"
 SOURCE_NS="openshift-marketplace"
@@ -266,9 +266,10 @@ function pre_req() {
 
     # When Common Service channel info is less then maintained channel, update maintained channel for backward compatibility e.g., v4.1 and v4.0
     # Otherwise, maintained channel is pinned at v4.2
-    local channel_numeric="${CHANNEL#v}"
-    local maintained_channel_numeric="${MAINTAINED_CHANNEL#v}"
-    if awk -v num="$channel_numeric" "BEGIN { exit !(num < $maintained_channel_numeric) }"; then
+    IFS='.' read -r channel_major channel_minor <<< "${CHANNEL#v}"
+    IFS='.' read -r maintained_major maintained_minor <<< "${MAINTAINED_CHANNEL#v}"
+
+    if (( channel_major < maintained_major )) || { (( channel_major == maintained_major )) && (( channel_minor < maintained_minor )); }; then
         MAINTAINED_CHANNEL="$CHANNEL"
     fi
 
@@ -544,9 +545,21 @@ roleRef:
 EOF
 
     title "Checking and authorizing NSS to all namespaces in tenant..."
-    for ns in $OPERATOR_NS $SERVICES_NS ${TETHERED_NS//,/ }; do
+    existing_ns=$(${OC} get nss common-service -n $OPERATOR_NS -o=jsonpath='{.spec.namespaceMembers}' | tr -d \" | tr -d [ | tr -d ])
+    for ns in ${existing_ns//,/ }; do
         if [[ $($OC get RoleBinding nss-managed-role-from-$OPERATOR_NS -n $ns 2>/dev/null) != "" ]] && [[ $($OC get Role nss-managed-role-from-$OPERATOR_NS -n $ns 2>/dev/null) != "" ]];then
-            info "Role and RoleBinding nss-managed-role-from-$OPERATOR_NS is already existed in $ns, skip creating\n"
+            if [ $MINIMAL_RBAC_ENABLED -eq 1 ]; then
+                debug1 "Overwriting existing Role nss-managed-role-from-$OPERATOR_NS in $ns\n"
+                local role=$(cat ${PREVIEW_DIR}/role.yaml | sed "s/ns_to_replace/$ns/g")
+                debug1 "$role"
+                echo ""
+                echo "$role" | ${OC_CMD} apply -f -
+                if [[ $? -ne 0 ]]; then
+                    error "Failed to update Role for NSS in namespace $ns, please check if user has proper permission\n"
+                fi
+            else
+                info "Role and RoleBinding nss-managed-role-from-$OPERATOR_NS is already existed in $ns, skip creating\n"
+            fi
         else
             debug1 "Creating following Role:\n"
             local role=$(cat ${PREVIEW_DIR}/role.yaml | sed "s/ns_to_replace/$ns/g")
@@ -598,40 +611,50 @@ function install_cs_operator() {
 
     if [ "$is_CS_CRD_exist" == "exists" ]; then
         info "CommonService CRD exist\n"
-        configure_cs_kind
+        configure_cs_kind $OPERATOR_NS
     else
         info "CommonService CRD does not exist, installing ibm-common-service-operator first\n"
     fi
 
     title "Checking whether IBM Common Service operator exist..."
+    local pm="ibm-common-service-operator"
+    # Fresh install or upgrade CS operator in operator namespace
     is_sub_exist "ibm-common-service-operator" "$OPERATOR_NS"
     if [ $? -eq 0 ]; then
-        info "There is an ibm-common-service-operator Subscription already\n"
         if [ $PREVIEW_MODE -eq 0 ]; then
-            local pm="ibm-common-service-operator"
-            local ns_list=$(${OC} get configmap namespace-scope -n ${OPERATOR_NS} -o jsonpath='{.data.namespaces}' --ignore-not-found)
-            if [[ -z "$ns_list" ]]; then
-                warning "Not found ConfigMap namespace-scope in namespace ${OPERATOR_NS}, only upgrading operators in namespace $OPERATOR_NS"
-                update_operator $pm $OPERATOR_NS $CHANNEL $SOURCE $SOURCE_NS $INSTALL_MODE
-                wait_for_operator_upgrade $OPERATOR_NS $pm $CHANNEL $INSTALL_MODE
-            else
-                for ns in ${ns_list//,/ }; do
-                    local sub_name=$(${OC} get subscription.operators.coreos.com -n ${ns} -l operators.coreos.com/${pm}.${ns}='' --no-headers | awk '{print $1}')
-                    if [ ! -z "$sub_name" ]; then
-                        op_source=$SOURCE
-                        op_source_ns=$SOURCE_NS
-                        if [ $ENABLE_PRIVATE_CATALOG -eq 1 ]; then
-                            op_source_ns=$ns
-                        fi
-                        validate_operator_catalogsource $pm $ns $op_source $op_source_ns $CHANNEL op_source op_source_ns
-                        update_operator $pm $ns $CHANNEL $op_source $op_source_ns $INSTALL_MODE
-                        wait_for_operator_upgrade $ns $pm $CHANNEL $INSTALL_MODE
-                    fi
-                done
-            fi
+            info "There is an ibm-common-service-operator Subscription already\n"
+            update_operator $pm $OPERATOR_NS $CHANNEL $SOURCE $SOURCE_NS $INSTALL_MODE
+            wait_for_operator_upgrade $OPERATOR_NS $pm $CHANNEL $INSTALL_MODE
         fi
     else
         create_subscription "ibm-common-service-operator" "$OPERATOR_NS" "$CHANNEL" "ibm-common-service-operator" "${SOURCE}" "${SOURCE_NS}" "${INSTALL_MODE}"
+    fi
+
+    # Handle the upgrade for CS operator namespace in other namespaces in the tenant
+    local ns_list=$(${OC} get configmap namespace-scope -n ${OPERATOR_NS} -o jsonpath='{.data.namespaces}' --ignore-not-found)
+    if [[ -z "$ns_list" ]]; then
+        warning "Not found ConfigMap namespace-scope in namespace ${OPERATOR_NS}"
+    else
+        for ns in ${ns_list//,/ }; do
+            if [[ "$ns" != "$OPERATOR_NS" ]]; then
+                local key="${pm}.${ns}"
+                local length_limited_key=$(echo ${key:0:63})
+                local sub_name=$(${OC} get subscription.operators.coreos.com -n ${ns} -l operators.coreos.com/${length_limited_key}='' --no-headers | awk '{print $1}')
+                if [ ! -z "$sub_name" ]; then
+                    op_source=$SOURCE
+                    op_source_ns=$SOURCE_NS
+                    if [ $ENABLE_PRIVATE_CATALOG -eq 1 ]; then
+                        op_source_ns=$ns
+                    fi
+                    # config commonservice operator_namespace and service_namespace
+                    configure_cs_kind $ns
+                    # upgrade operator
+                    validate_operator_catalogsource $pm $ns $op_source $op_source_ns $CHANNEL op_source op_source_ns
+                    update_operator $pm $ns $CHANNEL $op_source $op_source_ns $INSTALL_MODE
+                    wait_for_operator_upgrade $ns $pm $CHANNEL $INSTALL_MODE
+                fi
+            fi
+        done
     fi
 
     if [ $PREVIEW_MODE -eq 0 ]; then
@@ -647,7 +670,7 @@ function install_cs_operator() {
 
     if [ "$is_CS_CRD_exist" == "fail" ] || [ $RETRY_CONFIG_CSCR -eq 1 ]; then
         RETRY_CONFIG_CSCR=1
-        configure_cs_kind
+        configure_cs_kind $OPERATOR_NS
     fi
 
     # Checking master CommonService CR status
@@ -688,14 +711,15 @@ EOF
 }
 
 function configure_cs_kind() {
+    local ns=$1
     local retries=10
     local delay=30
 
-    title "Configuring CommonService CR in $OPERATOR_NS..."
-    result=$("${OC}" get commonservice common-service -n ${OPERATOR_NS} -o yaml --ignore-not-found)
+    title "Configuring CommonService CR in $ns..."
+    result=$("${OC}" get commonservice common-service -n ${ns} -o yaml --ignore-not-found)
     if [[ ! -z "${result}" ]]; then
-        info "Configuring CommonService CR common-service in $OPERATOR_NS\n"
-        ${OC} get commonservice common-service -n "${OPERATOR_NS}" -o yaml | ${YQ} eval '.spec += {"operatorNamespace": "'${OPERATOR_NS}'", "servicesNamespace": "'${SERVICES_NS}'", "size": "'${SIZE_PROFILE}'"}' > ${PREVIEW_DIR}/commonservice.yaml
+        info "Configuring CommonService CR common-service in $ns\n"
+        ${OC} get commonservice common-service -n "${ns}" -o yaml | ${YQ} eval '.spec += {"operatorNamespace": "'${OPERATOR_NS}'", "servicesNamespace": "'${SERVICES_NS}'", "size": "'${SIZE_PROFILE}'"}' > ${PREVIEW_DIR}/commonservice.yaml
         ${YQ} -i eval 'select(.kind == "CommonService") | del(.metadata.resourceVersion) | del(.metadata.uid) | del(.metadata.creationTimestamp) | del(.metadata.generation)' ${PREVIEW_DIR}/commonservice.yaml
     else
         info "Creating the CommonService object:\n"
@@ -704,7 +728,7 @@ apiVersion: operator.ibm.com/v3
 kind: CommonService
 metadata:
   name: common-service
-  namespace: $OPERATOR_NS
+  namespace: $ns
 spec:
   operatorNamespace: $OPERATOR_NS
   servicesNamespace: $SERVICES_NS
@@ -716,34 +740,40 @@ EOF
     echo ""
 
     while [ $retries -gt 0 ]; do
-        # Wait for the operator pod to be ready by 60s
-        ${OC} -n ${OPERATOR_NS} wait --for=condition=Ready pod -l name=ibm-common-service-operator --timeout=60s 2> /dev/null
-
-        if [[ $? -eq 0 ]]; then
-            cat "${PREVIEW_DIR}/commonservice.yaml" | ${OC_CMD} apply -f -
-
-            # Check if the patch was successful
+        # Wait for the operator pod to be ready by 60s if ibm-common-service-operator subscription exists
+        is_sub_exist "ibm-common-service-operator" "$OPERATOR_NS"
+        if [ $? -eq 0 ]; then
+            ${OC} -n ${OPERATOR_NS} wait --for=condition=Ready pod -l name=ibm-common-service-operator --timeout=60s 2> /dev/null
             if [[ $? -eq 0 ]]; then
-                operator_ns_in_cr=$(${OC} get commonservice common-service -n ${OPERATOR_NS} -o yaml | "${YQ}" '.spec.operatorNamespace')
-                services_ns_in_cr=$(${OC} get commonservice common-service -n ${OPERATOR_NS} -o yaml | "${YQ}" '.spec.servicesNamespace')
-                if [[ "$operator_ns_in_cr" == "$OPERATOR_NS" ]] && [[ "$services_ns_in_cr" == "$SERVICES_NS" ]]; then
-                    success "Successfully patched CommonService CR in ${OPERATOR_NS}"
-                    break
-                else
-                    warning "Expected OperatorNamespace is ${OPERATOR_NS}, but existing value is ${operator_ns_in_cr} in CommonService CR, retry it in ${delay} seconds..."
-                    warning "Expected ServicesNamespace is ${SERVICES_NS}, but existing value is ${services_ns_in_cr} in CommonService CR, retry it in ${delay} seconds..."
-                    retries=$((retries-1))
-                fi
+                debug1 "ibm-common-service-operator pod is ready\n"
             else
-                warning "Failed to patch CommonService CR in ${OPERATOR_NS}, retry it in ${delay} seconds..."
+                warning "ibm-common-service-operator pod is not ready, retry it in ${delay} seconds...\n"
                 sleep ${delay}
+                retries=$((retries-1))
+                continue
+            fi
+        fi
+
+        cat "${PREVIEW_DIR}/commonservice.yaml" | ${OC_CMD} apply -f -
+
+        # Check if the patch was successful
+        if [[ $? -eq 0 ]]; then
+            operator_ns_in_cr=$(${OC} get commonservice common-service -n ${ns} -o yaml | "${YQ}" '.spec.operatorNamespace')
+            services_ns_in_cr=$(${OC} get commonservice common-service -n ${ns} -o yaml | "${YQ}" '.spec.servicesNamespace')
+            if [[ "$operator_ns_in_cr" == "$OPERATOR_NS" ]] && [[ "$services_ns_in_cr" == "$SERVICES_NS" ]]; then
+                success "Successfully patched CommonService CR in ${ns}"
+                break
+            else
+                warning "Expected OperatorNamespace is ${OPERATOR_NS}, but existing value is ${operator_ns_in_cr} in CommonService CR, retry it in ${delay} seconds..."
+                warning "Expected ServicesNamespace is ${SERVICES_NS}, but existing value is ${services_ns_in_cr} in CommonService CR, retry it in ${delay} seconds..."
                 retries=$((retries-1))
             fi
         else
-            warning "ibm-common-service-operator pod is not ready, retry it in ${delay} seconds..."
+            warning "Failed to patch CommonService CR in ${ns}, retry it in ${delay} seconds..."
             sleep ${delay}
             retries=$((retries-1))
         fi
+
     done
 
     if [ $retries -eq 0 ] && [ $RETRY_CONFIG_CSCR -eq 1 ]; then
@@ -760,7 +790,10 @@ EOF
 function upgrade_mitigation() {
     # When it is upgrade scenario, and it is complex toppology, then do the mitigation
     if [[ $IS_UPGRADE -eq 1 && $IS_NOT_COMPLEX_TOPOLOGY -eq 0 ]]; then
-        local sub_name=$(${OC} get subscription.operators.coreos.com -n ${OPERATOR_NS} -l operators.coreos.com/ibm-common-service-operator.${OPERATOR_NS}='' --no-headers | awk '{print $1}')
+        local package_name="ibm-common-service-operator"
+        local key="${package_name}.${OPERATOR_NS}"
+        local length_limited_key=$(echo ${key:0:63})
+        local sub_name=$(${OC} get subscription.operators.coreos.com -n ${OPERATOR_NS} -l operators.coreos.com/${length_limited_key}='' --no-headers | awk '{print $1}')
         local csv_name=$(${OC} get subscription.operators.coreos.com ${sub_name} -n ${OPERATOR_NS} --ignore-not-found -o jsonpath={.status.installedCSV})
         if [[ ! -z ${csv_name} ]]; then
             local csv_deleted=$(${OC} get csv -n ${OPERATOR_NS} --ignore-not-found -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}' | grep ibm-common-service-operator | grep -v ${csv_name})

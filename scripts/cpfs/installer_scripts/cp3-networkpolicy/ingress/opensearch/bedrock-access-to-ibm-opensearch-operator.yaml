@@ -1,0 +1,21 @@
+kind: NetworkPolicy
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: ingress-ibm-opensearch-operator
+  namespace: "opNamespace"
+spec:
+  podSelector: 
+    matchLabels:
+      name: ibm-cloudpakopen-elasticsearch-operator
+  ingress:
+    - ports:
+      - protocol: TCP
+        port: 443
+      - protocol: TCP
+        port: 2112
+      - protocol: TCP
+        port: 9200
+      from:
+        - podSelector: {}
+  policyTypes:
+    - Ingress

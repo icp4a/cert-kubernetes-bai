@@ -16,6 +16,8 @@ rules:
       - ''
     resources:
       - configmaps
+      - secrets
+      - services
   - verbs:
       - get
       - patch
@@ -24,6 +26,7 @@ rules:
       - ''
     resources:
       - configmaps/status
+      - secrets/status
   - verbs:
       - create
       - patch
@@ -31,14 +34,6 @@ rules:
       - ''
     resources:
       - events
-  - verbs:
-      - get
-      - list
-      - watch
-    apiGroups:
-      - ''
-    resources:
-      - namespaces
   - verbs:
       - get
       - list
@@ -58,27 +53,7 @@ rules:
       - ''
     resources:
       - persistentvolumeclaims
-  - verbs:
-      - create
-      - delete
-      - get
-      - list
-      - patch
-      - watch
-    apiGroups:
-      - ''
-    resources:
       - pods
-  - verbs:
-      - create
-      - delete
-      - get
-      - list
-      - patch
-      - watch
-    apiGroups:
-      - ''
-    resources:
       - pods/exec
   - verbs:
       - get
@@ -86,26 +61,6 @@ rules:
       - ''
     resources:
       - pods/status
-  - verbs:
-      - create
-      - delete
-      - get
-      - list
-      - patch
-      - update
-      - watch
-    apiGroups:
-      - ''
-    resources:
-      - secrets
-  - verbs:
-      - get
-      - patch
-      - update
-    apiGroups:
-      - ''
-    resources:
-      - secrets/status
   - verbs:
       - create
       - get
@@ -118,34 +73,12 @@ rules:
     resources:
       - serviceaccounts
   - verbs:
-      - create
-      - delete
       - get
-      - list
       - patch
-      - update
-      - watch
-    apiGroups:
-      - ''
-    resources:
-      - services
-  - verbs:
-      - get
-      - list
-      - patch
-      - update
     apiGroups:
       - admissionregistration.k8s.io
     resources:
       - mutatingwebhookconfigurations
-  - verbs:
-      - get
-      - list
-      - patch
-      - update
-    apiGroups:
-      - admissionregistration.k8s.io
-    resources:
       - validatingwebhookconfigurations
   - verbs:
       - get
@@ -221,6 +154,9 @@ rules:
       - postgresql.k8s.enterprisedb.io
     resources:
       - backups
+      - clusters
+      - poolers
+      - scheduledbackups
   - verbs:
       - get
       - patch
@@ -229,50 +165,13 @@ rules:
       - postgresql.k8s.enterprisedb.io
     resources:
       - backups/status
-  - verbs:
-      - create
-      - delete
-      - get
-      - list
-      - patch
-      - update
-      - watch
-    apiGroups:
-      - postgresql.k8s.enterprisedb.io
-    resources:
-      - clusters
+      - scheduledbackups/status
   - verbs:
       - update
     apiGroups:
       - postgresql.k8s.enterprisedb.io
     resources:
       - clusters/finalizers
-  - verbs:
-      - get
-      - patch
-      - update
-      - watch
-    apiGroups:
-      - postgresql.k8s.enterprisedb.io
-    resources:
-      - clusters/status
-  - verbs:
-      - create
-      - delete
-      - get
-      - list
-      - patch
-      - update
-      - watch
-    apiGroups:
-      - postgresql.k8s.enterprisedb.io
-    resources:
-      - poolers
-  - verbs:
-      - update
-    apiGroups:
-      - postgresql.k8s.enterprisedb.io
-    resources:
       - poolers/finalizers
   - verbs:
       - get
@@ -282,27 +181,8 @@ rules:
     apiGroups:
       - postgresql.k8s.enterprisedb.io
     resources:
+      - clusters/status
       - poolers/status
-  - verbs:
-      - create
-      - delete
-      - get
-      - list
-      - patch
-      - update
-      - watch
-    apiGroups:
-      - postgresql.k8s.enterprisedb.io
-    resources:
-      - scheduledbackups
-  - verbs:
-      - get
-      - patch
-      - update
-    apiGroups:
-      - postgresql.k8s.enterprisedb.io
-    resources:
-      - scheduledbackups/status
   - verbs:
       - create
       - get
@@ -314,16 +194,6 @@ rules:
       - rbac.authorization.k8s.io
     resources:
       - rolebindings
-  - verbs:
-      - create
-      - get
-      - list
-      - patch
-      - update
-      - watch
-    apiGroups:
-      - rbac.authorization.k8s.io
-    resources:
       - roles
   - verbs:
       - create
@@ -365,6 +235,7 @@ rules:
       - certificates
       - issuers
   - verbs:
+      - delete
       - get
       - list
       - patch
@@ -472,6 +343,51 @@ rules:
       - elasticstack.ibm.com
     resources:
       - elasticstacks
+  - verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+    apiGroups:
+      - ''
+    resources:
+      - serviceaccounts
+  - verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+    apiGroups:
+      - rbac.authorization.k8s.io
+    resources:
+      - rolebindings
+      - roles
+  - verbs:
+      - get
+      - delete
+      - list
+    apiGroups:
+      - operator.ibm.com
+    resources:
+      - podpresets
+  - verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+    apiGroups:
+      - ibmcpcs.ibm.com
+    resources:
+      - secretshares
   - verbs:
       - get
     apiGroups:
@@ -667,6 +583,14 @@ rules:
       - operator.ibm.com
     resources:
       - operandrequests
+  - verbs:
+      - get
+      - list
+      - watch
+    apiGroups:
+      - operator.ibm.com
+    resources:
+      - authentications
   - verbs:
       - get
       - list
@@ -1158,6 +1082,18 @@ rules:
       - update
       - watch
     apiGroups:
+      - zen.cpd.ibm.com
+    resources:
+      - zenextensions
+  - verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+    apiGroups:
       - ''
     resources:
       - pods
@@ -1395,6 +1331,8 @@ rules:
       - zenextensions
       - zenextension/status
       - zenextensions/status
+      - zenextension/finalizers
+      - zenextensions/finalizers
   - verbs:
       - get
       - list
@@ -1427,6 +1365,7 @@ rules:
       - operator.ibm.com
     resources:
       - commonservices
+      - authentications
   - verbs:
       - create
       - delete
@@ -1493,6 +1432,8 @@ rules:
       - get
       - list
       - watch
+      - update
+      - patch
     apiGroups:
       - operators.coreos.com
     resources:
@@ -1706,4 +1647,4 @@ rules:
     resources:
       - secrets
     resourceNames:
-      - postgresql-operator-controller-manager-1-18-12-service-cert
+      - postgresql-operator-controller-manager-1-22-7-service-cert

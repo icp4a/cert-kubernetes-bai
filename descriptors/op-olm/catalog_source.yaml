@@ -8,7 +8,7 @@
 # disclosure restricted by GSA ADP Schedule Contract with IBM Corp.
 #
 ###############################################################################
-# BAI stand-alone 24.0.0 catalog
+# BAI stand-alone BAIS-24.0.0-IF002 catalog
 apiVersion: operators.coreos.com/v1alpha1
 kind: CatalogSource
 metadata:
@@ -18,12 +18,12 @@ spec:
   displayName: ibm-bai-operator
   publisher: IBM
   sourceType: grpc
-  image: icr.io/cpopen/ibm-bai-catalog@sha256:a54f7c1026f4b0904396a90619127ab0ffc46d182f8bf8a536a06121c47098b1
+  image: icr.io/cpopen/ibm-bai-catalog@sha256:9e41cbbd6682acc920fff8e5c2425a7390d17d2cda327ea53d6eb506161c136a
   updateStrategy:
     registryPoll:
       interval: 45m
 ---
-# IBM CS Flink Operator Catalog 1.18.1 (2.0.1)
+# IBM CS Flink Operator Catalog 1.18.4 (2.0.4)
 apiVersion: operators.coreos.com/v1alpha1
 kind: CatalogSource
 metadata:
@@ -34,13 +34,13 @@ spec:
   publisher: IBM
   sourceType: grpc
   image: >-
-    icr.io/cpopen/ibm-opencontent-flink-operator-catalog@sha256:880fdd2641a478b5c868c8d8e7459aae599e2f59f499d866dfdc4eccf9c9ed75
+    icr.io/cpopen/ibm-opencontent-flink-operator-catalog@sha256:b1e6182101793348aaf45b77160848b09674033a2b6c910d14d3049a711bbdd7
   updateStrategy:
     registryPoll:
       interval: 45m
   priority: 100
 ---
-# IBM CS Opensearch Operator Catalog 1.1.2153
+# IBM CS Opensearch Operator Catalog 1.1.2470
 apiVersion: operators.coreos.com/v1alpha1
 kind: CatalogSource
 metadata:
@@ -50,47 +50,47 @@ spec:
   displayName: IBM CS Opencontent Opensearch Catalog
   publisher: IBM
   sourceType: grpc
-  image: icr.io/cpopen/opencontent-elasticsearch-operator-catalog@sha256:755b5177805a37c1dbfa450ccd4e8e9cd4798b73835b07663e3915b9c7efadc4
+  image: icr.io/cpopen/opencontent-elasticsearch-operator-catalog@sha256:5b81f9d2a5bb20f96503f76d6a39fc71cb844c49f4bc4f580e37bc4aeecb9474
   updateStrategy:
     registryPoll:
       interval: 45m
   priority: 100
 ---
-# IBM Certificate Manager 4.2.4
+# IBM Certificate Manager 4.2.11
 apiVersion: operators.coreos.com/v1alpha1
 kind: CatalogSource
 metadata:
   name: ibm-cert-manager-catalog
   namespace: openshift-marketplace
 spec:
-  displayName: ibm-cert-manager-4.2.4
+  displayName: ibm-cert-manager-4.2.11
   publisher: IBM
   sourceType: grpc
-  image: icr.io/cpopen/ibm-cert-manager-operator-catalog@sha256:41084f653ef84c61443bb1bfffedeffb0bca65f267a56f14fb8757410c6412aa
+  image: icr.io/cpopen/ibm-cert-manager-operator-catalog@sha256:1c9e4a2a2abddfcdcb95898f14aecd3ab9e59bd388fb38de335118d1c36651e3
   updateStrategy:
     registryPoll:
       interval: 45m
 ---
-# IBM License Manager 4.2.4
+# IBM License Manager 4.2.11
 apiVersion: operators.coreos.com/v1alpha1
 kind: CatalogSource
 metadata:
   name: ibm-licensing-catalog
   namespace: openshift-marketplace
 spec:
-  displayName: ibm-licensing-4.2.4
+  displayName: ibm-licensing-4.2.11
   publisher: IBM
-  image: icr.io/cpopen/ibm-licensing-catalog@sha256:7435cec615ad3cde5f04a2ad7d22fe8bf22ae063816daac9a211258da21c6866
+  image: icr.io/cpopen/ibm-licensing-catalog@sha256:5a67decdd3513fefd99e165cc6cb2798937d42031230819f6d5b4fa54a5f28c1
   sourceType: grpc
   updateStrategy:
     registryPoll:
       interval: 45m
 ---
-# IBM Cloud Foundational Services 4.6.2
+# IBM Cloud Foundational Services 4.6.9
 apiVersion: operators.coreos.com/v1alpha1
 kind: CatalogSource
 metadata:
-  name: ibm-cs-install-catalog-v4-6-2
+  name: ibm-cs-install-catalog-v4-6-9
   namespace: openshift-marketplace
   annotations:
     bedrock_catalogsource_priority: '1'
@@ -98,17 +98,17 @@ spec:
   displayName: IBM CS Install Operators
   publisher: IBM
   sourceType: grpc
-  image: icr.io/cpopen/ibm-cs-install-catalog@sha256:68738260ffcd7edaacae1c99e41e166f4d4131e0ce3571af05010af9e5eccb49
+  image: icr.io/cpopen/ibm-cs-install-catalog@sha256:4f8b767d7c0ff69b20121184e53d8c9415b1f8820820f6fe0cea9363ab96368c
   updateStrategy:
     registryPoll:
       interval: 45m
   priority: 100    
 ---
-# IBM Business Teams Service version 3.33.1
+# IBM Business Teams Service version 3.35.1
 apiVersion: operators.coreos.com/v1alpha1
 kind: CatalogSource
 metadata:
-  name: bts-operator
+  name: bts-operator-v3-35-1
   namespace: openshift-marketplace
   annotations:
     bedrock_catalogsource_priority: '1'
@@ -116,12 +116,12 @@ spec:
   displayName: BTS Operator
   publisher: IBM
   sourceType: grpc
-  image: icr.io/cpopen/ibm-bts-operator-catalog@sha256:866f0212eab7bc70cc7fcf7ebdbb4dfac561991f6d25900bd52f33cd90846adf
+  image: icr.io/cpopen/ibm-bts-operator-catalog@sha256:c803538b0ff68d76f5c85a21fed3c3a680acbf12c6150d39f2c3072e89de04b1
   updateStrategy:
     registryPoll:
       interval: 45m
 ---
-# IBM CS IM Operator Catalog 4.5.1
+# IBM CS IM Operator Catalog 4.5.8
 apiVersion: operators.coreos.com/v1alpha1
 kind: CatalogSource
 metadata:
@@ -133,13 +133,13 @@ spec:
   displayName: IBM IAM Operator Catalog
   publisher: IBM
   sourceType: grpc
-  image: icr.io/cpopen/ibm-iam-operator-catalog@sha256:022616861c676e7607bc5da54f69a048b51cf6f55ab49c932d7a010ccee8d764
+  image: icr.io/cpopen/ibm-iam-operator-catalog@sha256:678f3c53c086766f357873a6add96ebabffad1a02a1a7aa567c9bb4f36119df3
   updateStrategy:
     registryPoll:
       interval: 45m
   priority: 100
 ---
-# IBM Zen Operator Catalog 5.1.4
+# IBM Zen Operator Catalog 5.1.11
 apiVersion: operators.coreos.com/v1alpha1
 kind: CatalogSource
 metadata:
@@ -151,7 +151,7 @@ spec:
   displayName: IBM Zen Operator Catalog
   publisher: IBM
   sourceType: grpc
-  image: icr.io/cpopen/ibm-zen-operator-catalog@sha256:690874d908989ddd76e05514c056b09984adff81af8568f7b1a789c057e26d71
+  image: icr.io/cpopen/ibm-zen-operator-catalog@sha256:5e36cfa6c92bb6aa1b028a63e03c4351f53be697af177e490ce09bc75078c058
   updateStrategy:
     registryPoll:
       interval: 45m
@@ -175,7 +175,7 @@ spec:
       interval: 45m
   priority: 100
 ---
-# Cloud Native PostgresSQL 1.18.12 (4.25.0)
+# Cloud Native PostgresSQL 1.22.7 (CASE 4.30.0+20241023.165233.2074)(Postgresql Image Version 14.13)
 apiVersion: operators.coreos.com/v1alpha1
 kind: CatalogSource
 metadata:
@@ -187,7 +187,7 @@ spec:
   displayName: Cloud Native Postgresql Catalog
   publisher: IBM
   sourceType: grpc
-  image: icr.io/cpopen/ibm-cpd-cloud-native-postgresql-operator-catalog@sha256:0b46a3ec66622dd4a96d96243602a21d7a29cd854f67a876ad745ec524337a1f
+  image: icr.io/cpopen/ibm-cpd-cloud-native-postgresql-operator-catalog@sha256:3b867e7e0879ec24b5058e5db01c0a9be8d9d8d5ef2b7bb1bb7e247babb8b96d
   updateStrategy:
     registryPoll:
       interval: 45m
