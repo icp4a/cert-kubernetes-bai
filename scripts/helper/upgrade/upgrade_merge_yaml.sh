@@ -63,7 +63,7 @@ function remove_image_tags(){
             info "$repository_value:$tag_value"
         done
         printf "\n"
-        read -rsn1 -p "Press any key to continue to remove the defined image tags from the Custom Resource file...";echo
+        prompt_press_any_key_to_continue "to remove the defined image tags from the Custom Resource file..."
         printf "\n"
         # To remove the tags and prevent them from being added back by the last-applied-configuration annotation we need to 
         # 1. Remove it from the CR file that will be applied
@@ -291,9 +291,9 @@ function dryrun(){
             # The sample output of the dry run when there is an unknown/invalid field ends with "strict decoding error: unknown field \"<field_name>\""
             # The sed command first removes the entire output string before and including unknown_field " and then removes everything the next quote it finds,keep only <field_name> to be assigned to the unknownfield variable
             unknownfield=$(echo "$output" | sed 's/.*unknown field "//;s/".*//')
-            error "ERROR: Unknown field \"$unknownfield\" found in ${FILE}. Please check the field names and values."
+            error "ERROR: Unknown field \"$unknownfield\" found in ${FILE}. Check the field names and values."
         elif echo "$output" | grep -q "error parsing"; then
-            error "Error: Error parsing ${FILE}. Please fix the YAML syntax for this custom resource file."
+            error "Error: Error parsing ${FILE}. Fix the YAML syntax for this custom resource file."
         else
             # Handle other errors
             error "Unknown Error found while applying the Custom Resource file."
@@ -303,7 +303,7 @@ function dryrun(){
         step_num=1
         printf "\n"
         echo "${YELLOW_TEXT}- Resolve the errors that were discovered earlier by modifying the Custom Resource file \"${FILE}\" .${RESET_TEXT}"
-        echo "${YELLOW_TEXT}- If the error is related to an unknown field, please remove the unknown field from the Custom Resource file \"${FILE}\" .${RESET_TEXT}"
+        echo "${YELLOW_TEXT}- If the error is related to an unknown field, remove the unknown field from the Custom Resource file \"${FILE}\" .${RESET_TEXT}"
         echo "${YELLOW_TEXT}- If the error is due to YAML parsing, fix the YAML syntax or indentation of the Custom Resource file \"${FILE}\" .${RESET_TEXT}"
         echo "${YELLOW_TEXT}[NOTE]:${RESET_TEXT} This step will fix the custom resource file errors that were found in the previous executed of the upgradeDeployment mode."
         echo "  - STEP ${step_num} ${RED_TEXT}(Required)${RESET_TEXT}:${GREEN_TEXT} # ${CLI_CMD} apply -f ${FILE} -n $projectname${RESET_TEXT}" && step_num=$((step_num + 1))
@@ -442,8 +442,8 @@ function upgrade_deployment(){
             printf "\n"
         fi
 
-        echo "${YELLOW_TEXT}[ATTENTION]: ${RESET_TEXT}${YELLOW_TEXT}PLEASE DON'T SET ${RESET_TEXT}${RED_TEXT}\"shared_configuration.sc_egress_configuration.sc_restricted_internet_access\"${RESET_TEXT}${YELLOW_TEXT} AS ${RESET_TEXT}${RED_TEXT}\"true\"${RESET_TEXT}${YELLOW_TEXT} UNTIL AFTER YOU'VE COMPLETED THE BAI Standalone UPGRADE TO $BAI_RELEASE_BASE.${RESET_TEXT} ${GREEN_TEXT}(UNLESS YOU ALREADY HAD THIS SET TO \"true\" IN THE BAI Standalone 24.0.0.X deployment)${RESET_TEXT}"
-        read -rsn1 -p"Press any key to continue ...";echo
+        echo "${YELLOW_TEXT}[ATTENTION]: ${RESET_TEXT}${YELLOW_TEXT}DON'T SET ${RESET_TEXT}${RED_TEXT}\"shared_configuration.sc_egress_configuration.sc_restricted_internet_access\"${RESET_TEXT}${YELLOW_TEXT} AS ${RESET_TEXT}${RED_TEXT}\"true\"${RESET_TEXT}${YELLOW_TEXT} UNTIL AFTER YOU'VE COMPLETED THE BAI Standalone UPGRADE TO $BAI_RELEASE_BASE.${RESET_TEXT} ${GREEN_TEXT}(UNLESS YOU ALREADY HAD THIS SET TO \"true\" IN THE BAI Standalone 24.0.0.X deployment)${RESET_TEXT}"
+        prompt_press_any_key_to_continue
         printf "\n"
 
         echo "${YELLOW_TEXT}[NEXT ACTION]:${RESET_TEXT}"
@@ -465,7 +465,7 @@ function upgrade_deployment(){
     fi
 
     if [[ (-z $insightsengine_cr_name) ]]; then
-        fail "No found InsightsEngine custom resource in namespace \"$project_name\""
+        fail "InsightsEngine custom resource not found in the namespace \"$project_name\""
         exit 1
     fi
 }

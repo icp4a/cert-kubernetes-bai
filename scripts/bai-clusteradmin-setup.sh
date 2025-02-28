@@ -135,9 +135,9 @@ function validate_cli(){
     fi
 
     if [[ "${SCRIPT_MODE}" == "OLM" ]];then
-        echo -e "\x1B[1mThis script prepares the OLM for the deployment of IBM Business Automation Insights capability \x1B[0m"
+        echo -e "\x1B[1mThis script prepares the OLM for the deployment of the IBM Business Automation Insights capability. \x1B[0m"
     else
-        echo -e "\x1B[1mThis script prepares the environment for the deployment of IBM Business Automation Insights capability \x1B[0m"
+        echo -e "\x1B[1mThis script prepares the environment for the deployment of the IBM Business Automation Insights capability. \x1B[0m"
     fi
     echo
     if  [[ $PLATFORM_SELECTED == "OCP" || $PLATFORM_SELECTED == "ROKS" ]]; then
@@ -149,7 +149,7 @@ function validate_cli(){
     if  [[ $PLATFORM_SELECTED == "other" ]]; then
         which kubectl &>/dev/null
         [[ $? -ne 0 ]] && \
-            echo "Unable to locate Kubernetes CLI, please install it first." && \
+            echo "Unable to locate the Kubernetes CLI. You must install it to run this script." && \
             exit 1
     fi
 }
@@ -161,23 +161,23 @@ function install_cert_license_operator(){
         OLM_CATALOG=${PARENT_DIR}/descriptors/op-olm/catalog_source.yaml
         kubectl apply -f $OLM_CATALOG >/dev/null 2>&1
         if [ $? -eq 0 ]; then
-            success "IBM Business Automation Insights Operator catalog source has been updated!"
+            success "IBM Business Automation Insights Operator catalog source has been successfully updated!"
 
         else
-            fail "IBM Business Automation Insights Operator catalog source update failed"
+            fail "The IBM Business Automation Insights Operator catalog source update has failed."
             exit 1
         fi
     else
         kubectl apply -f $OLM_CATALOG_TMP >/dev/null 2>&1
         if [ $? -eq 0 ]; then
-            success "IBM Business Automation Insights Operator catalog source has been updated!"
+            success "IBM Business Automation Insights Operator catalog source has been successfully updated!"
         else
-            fail "IBM Business Automation Insights Operator catalog source update failed"
+            fail "The IBM Business Automation Insights Operator catalog source update has failed."
             exit 1
         fi            
     fi
     printf "\n"
-    info "Starting to install IBM Cert Manager and IBM Licensing Operator ..."
+    info "Starting the installation of IBM Cert Manager and IBM Licensing Operator ..."
 
     # which yq &>/dev/null
     # [[ $? -ne 0 ]] && \
@@ -198,11 +198,11 @@ function install_cert_license_operator(){
             if [[ $retry -eq ${maxRetry} ]]; then
                 printf "\n"
                 if [[ $PRIVATE_CATALOG == "Yes" && -z $cert_catalog_pod_name ]]; then
-                    warning "Timeout Waiting for ibm-cert-manager-catalog catalog pod ready under project  \"ibm-cert-manager\""
+                    warning "Timeout while waiting for the ibm-cert-manager-catalog pod to be ready under the project.  \"ibm-cert-manager\""
                 elif [[ $PRIVATE_CATALOG == "Yes" && -z $license_catalog_pod_name ]]; then
-                    warning "Timeout Waiting for ibm-licensing-catalog catalog pod ready under project  \"ibm-licensing\""
+                    warning "Timeout while waiting for the ibm-licensing-catalog pod to be ready under the project.  \"ibm-licensing\""
                 elif [[ $PRIVATE_CATALOG == "No" ]]; then
-                    warning "Timeout Waiting for ibm-licensing-catalog/ibm-cert-manager-catalog catalog pod ready under project  \"openshift-marketplace\""
+                    warning "Timeout while waiting for the ibm-licensing-catalog/ibm-cert-manager-catalog pod to be ready under the project.  \"openshift-marketplace\""
                 fi
                 exit 1
             else
@@ -211,7 +211,7 @@ function install_cert_license_operator(){
                 continue
             fi
         else
-            success "ibm-licensing-catalog/ibm-cert-manager-catalog pod ready!"
+            success "The ibm-licensing-catalog/ibm-cert-manager-catalog pod is ready!"
             break
         fi
     done
@@ -282,11 +282,11 @@ function select_private_catalog(){
     while true; do
         if [[ -z "$BAI_AUTO_PRIVATE_CATALOG" ]]; then
             # for defect https://jsw.ibm.com/browse/DBACLD-153503 where we had to update the script to set private catalog as the default option
-            printf "\x1B[1mDo you want to deploy IBM Business Automation Insights using private catalog? (Yes/No, default: Yes): \x1B[0m"
+            printf "\x1B[1mWould you like to deploy IBM Business Automation Insights using a private catalog? (Yes/No, default: Yes): \x1B[0m"
             read -rp "" ans
         else
             # for defect https://jsw.ibm.com/browse/DBACLD-153503 where we had to update the script to set private catalog as the default option
-            printf "\x1B[1mDo you want to deploy IBM Business Automation Insights using private catalog? (Yes/No, default: Yes): $BAI_AUTO_PRIVATE_CATALOG\x1B[0m\n"
+            printf "\x1B[1mWould you like to deploy IBM Business Automation Insights using a private catalog? (Yes/No, default: Yes): $BAI_AUTO_PRIVATE_CATALOG\x1B[0m\n"
             ans=$BAI_AUTO_PRIVATE_CATALOG
         fi
         case "$ans" in
@@ -373,10 +373,10 @@ function select_separate_operator(){
     echo "${YELLOW_TEXT}[NOTES] IBM Business Automation Insights (BAI) deployment supports separation of operators and operands, the script can deploy BAI operator and BAI runtime pods in different projects.${RESET_TEXT}"
     while true; do
         if [[ -z "$BAI_AUTO_SEPARATE_OPERATOR" ]]; then
-            printf "\x1B[1mDo you want to deploy IBM Business Automation Insights as separation of operators and operands? (Yes/No, default: No): \x1B[0m"
+            printf "\x1B[1mWould you like to deploy IBM Business Automation Insights with the separation of operators and operands? (Yes/No, default: No): \x1B[0m"
             read -rp "" ans
         else
-            printf "\x1B[1mDo you want to deploy IBM Business Automation Insights as separation of operators and operands? (Yes/No, default: No): $BAI_AUTO_SEPARATE_OPERATOR\x1B[0m\n"
+            printf "\x1B[1mWould you like to deploy IBM Business Automation Insights with the separation of operators and operands? (Yes/No, default: No): $BAI_AUTO_SEPARATE_OPERATOR\x1B[0m\n"
             ans=$BAI_AUTO_SEPARATE_OPERATOR
         fi
         case "$ans" in
@@ -403,25 +403,25 @@ function select_project(){
     do
         if [ -z "$BAI_AUTO_NAMESPACE" ]; then
             echo
-            echo -e "\x1B[1mWhere do you want to deploy IBM Business Automation Insights?\x1B[0m"
+            echo -e "\x1B[1mwhere would you like to deploy IBM Business Automation Insights?\x1B[0m"
             read -p "Enter the name for a new project or an existing project (namespace): " project_name
         else
             if [[ "$BAI_AUTO_NAMESPACE" == openshift* ]]; then
-                echo -e "\x1B[1;31mEnter a valid project name, project name should not be 'openshift' or start with 'openshift' \x1B[0m"
+                echo -e "\x1B[1;31mEnter a valid project name. The project name should not be 'openshift' or start with 'openshift'. \x1B[0m"
                 exit 1
             elif [[ "$BAI_AUTO_NAMESPACE" == kube* ]]; then
-                echo -e "\x1B[1;31mEnter a valid project name, project name should not be 'kube' or start with 'kube' \x1B[0m"
+                echo -e "\x1B[1;31mEnter a valid project name. The project name should not be 'kube' or start with 'kube'. \x1B[0m"
                 exit 1
             fi
             project_name=$BAI_AUTO_NAMESPACE
         fi
         if [ -z "$project_name" ]; then
-            echo -e "\x1B[1;31mEnter a valid project name, project name can not be blank\x1B[0m"
+            echo -e "\x1B[1;31mEnter a valid project name. The project name can not be blank.\x1B[0m"
         elif [[ "$project_name" == openshift* ]]; then
-            echo -e "\x1B[1;31mEnter a valid project name, project name should not be 'openshift' or start with 'openshift' \x1B[0m"
+            echo -e "\x1B[1;31mEnter a valid project name. The project name should not be 'openshift' or start with 'openshift'. \x1B[0m"
             project_name=""
         elif [[ "$project_name" == kube* ]]; then
-            echo -e "\x1B[1;31mEnter a valid project name, project name should not be 'kube' or start with 'kube' \x1B[0m"
+            echo -e "\x1B[1;31mEnter a valid project name. The project name should not be 'kube' or start with 'kube'. \x1B[0m"
             project_name=""
         else
             verify_existing_csv $project_name
@@ -452,25 +452,25 @@ function set_separate_operator_project(){
     do
         if [ -z "$BAI_AUTO_OPERATOR_NAMESPACE" ]; then
             echo
-            echo -e "\x1B[1mWhere do you want to deploy $BAI_FULL_NAME operators? \x1B[0m"
+            echo -e "\x1B[1mWhere would you like to deploy $BAI_FULL_NAME operators? \x1B[0m"
             read -p "Enter the name for a new project or an existing project (namespace): " project_name_operator
         else
             if [[ "$BAI_AUTO_OPERATOR_NAMESPACE" == openshift* ]]; then
-                echo -e "\x1B[1;31mEnter a valid project name, project name should not be 'openshift' or start with 'openshift' \x1B[0m"
+                echo -e "\x1B[1;31mEnter a valid project name. The project name should not be 'openshift' or start with 'openshift'. \x1B[0m"
                 exit 1
             elif [[ "$BAI_AUTO_OPERATOR_NAMESPACE" == kube* ]]; then
-                echo -e "\x1B[1;31mEnter a valid project name, project name should not be 'kube' or start with 'kube' \x1B[0m"
+                echo -e "\x1B[1;31mEnter a valid project name. The project name should not be 'kube' or start with 'kube'. \x1B[0m"
                 exit 1
             fi
             project_name_operator=$BAI_AUTO_OPERATOR_NAMESPACE
         fi
         if [ -z "$project_name_operator" ]; then
-            echo -e "\x1B[1;31mEnter a valid project name, project name can not be blank\x1B[0m"
+            echo -e "\x1B[1;31mEnter a valid project name. The project name cannot be blank.\x1B[0m"
         elif [[ "$project_name_operator" == openshift* ]]; then
-            echo -e "\x1B[1;31mEnter a valid project name, project name should not be 'openshift' or start with 'openshift' \x1B[0m"
+            echo -e "\x1B[1;31mEnter a valid project name. The project name should not be 'openshift' or start with 'openshift'. \x1B[0m"
             project_name_operator=""
         elif [[ "$project_name_operator" == kube* ]]; then
-            echo -e "\x1B[1;31mEnter a valid project name, project name should not be 'kube' or start with 'kube' \x1B[0m"
+            echo -e "\x1B[1;31mEnter a valid project name. The project name should not be 'kube' or start with 'kube'. \x1B[0m"
             project_name_operator=""
         else
             verify_existing_csv $project_name_operator
@@ -500,17 +500,17 @@ function set_separate_cpfs_service_project(){
     do
         if [ -z "$BAI_AUTO_CS_SERVICE_NAMESPACE" ]; then
             echo
-            echo -e "\x1B[1mWhere do you want to deploy $BAI_FULL_NAME deployment and its services ? \x1B[0m"
+            echo -e "\x1B[1mWhere would you like to deploy $BAI_FULL_NAME deployment and its services ? \x1B[0m"
             read -p "Enter the name for a new project or an existing project (namespace): " project_name_cs_service
         else
             if [[ "$BAI_AUTO_CS_SERVICE_NAMESPACE" == openshift* ]]; then
-                echo -e "\x1B[1;31mEnter a valid project name, project name should not be 'openshift' or start with 'openshift' \x1B[0m"
+                echo -e "\x1B[1;31mEnter a valid project name. The project name should not be 'openshift' or start with 'openshift'. \x1B[0m"
                 exit 1
             elif [[ "$BAI_AUTO_CS_SERVICE_NAMESPACE" == kube* ]]; then
-                echo -e "\x1B[1;31mEnter a valid project name, project name should not be 'kube' or start with 'kube' \x1B[0m"
+                echo -e "\x1B[1;31mEnter a valid project name. The project name should not be 'kube' or start with 'kube'. \x1B[0m"
                 exit 1
             elif [[ "$project_name_cs_service" == "$project_name_operator" ]]; then
-                fail "\x1B[1;31mThe project name for $BAI_FULL_NAME deployment and it's services should NOT same as the project name \"$project_name_operator\" for BAI operators. \x1B[0m"
+                fail "\x1B[1;31mThe project name for the $BAI_FULL_NAME deployment and it's services should NOT be the same as the project name \"$project_name_operator\" for the BAI operators. \x1B[0m"
                 exit 1
             fi
             project_name_cs_service=$BAI_AUTO_CS_SERVICE_NAMESPACE
@@ -518,15 +518,15 @@ function set_separate_cpfs_service_project(){
 
 
         if [ -z "$project_name_cs_service" ]; then
-            echo -e "\x1B[1;31mEnter a valid project name, project name can not be blank\x1B[0m"
+            echo -e "\x1B[1;31mEnter a valid project name. The project name can not be blank.\x1B[0m"
         elif [[ "$project_name_cs_service" == openshift* ]]; then
-            echo -e "\x1B[1;31mEnter a valid project name, project name should not be 'openshift' or start with 'openshift' \x1B[0m"
+            echo -e "\x1B[1;31mEnter a valid project name. The project name should not be 'openshift' or start with 'openshift'. \x1B[0m"
             project_name_cs_service=""
         elif [[ "$project_name_cs_service" == kube* ]]; then
-            echo -e "\x1B[1;31mEnter a valid project name, project name should not be 'kube' or start with 'kube' \x1B[0m"
+            echo -e "\x1B[1;31mEnter a valid project name. The project name should not be 'kube' or start with 'kube'. \x1B[0m"
             project_name_cs_service=""
         elif [[ "$project_name_cs_service" == "$project_name_operator" ]]; then
-            fail "\x1B[1;31mThe project name for CPfs services (IM Services) should NOT same as the project name \"$project_name_operator\" for BAI operators. \x1B[0m"
+            fail "\x1B[1;31mThe project name for the CPfs services (IM Services) should NOT be the same as the project name \"$project_name_operator\" for the BAI operators. \x1B[0m"
             project_name_cs_service=""
         else
             # verify_existing_csv $project_name_operator
@@ -556,10 +556,10 @@ EOF
     ${CLI_CMD} delete -f ${TEMP_FOLDER}/ibm-cp4ba-common-config-configmap.yaml >/dev/null 2>&1
     ${CLI_CMD} apply -f ${TEMP_FOLDER}/ibm-cp4ba-common-config-configmap.yaml >/dev/null 2>&1
     if [ $? -eq 0 ]; then
-        success "ibm-cp4ba-common-config configMap for this IBM Business Automation Insights deployment in the project \"$project_name_cs_service\" has been created."
+        success "The ibm-cp4ba-common-config ConfigMap for the IBM Business Automation Insights deployment in the project \"$project_name_cs_service\" has been created."
         sleep 3
     else
-        warning "Failed to create ibm-cp4ba-common-config configMap for this IBM Business Automation Insights deployment in the project \"$project_name_cs_service\"!"
+        warning "Failed to create the ibm-cp4ba-common-config ConfigMap for the IBM Business Automation Insights deployment in the project \"$project_name_cs_service\"!"
         exit 1
     fi
 }
@@ -634,21 +634,21 @@ function collect_input() {
                 read -p "Enter the name for a new project or an existing project (namespace): " project_name
             else
                 if [[ "$BAI_AUTO_NAMESPACE" == openshift* ]]; then
-                    echo -e "\x1B[1;31mEnter a valid project name, project name should not be 'openshift' or start with 'openshift' \x1B[0m"
+                    echo -e "\x1B[1;31mEnter a valid project name. The project name should not be 'openshift' or start with 'openshift'. \x1B[0m"
                     exit 1
                 elif [[ "$BAI_AUTO_NAMESPACE" == kube* ]]; then
-                    echo -e "\x1B[1;31mEnter a valid project name, project name should not be 'kube' or start with 'kube' \x1B[0m"
+                    echo -e "\x1B[1;31mEnter a valid project name. The project name should not be 'kube' or start with 'kube'. \x1B[0m"
                     exit 1
                 fi
                 project_name=$BAI_AUTO_NAMESPACE
             fi
             if [ -z "$project_name" ]; then
-                echo -e "\x1B[1;31mEnter a valid project name, project name can not be blank\x1B[0m"
+                echo -e "\x1B[1;31mEnter a valid project name. The project name can not be blank.\x1B[0m"
             elif [[ "$project_name" == openshift* ]]; then
-                echo -e "\x1B[1;31mEnter a valid project name, project name should not be 'openshift' or start with 'openshift' \x1B[0m"
+                echo -e "\x1B[1;31mEnter a valid project name. The project name should not be 'openshift' or start with 'openshift'. \x1B[0m"
                 project_name=""
             elif [[ "$project_name" == kube* ]]; then
-                echo -e "\x1B[1;31mEnter a valid project name, project name should not be 'kube' or start with 'kube' \x1B[0m"
+                echo -e "\x1B[1;31mEnter a valid project name. The project name should not be 'kube' or start with 'kube'. \x1B[0m"
                 project_name=""
             else
                 verify_existing_csv
@@ -697,19 +697,19 @@ function check_common_services_cm() {
         "y"|"Y"|"yes"|"Yes"|"YES"|"YeS"|"yES"|"YEs"|"")
            echo -e "The control namespace is a shared namespace for deploying cluster-scope resources."
            echo -e "This namespace must not be the same as any IBM Cloud Pak or foundational services instance namespace."
-           echo -e "You cannot change this namespace after you install foundational services."
+           echo -e "You cannot change the namespace after installing the foundational services."
            while true; do
-           echo -e "Please enter the control namespace for deploying cluster-scope resources."
+           echo -e "Enter the control namespace for deploying cluster-scope resources."
            read -rp "" ctrl_nm
            case "$ctrl_nm" in
            "")
-             echo -e "\x1B[1;31mEnter a valid namespace name, namespace name can not be blank\x1B[0m"
+             echo -e "\x1B[1;31mEnter a valid namespace name. The namespace name can not be blank.\x1B[0m"
              ;;
            "openshift"*)
-              echo -e "\x1B[1;31mEnter a valid project name, project name should not be 'openshift' or start with 'openshift' \x1B[0m"
+              echo -e "\x1B[1;31mEnter a valid project name. The project name should not be 'openshift' or start with 'openshift'. \x1B[0m"
              ;;
            "kube"*)
-              echo -e "\x1B[1;31mEnter a valid project name, project name should not be 'kube' or start with 'kube' \x1B[0m"
+              echo -e "\x1B[1;31mEnter a valid project name. The project name should not be 'kube' or start with 'kube'. \x1B[0m"
               ;;
            *)
              CTRL_NAMESPACE=$ctrl_nm
@@ -721,17 +721,17 @@ function check_common_services_cm() {
                 case "$change_dedicated" in
                 "y"|"Y"|"yes"|"Yes"|"YES"|"YeS"|"yES"|"YEs")
                   while true; do
-                    echo -e "Enter the project where you wish ${COMMON_SERVICES_NAME} to be installed."
+                    echo -e "Enter the project where you want ${COMMON_SERVICES_NAME} to be installed."
                     read -rp "" new_dedicated
                     case "$new_dedicated" in
                     "")
-                      echo -e "\x1B[1;31mEnter a valid namespace name, namespace name can not be blank\x1B[0m"
+                      echo -e "\x1B[1;31mEnter a valid namespace name. The namespace name can not be blank.\x1B[0m"
                       ;;
                     "openshift"*)
-                      echo -e "\x1B[1;31mEnter a valid project name, project name should not be 'openshift' or start with 'openshift' \x1B[0m"
+                      echo -e "\x1B[1;31mEnter a valid project name. The project name should not be 'openshift' or start with 'openshift'. \x1B[0m"
                       ;;
                     "kube"*)
-                      echo -e "\x1B[1;31mEnter a valid project name, project name should not be 'kube' or start with 'kube' \x1B[0m"
+                      echo -e "\x1B[1;31mEnter a valid project name. The project name should not be 'kube' or start with 'kube'. \x1B[0m"
                       ;;
                      *)
                       DEDICATED_PROJECT=$new_dedicated
@@ -826,7 +826,7 @@ function validate_cncf_olm(){
     printf "\n"
 
     while true; do
-        printf "\x1B[1mDo you want to deploy Operator Lifecycle Manager (OLM) in namespace \"${CNCF_OLM_NAMESPACE}\"? (Yes/No, default: No) \x1B[0m"
+        printf "\x1B[1mWould you like to deploy the Operator Lifecycle Manager (OLM) in the namespace \"${CNCF_OLM_NAMESPACE}\"? (Yes/No, default: No) \x1B[0m"
         if [ -z "$AUTO_INSTALL_OLM" ]; then
             read -rp "" ans
             case "$ans" in
@@ -835,7 +835,7 @@ function validate_cncf_olm(){
                 break
                 ;;
             "n"|"N"|"no"|"No"|"NO"|"")
-                echo -e "\x1B[1;31mYou choose not to install Operator Lifecycle Manager (OLM) automatically, please install OLM under namespace \"$CNCF_OLM_NAMESPACE\" manually...\x1B[0m"
+                echo -e "\x1B[1;31mYou choose not to install Operator Lifecycle Manager (OLM) automatically, Install OLM under namespace \"$CNCF_OLM_NAMESPACE\" manually...\x1B[0m"
                 exit 1
                 ;;
             *)
@@ -849,7 +849,7 @@ function validate_cncf_olm(){
                 break
                 ;;
             "n"|"N"|"no"|"No"|"NO"|"")
-                echo -e "\x1B[1;31mYou choose not to install Operator Lifecycle Manager (OLM) automatically, please install OLM under namespace \"$CNCF_OLM_NAMESPACE\" manually...\x1B[0m"
+                echo -e "\x1B[1;31mYou choose not to install Operator Lifecycle Manager (OLM) automatically, Install OLM under namespace \"$CNCF_OLM_NAMESPACE\" manually...\x1B[0m"
                 exit 1
                 ;;
             *)
@@ -894,10 +894,10 @@ function create_project() {
             returnValue=$?
             if [ "$returnValue" == 1 ]; then
                 if [ -z "$BAI_AUTO_NAMESPACE" ]; then
-                    echo -e "\x1B[1;31mInvalid project name, please enter a valid name...\x1B[0m"
+                    echo -e "\x1B[1;31mInvalid project name, Enter a valid name...\x1B[0m"
                     project_name=""
                 else
-                    echo -e "\x1B[1;31mInvalid project name \"$BAI_AUTO_NAMESPACE\", please set a valid name...\x1B[0m"
+                    echo -e "\x1B[1;31mInvalid project name \"$BAI_AUTO_NAMESPACE\", Set a valid name...\x1B[0m"
                     exit 1
                 fi
             else
@@ -915,10 +915,10 @@ function create_project() {
             returnValue=$?
             if [ "$returnValue" == 1 ]; then
                 if [ -z "$BAI_AUTO_NAMESPACE" ]; then
-                    echo -e "\x1B[1;31mInvalid namespace name, please enter a valid name...\x1B[0m"
+                    echo -e "\x1B[1;31mInvalid namespace name, Enter a valid name...\x1B[0m"
                     project_name=""
                 else
-                    echo -e "\x1B[1;31mInvalid namespace name \"$BAI_AUTO_NAMESPACE\", please set a valid name...\x1B[0m"
+                    echo -e "\x1B[1;31mInvalid namespace name \"$BAI_AUTO_NAMESPACE\", Set a valid name...\x1B[0m"
                     exit 1
                 fi
             else
@@ -965,7 +965,7 @@ function verify_existing_csv(){
                     esac
                 done
             else
-                printf "\x1B[1mDo you want to deploy another $BAI_FULL_NAME Operator in new project \"${project_name}\"? (Yes/No, default: No) Yes\n\x1B[0m"
+                printf "\x1B[1mWould you like to deploy another $BAI_FULL_NAME Operator in new project \"${project_name}\"? (Yes/No, default: No) Yes\n\x1B[0m"
             fi
         elif [[ (" ${exist_csv_project_array[@]} " =~ "${PROJ_NAME_ALL_NAMESPACE}") && "${ALL_NAMESPACE}" == "No" ]] ; then
             printf "\n"
@@ -974,7 +974,7 @@ function verify_existing_csv(){
         elif [[ !(" ${exist_csv_project_array[@]} " =~ "${PROJ_NAME_ALL_NAMESPACE}") && "${ALL_NAMESPACE}" == "Yes" ]] ; then
             printf "\n"
             echo -e "\x1B[1;31mFound the existing $BAI_FULL_NAME Operator (Pod, CSV, Subscription) in different project \"${exist_csv_project_array[*]}\"! \x1B[0m"
-            echo -e "\x1B[1;31mDO NOT support switch to All Namespaces! \x1B[0m\n"
+            echo -e "\x1B[1;31mSwitching to 'All Namespaces' is not supported. \x1B[0m\n"
             exit 1
         fi
     fi
@@ -995,7 +995,7 @@ function check_user_exist() {
     ${CLI_CMD} get user | grep "${user_name}" >/dev/null 2>&1
     returnValue=$?
     if [ "$returnValue" == 1 ] ; then
-        echo -e "\x1B[1mUser \"${user_name}\" NOT exists! Please enter an existing username in your cluster...\x1B[0m"
+        echo -e "\x1B[1mUser \"${user_name}\" NOT exists! Enter an existing username in your cluster...\x1B[0m"
         user_name=""
     else
         echo -e "\x1B[1mUser \"${user_name}\" exists! Continue...\x1B[0m"
@@ -1180,7 +1180,7 @@ function prepare_olm_install() {
       if [[ $podCount -eq 0 ]]; then
         if [[ $retry -eq ${maxRetry} ]]; then
           echo "Timeout Waiting for $BAI_FULL_NAME Operator Catalog pod to start"
-          echo -e "\x1B[1mPlease check the status of Pod by issue cmd: \x1B[0m"
+          echo -e "\x1B[1mCheck the status of Pod by issue cmd: \x1B[0m"
           echo "oc describe pod $(oc get pod -n $CATALOG_NAMESPACE|grep "ibm-bai-operator-catalog"|awk '{print $1}') -n $CATALOG_NAMESPACE"
           exit 1
         else
@@ -1273,18 +1273,18 @@ function prepare_olm_install() {
       if echo "${podList[@]}" | grep -qw 0; then
         if [[ $retry -eq ${maxRetry} ]]; then
           echo "Timeout Waiting for $BAI_FULL_NAMEE operator to start"
-          echo -e "\x1B[1mPlease check the status of Pod by issue cmd:\x1B[0m"
+          echo -e "\x1B[1mCheck the status of Pod by issue cmd:\x1B[0m"
           if [[ ($RUNTIME_MODE == "process-flow-dev") || ($RUNTIME_MODE == "process-flow") ]]; then
             echo "oc describe pod $(oc get pod -n $temp_project_name|grep ibm-wfps-operator-controller-manager|awk '{print $1}') -n $temp_project_name"
             printf "\n"
-            echo -e "\x1B[1mPlease check the status of ReplicaSet by issue cmd:\x1B[0m"
+            echo -e "\x1B[1mCheck the status of ReplicaSet by issue cmd:\x1B[0m"
             echo "oc describe rs $(oc get rs -n $temp_project_name|grep ibm-wfps-operator-controller-manager|awk '{print $1}') -n $temp_project_name"
           else
             echo "oc describe pod $(oc get pod -n $temp_project_name|grep ibm-bai-insights-engine-operator|awk '{print $1}') -n $temp_project_name"
             echo "oc describe pod $(oc get pod -n $temp_project_name|grep ibm-bai-foundation-operator|awk '{print $1}') -n $temp_project_name"
 
             printf "\n"
-            echo -e "\x1B[1mPlease check the status of ReplicaSet by issue cmd:\x1B[0m"
+            echo -e "\x1B[1mCheck the status of ReplicaSet by issue cmd:\x1B[0m"
             echo "oc describe rs $(oc get rs -n $temp_project_name|grep ibm-bai-insights-engine-operator|awk '{print $1}') -n $temp_project_name"
             echo "oc describe rs $(oc get rs -n $temp_project_name|grep ibm-bai-foundation-operator|awk '{print $1}') -n $temp_project_name"
 
@@ -1378,7 +1378,7 @@ function check_existing_sc(){
     then
         clear
         echo -e "\x1B[1;31mAt least one dynamic storage class must be available in order to proceed.\n\x1B[0m"
-        echo -e "\x1B[1;31mPlease refer to the README for the requirements and instructions.  The script will now exit!.\n\x1B[0m"
+        echo -e "\x1B[1;31mRefer to the README for the requirements and instructions.  The script will now exit!.\n\x1B[0m"
         exit 1
     fi
 }
@@ -1393,7 +1393,7 @@ function validate_docker_podman_cli(){
             [[ $? -ne 0 ]] && \
                 DOCKER_FOUND="No"
             if [[ $DOCKER_FOUND == "No" && $PODMAN_FOUND == "No" ]]; then
-                echo -e "\x1B[1;31mUnable to locate docker and podman, please install either of them first.\x1B[0m" && \
+                echo -e "\x1B[1;31mUnable to locate docker and podman, Install either of them first.\x1B[0m" && \
                 exit 1
             fi
         fi
@@ -1401,12 +1401,12 @@ function validate_docker_podman_cli(){
     then
         which podman &>/dev/null
         [[ $? -ne 0 ]] && \
-            echo -e "\x1B[1;31mUnable to locate podman, please install it first.\x1B[0m" && \
+            echo -e "\x1B[1;31mUnable to locate podman, Install it first.\x1B[0m" && \
             exit 1
     else
         which docker &>/dev/null
         [[ $? -ne 0 ]] && \
-            echo -e "\x1B[1;31mUnable to locate docker, please install it first.\x1B[0m" && \
+            echo -e "\x1B[1;31mUnable to locate docker, Install it first.\x1B[0m" && \
             exit 1
     fi
 }
@@ -1415,7 +1415,7 @@ function validate_docker_podman_cli(){
 function display_airgap_prerequisites(){
     printf "\n"
     echo "${YELLOW_TEXT}ATTENTION:${RESET_TEXT}"
-    printf "\x1B[1;31mPlease make sure that you have completed the following checklist items before proceeding with the offline/airgap cluster setup mode\n\x1B[0m"
+    printf "\x1B[1;31mMake sure that you have completed the following checklist items before proceeding with the offline/airgap cluster setup mode\n\x1B[0m"
     printf "\x1B[1;31m1) Mirroring of Images to the Private Registry \n\x1B[0m"
     printf "\x1B[1;31m2) Update Global Pull Secret to include login credentials to the Private Registry images have been mirrored into \n\x1B[0m"
     printf "\x1B[1;31m3) Creation of appropriate Image Content Source Policy that reflects the Private Registry \n\x1B[0m"
@@ -1476,7 +1476,7 @@ function get_entitlement_registry(){
     printf "\n"
     while true; do
         if [[ ! -z "$BAI_AUTO_ENTITLEMENT_KEY" && ! -z "$BAI_AUTO_LOCAL_REGISTRY" ]]; then
-            echo -e "\x1B[1;31mPlease set either one of environment variables [BAI_AUTO_ENTITLEMENT_KEY] or [BAI_AUTO_LOCAL_REGISTRY]\x1B[0m"
+            echo -e "\x1B[1;31mSet one the following environment variables [BAI_AUTO_ENTITLEMENT_KEY] or [BAI_AUTO_LOCAL_REGISTRY]\x1B[0m"
             echo -e "Exiting..."
             exit 1
         fi
@@ -1600,7 +1600,7 @@ function get_domain_name(){
     while [[ $domain_name == '' ]]
     do
         if [ -z "$AUTO_DOMAIN_NAME" ]; then
-            read -p "Enter your domain name(for none 443 port, please also append port number, such as domain_name:port): " domain_name
+            read -p "Enter your domain name(for none 443 port, Also append port number, such as domain_name:port): " domain_name
         else
             domain_name=$AUTO_DOMAIN_NAME
         fi
@@ -1640,7 +1640,7 @@ function get_domain_name(){
               sleep 5
               if [ $count -eq 0 ]
               then
-                printf "\x1B[1;31mIngress controller is not deployed properly, please check it.  \n\x1B[0m"
+                printf "\x1B[1;31mIngress controller is not deployed properly, Check the Details.  \n\x1B[0m"
                 exit 1
               fi
               curl https://demo.$domain_name --insecure |grep 'It works!'
@@ -1767,7 +1767,7 @@ function check_airgap_mode(){
     # clear
     if [ -z "$BAI_AUTO_AIGRAP_MODE" ]; then
         COLUMNS=12
-        echo -e "\x1B[1mDo you wish setup your cluster for a online based IBM Business Automation Insights deployment or for a airgap/offline based IBM Business Automation Insights deployment: \x1B[0m"
+        echo -e "\x1B[1mWould you like to set up the cluster for an online based IBM Business Automation Insights deployment or for an airgap/offline based IBM Business Automation Insights deployment: \x1B[0m"
 
 
         options=("Online" "Offline/Airgap")
@@ -1789,7 +1789,7 @@ function check_airgap_mode(){
         done
     else
         AIRGAP_INSTALL=$BAI_AUTO_AIGRAP_MODE
-        echo -e "\x1B[1mDo you wish setup your cluster for a online based IBM Business Automation Insights deployment or for a airgap/offline based IBM Business Automation Insights deployment :\x1B[0m $BAI_AUTO_AIGRAP_MODE"
+        echo -e "\x1B[1mWould you like to set up the cluster for an online based IBM Business Automation Insights deployment or for an airgap/offline based IBM Business Automation Insights deployment :\x1B[0m $BAI_AUTO_AIGRAP_MODE"
     fi
 }
 
@@ -1862,7 +1862,7 @@ function select_deployment_type(){
     printf "\n"
     DEPLOYMENT_TYPE="production"
     info "${YELLOW_TEXT}IBM Business Automation Insights only supports production deployment.${RESET_TEXT}"
-    # read -rsn1 -p"Press any key to continue ...";echo
+    # read -rsn1 -p"Press Enter/Return to continue ...";echo
 
 }
 
@@ -1875,14 +1875,14 @@ function select_user(){
     then
         clear
         echo -e "\x1B[1m[INFO] No user found in cluster.\n\x1B[0m"
-        echo -e "\x1B[33;5mATTENTION: \x1B[0m\x1B[1mWhen you run bai-deployment.sh script, please use cluster admin user.\n\x1B[0m"
+        echo -e "\x1B[33;5mATTENTION: \x1B[0m\x1B[1mWhen running the bai-deployment.sh script, Use the cluster admin user.\n\x1B[0m"
         NON_ADMIN="true"
         sleep 5
     fi
     if [[ $user_result == *"$user_forbidden"* ]];
     then
         clear
-        echo -e "\x1B[1;31mPlease log in to the target cluster as the <cluster-admin> user.\n\x1B[0m"
+        echo -e "\x1B[1;31mLog in to the target cluster as the <cluster-admin> user.\n\x1B[0m"
         echo -e "\x1B[1;31mThe script will now exit...!\n\x1B[0m"
         exit 1
     fi
@@ -1906,7 +1906,7 @@ function select_user(){
                 fi
             done
             if [ "$user_name" == "Cluster Admin" ]; then
-                echo -e "\x1B[33;5mATTENTION: \x1B[0m\x1B[1mWhen you run bai-deployment.sh script, please use cluster admin user.\x1B[0m"
+                echo -e "\x1B[33;5mATTENTION: \x1B[0m\x1B[1mWhen running the bai-deployment.sh script, Use the cluster admin user.\x1B[0m"
                 sleep 5
             fi
         else
@@ -1914,7 +1914,7 @@ function select_user(){
             returnValue=$?
             if [ "$returnValue" == 1 ]; then
                 echo -e "\x1B[1;31mNo found user \"${BAI_AUTO_CLUSTER_USER}\"!\n\x1B[0m"
-                echo -e "\x1B[33;5mATTENTION: \x1B[0m\x1B[1mWhen you run bai-deployment.sh script, please use cluster admin user.\n\x1B[0m"
+                echo -e "\x1B[33;5mATTENTION: \x1B[0m\x1B[1mWhen you run bai-deployment.sh script, Use the cluster admin user.\n\x1B[0m"
                 sleep 5
             else
                 user_name=$BAI_AUTO_CLUSTER_USER
@@ -1926,7 +1926,7 @@ function select_user(){
 
 function display_installationprompt(){
 
-    echo "IBM Cloud Pak foundational services with Metering & Licensing Components will be installed"
+    echo "IBM Cloud Pak foundational services, along with Metering & Licensing components, will be installed."
 
     NAMESPACE_ODLM="common-service"
     ${CLI_CMD} project $NAMESPACE_ODLM >/dev/null 2>&1 || ${CLI_CMD} new-project $NAMESPACE_ODLM >/dev/null 2>&1
@@ -1940,7 +1940,7 @@ function check_storage_class() {
         # echo "Applying no_root_squash for demo DB2 deployment on ROKS using CLI"
         # oc get no -l node-role.kubernetes.io/worker --no-headers -o name | xargs -I {} --  oc debug {} -- chroot /host sh -c 'grep "^Domain = slnfsv4.coms" /etc/idmapd.conf || ( sed -i "s/.*Domain =.*/Domain = slnfsv4.com/g" /etc/idmapd.conf; nfsidmap -c; rpc.idmapd )' >> ${LOG_FILE}
        printf "\n"
-       echo -e "\x1B[1mPlease use available storage classes.\x1B[0m"
+       echo -e "\x1B[1mUse available storage classes.\x1B[0m"
     fi
     display_storage_classes_existing
 }
@@ -1973,7 +1973,6 @@ function check_platform_version(){
         # PLATFORM_VERSION="3.11"
         PLATFORM_VERSION="4.4OrLater"
         echo -e "\x1B[1;31mIMPORTANT: Only support OCp4.4 or Later, exit...\n\x1B[0m"
-        read -rsn1 -p"Press any key to continue";echo
         exit 1
     fi
     # OpenShift 4.0-4.2, install Cloud Pak foundational services 3.3
@@ -2313,7 +2312,7 @@ function verify_local_registry_password(){
                 ;;
             "n"|"N"|"no"|"No"|"NO"|"false"|"False"|"FALSE")
                 echo -e "\x1B[1mHave you pushed the images to the local registry using 'loadimages.sh' ($BAI_FULL_NAME images) (Yes/No)? \x1B[0m$BAI_AUTO_PUSH_IMAGE_LOCAL_REGISTRY"
-                echo -e "\x1B[1;31mPlease pull the images to the local images to proceed.\n\x1B[0m"
+                echo -e "\x1B[1;31mPull the images to the local images to proceed.\n\x1B[0m"
                 ans="No"
                 exit 1
                 ;;
@@ -2328,7 +2327,7 @@ function verify_local_registry_password(){
             break
             ;;
         "n"|"N"|"no"|"No"|"NO")
-            echo -e "\x1B[1;31mPlease pull the images to the local images to proceed.\n\x1B[0m"
+            echo -e "\x1B[1;31mPull the images to the local images to proceed.\n\x1B[0m"
             exit 1
             ;;
         *)
@@ -2526,6 +2525,10 @@ clear
 info "Setting up the cluster for IBM Business Automation Insights"
 check_airgap_mode
 select_platform
+
+# Check cluster login
+check_cluster_login
+
 select_deployment_type
 
 select_private_catalog
@@ -2687,7 +2690,7 @@ if [[ $SCRIPT_MODE != "OLM" ]]; then
 
     if  [[ $PLATFORM_SELECTED == "OCP" ||  $PLATFORM_SELECTED == "ROKS" ]] && [[ $PLATFORM_VERSION == "4.4OrLater" ]] && [[ $CS_VERSION == "3.3" ]];
     then
-        echo "IBM Cloud Pak foundational services with Metering & Licensing Components will be installed"
+        echo "IBM Cloud Pak foundational services, along with Metering & Licensing components, will be installed."
             if [ "$CS_INSTALL" != "YES" ]; then
             nohup ${PARENT_DIR}/scripts/deploy_CS3.3.sh >> ${LOG_FILE} 2>&1 &
             else
@@ -2699,7 +2702,7 @@ if [[ $SCRIPT_MODE != "OLM" ]]; then
     # Deploy CS 3.3 if OCP 3.11
     if  [[ $PLATFORM_SELECTED == "OCP" ]] && [[ $PLATFORM_VERSION == "3.11" ]];
     then
-            echo "IBM Cloud Pak foundational services with Metering & Licensing Components will be installed"
+            echo "IBM Cloud Pak foundational services, along with Metering & Licensing components, will be installed."
             if [ "$CS_INSTALL" != "YES" ]; then
                 COMMON_SERVICES_INSTALL_DIRECTORY_OCP311=${PARENT_DIR}/descriptors/common-services/scripts/common-services.sh
                 sh ${COMMON_SERVICES_INSTALL_DIRECTORY_OCP311} install --async

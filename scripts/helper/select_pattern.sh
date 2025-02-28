@@ -510,7 +510,7 @@ function select_pattern(){
     done
 
     # echo "choices_pattern: ${choices_pattern[*]}"
-    # read -rsn1 -p"Press any key to continue (DEBUG MODEL)";echo
+    # read -rsn1 -p"Press Enter/Return to continue (DEBUG MODEL)";echo
     # Generate list of the pattern which will be installed or To Be Uninstalled
     for i in ${!options[@]}; do
         array_varname=foundation_$i[@]

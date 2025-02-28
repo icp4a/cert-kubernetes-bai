@@ -16,12 +16,145 @@ PARENT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
 # Import common utilities and environment variables
 source ${CUR_DIR}/helper/common.sh
 
+function parse_arguments() {
+    # process options
+    while [[ "$@" != "" ]]; do
+        case "$1" in
+        -m)
+            shift
+            if [ -z $1 ]; then
+                echo "Invalid option: -m flag requires an argument"
+                exit 1
+            fi
+            RUNTIME_MODE=$1
+            if [[ $RUNTIME_MODE == "upgradeOperator" || $RUNTIME_MODE == "upgradeOperatorStatus" || $RUNTIME_MODE == "upgradeDeployment" || $RUNTIME_MODE == "upgradeDeploymentStatus" ]]; then
+                echo -n
+            else
+                msg "Provide a valid argument for -m: [upgradeOperator] or [upgradeOperatorStatus] or [upgradeDeployment] [upgradeDeploymentStatus]"
+                exit -1
+            fi
+            ;;
+        -s)
+            shift
+            if [ -z $1 ]; then
+                echo "Invalid option: -s flag requires an argument"
+                exit 1
+            fi
+            UPDATE_APPROVAL_STRATEGY=$1
+            if [[ $UPDATE_APPROVAL_STRATEGY == "automatic" || $UPDATE_APPROVAL_STRATEGY == "manual" ]]; then
+                echo -n
+            else
+                msg "Use a valid value: -s [automatic] or [manual]"
+                exit -1
+            fi
+            ;;
+        -n)
+            shift
+            if [ -z $1 ]; then
+                echo "Invalid option: -n flag requires an argument"
+                exit 1
+            fi
+            TARGET_PROJECT_NAME=$1
+            case "$TARGET_PROJECT_NAME" in
+            "")
+                echo -e "\x1B[1;31mEnter a valid namespace name, namespace name can not be blank\x1B[0m"
+                exit -1
+                ;;
+            "openshift"*)
+                echo -e "\x1B[1;31mEnter a valid project name, project name should not be 'openshift' or start with 'openshift' \x1B[0m"
+                exit -1
+                ;;
+            "kube"*)
+                echo -e "\x1B[1;31mEnter a valid project name, project name should not be 'kube' or start with 'kube' \x1B[0m"
+                exit -1
+                ;;
+            *)
+                # Check cluster login
+                check_cluster_login
+                # Check project name
+                isProjExists=`kubectl get project $TARGET_PROJECT_NAME --ignore-not-found | wc -l`  >/dev/null 2>&1
+                if [ $isProjExists -ne 2 ] ; then
+                    echo -e "\x1B[1;31mInvalid project name \"$TARGET_PROJECT_NAME\", set a valid name...\x1B[0m"
+                    exit 1
+                fi
+                echo -n
+                ;;
+            esac
+            ;;
+        -i)
+            shift
+            if [ -z $1 ]; then
+                echo "Invalid option: -i flag requires an argument"
+                exit 1
+            fi
+            IMAGEREGISTRY=$1
+            ;;
+        -p)
+            shift
+            if [ -z $1 ]; then
+                echo "Invalid option: -p flag requires an argument"
+                exit 1
+            fi
+            PULLSECRET=$1
+            ;;
+        -h | --help | \?)
+            show_help
+            exit 0
+            ;;
+        --enable-private-catalog)
+            ENABLE_PRIVATE_CATALOG=1
+            ;;
+        --original-bai-csv-ver)
+            shift
+            BAI_ORIGINAL_CSV_VERSION=$1
+            ;;
+        --cpfs-upgrade-mode)
+            shift
+            UPGRADE_MODE=$1
+            ;;
+        dev)
+        SCRIPT_MODE="dev"
+        ;;
+        review)
+        SCRIPT_MODE="review"
+        ;;
+        baw-dev)
+        SCRIPT_MODE="baw-dev"
+        ;;
+        baw)
+        SCRIPT_MODE="baw"
+        ;;
+        *) 
+            echo "Invalid option"
+            show_help
+            exit 1
+            ;;
+        esac
+        shift
+    done
+}
+
+# Adding a function that parses args that are passed when the script is executed
+# This function along with the check below makes sure that namespace argument is mandatory regardless of whether the mode argument is passed or not
+# DBACLD-161415
+parse_arguments "$@"
+
+# Adding a check for requiring the -n parameter
+# DBACLD-161415
+if [[ -z "$TARGET_PROJECT_NAME" ]]; then
+    echo -e "\x1B[1;31mInput value for \"-n <BAI_NAMESPACE>\" option.\n\x1B[0m"
+    exit 1
+fi
+
+# Import common utilities and environment variables
+source ${CUR_DIR}/helper/common.sh $TARGET_PROJECT_NAME
+
+
 # Import variables for property file
 source ${CUR_DIR}/helper/bai-property.sh
 
 DOCKER_RES_SECRET_NAME="ibm-entitlement-key"
 DOCKER_REG_USER=""
-SCRIPT_MODE=$1
 
 if [[ "$SCRIPT_MODE" == "baw-dev" || "$SCRIPT_MODE" == "dev" || "$SCRIPT_MODE" == "review" ]] # During dev, OLM uses stage image repo
 then
@@ -47,7 +180,9 @@ old_busybox="docker.io\/library"
 
 TEMP_FOLDER=${CUR_DIR}/.tmp
 BAK_FOLDER=${CUR_DIR}/.bak
-FINAL_CR_FOLDER=${CUR_DIR}/generated-cr
+# CR to be generated in a folder specific to the project name
+# for DBACLD-166508
+FINAL_CR_FOLDER=${CUR_DIR}/generated-cr/project/$TARGET_PROJECT_NAME
 
 DEPLOY_TYPE_IN_FILE_NAME="" # Default value is empty
 OPERATOR_FILE=${PARENT_DIR}/descriptors/operator.yaml
@@ -79,7 +214,6 @@ COMPONENTS_SELECTED=""
 OPT_COMPONENTS_CR_SELECTED=""
 OPT_COMPONENTS_SELECTED=()
 LDAP_TYPE=""
-TARGET_PROJECT_NAME=""
 
 FOUNDATION_CR_SELECTED=""
 optional_component_arr=()
@@ -94,7 +228,7 @@ function prompt_license(){
     INSTALL_BAW_ONLY="No"
 
 
-    read -rsn1 -p"Press any key to continue";echo
+    prompt_press_any_key_to_continue
 
     printf "\n"
     while true; do
@@ -109,7 +243,7 @@ function prompt_license(){
             break
             ;;
         "n"|"N"|"no"|"No"|"NO"|"")
-            echo -e "Exiting...\n"
+            echo -e "The license agreement was not accepted. The license agreement must be accepted to continue. The script is exiting...\n"
             exit 0
             ;;
         *)
@@ -131,13 +265,13 @@ function validate_kube_oc_cli(){
     if  [[ $PLATFORM_SELECTED == "OCP" || $PLATFORM_SELECTED == "ROKS" ]]; then
         which oc &>/dev/null
         [[ $? -ne 0 ]] && \
-        echo -e  "\x1B[1;31mUnable to locate an OpenShift CLI. You must install it to run this script.\x1B[0m" && \
+        echo -e  "\x1B[1;31mUnable to locate the OpenShift CLI. You must install it to run this script.\x1B[0m" && \
         exit 1
     fi
     if  [[ $PLATFORM_SELECTED == "other" ]]; then
         which kubectl &>/dev/null
         [[ $? -ne 0 ]] && \
-        echo -e  "\x1B[1;31mUnable to locate Kubernetes CLI, You must install it to run this script.\x1B[0m" && \
+        echo -e  "\x1B[1;31mUnable to locate the Kubernetes CLI, You must install it to run this script.\x1B[0m" && \
         exit 1
     fi
 }
@@ -148,7 +282,7 @@ function prop_tmp_property_file() {
 
 function load_property_before_generate(){
     if [[ ! -f $TEMPORARY_PROPERTY_FILE || ! -f $USER_PROFILE_PROPERTY_FILE ]]; then
-        fail "Not Found existing property file under \"$PROPERTY_FILE_FOLDER\", Please run \"cp4a-prerequisites.sh\" to complate prerequisites"
+        fail "Not Found existing property file under \"$PROPERTY_FILE_FOLDER\". Run \"cp4a-prerequisites.sh\" to complete prerequisites"
         exit 1
     fi
 
@@ -222,7 +356,7 @@ function validate_docker_podman_cli(){
             [[ $? -ne 0 ]] && \
                 DOCKER_FOUND="No"
             if [[ $DOCKER_FOUND == "No" && $PODMAN_FOUND == "No" ]]; then
-                echo -e "\x1B[1;31mUnable to locate docker and podman, please install either of them first.\x1B[0m" && \
+                echo -e "\x1B[1;31mUnable to locate docker and podman. Install either of them first.\x1B[0m" && \
                 exit 1
             fi
         fi
@@ -230,7 +364,7 @@ function validate_docker_podman_cli(){
     then
         which podman &>/dev/null
         [[ $? -ne 0 ]] && \
-            echo -e "\x1B[1;31mUnable to locate podman, please install it first.\x1B[0m" && \
+            echo -e "\x1B[1;31mUnable to locate podman. Install it first.\x1B[0m" && \
             exit 1
     fi
 }
@@ -253,7 +387,7 @@ function select_project() {
             isProjExists=`${CLI_CMD} get project $TARGET_PROJECT_NAME --ignore-not-found | wc -l`  >/dev/null 2>&1
 
             if [ "$isProjExists" -ne 2 ] ; then
-                echo -e "\x1B[1;31mInvalid project name, please enter a existing project name ...\x1B[0m"
+                echo -e "\x1B[1;31mInvalid project name, enter a existing project name ...\x1B[0m"
                 TARGET_PROJECT_NAME=""
             else
                 echo -e "\x1B[1mUsing project ${TARGET_PROJECT_NAME}...\x1B[0m"
@@ -323,7 +457,7 @@ function select_platform(){
         done
         echo -e "\x1B[1;31mExisting platform type found in CR: \"$existing_platform_type\"\x1B[0m"
         # echo -e "\x1B[1;31mDo not need to select again.\n\x1B[0m"
-        read -rsn1 -p"Press any key to continue ...";echo
+        prompt_press_any_key_to_continue
     fi
 
     if [[ "$PLATFORM_SELECTED" == "OCP" || "$PLATFORM_SELECTED" == "ROKS" ]]; then
@@ -350,8 +484,8 @@ function check_ocp_version(){
         else
             # OCP_VERSION="3.11"
             OCP_VERSION="4.4OrLater"
-            echo -e "\x1B[1;31mIMPORTANT: The apiextensions.k8s.io/v1beta API has been deprecated from k8s 1.16+, OCp4.3 is using k8s 1.16.x. recommend you to upgrade your OCp to 4.4 or later\n\x1B[0m"
-            read -rsn1 -p"Press any key to continue";echo
+            echo -e "\x1B[1;31mIMPORTANT: The apiextensions.k8s.io/v1beta API has been deprecated from k8s 1.16+, OCP 4.3 is using k8s 1.16.x. recommend you to upgrade your OCP to version 4.4 or later\n\x1B[0m"
+            prompt_press_any_key_to_continue
             # exit 0
         fi
     fi
@@ -421,7 +555,7 @@ function select_flink_job(){
     done
 
     # echo "choices_pattern: ${choices_pattern[*]}"
-    # read -rsn1 -p"Press any key to continue (DEBUG MODEL)";echo
+    # read -rsn1 -p"Press Enter/Return to continue (DEBUG MODEL)";echo
     # Generate list of the pattern which will be installed or To Be Uninstalled
     for i in ${!options[@]}; do
         [[ "${choices_pattern[i]}" ]] && { flink_job_arr=( "${flink_job_arr[@]}" "${options[i]}" ); flink_job_cr_arr=( "${flink_job_cr_arr[@]}" "${options_cr_val[i]}" ); msg=""; }
@@ -430,7 +564,7 @@ function select_flink_job(){
 
     if [ "${#flink_job_arr[@]}" -eq "0" ]; then
         FLINK_JOB_SELECTED="None"
-        warning "None components selected for flink job, continue... \n"
+        warning "No components selected for Flink job. Continuing... \n"
         sleep 3
         # exit 1
     else
@@ -446,7 +580,7 @@ function select_flink_job(){
     # echo "FLINK_JOB_SELECTED: ${FLINK_JOB_SELECTED[*]}"
     # echo "FLINK_JOB_CR_SELECTED: ${FLINK_JOB_CR_SELECTED[*]}"
 
-    # read -rsn1 -p"Press any key to continue (DEBUG MODEL)";echo
+    # read -rsn1 -p"Press Enter/Return to continue (DEBUG MODEL)";echo
 }
 
 function get_local_registry_password(){
@@ -527,11 +661,11 @@ function get_entitlement_registry(){
     printf "\x1B[1;31m https://www.ibm.com/docs/en/cloud-paks/cp-biz-automation/$BAI_RELEASE_BASE?topic=deployment-getting-access-images-from-public-entitled-registry\n\x1B[0m"
     printf "\n"
     while true; do
-        printf "\x1B[1mDo you have a Cloud Pak for Business Automation Entitlement Registry key (Yes/No, default: No): \x1B[0m"
+        printf "\x1B[1mDo you have a Cloud Pak for Business Automation Entitlement Registry key (Yes/No, default: Yes): \x1B[0m"
         read -rp "" ans
 
         case "$ans" in
-        "y"|"Y"|"yes"|"Yes"|"YES")
+        "y"|"Y"|"yes"|"Yes"|"YES"|"")
             use_entitlement="yes"
             if [[ "$SCRIPT_MODE" == "dev" || "$SCRIPT_MODE" == "review" || "$SCRIPT_MODE" == "OLM" ]]
             then
@@ -541,7 +675,7 @@ function get_entitlement_registry(){
             fi
             break
             ;;
-        "n"|"N"|"no"|"No"|"NO"|"")
+        "n"|"N"|"no"|"No"|"NO")
             use_entitlement="no"
             DOCKER_REG_KEY="None"
             if [[ "$PLATFORM_SELECTED" == "ROKS" || "$PLATFORM_SELECTED" == "OCP" ]]; then
@@ -658,7 +792,7 @@ function get_storage_class_name(){
 
     while [[ $sc_medium_file_storage_classname == "" ]] # While get medium storage clase name
     do
-        printf "\x1B[1mplease enter the file storage classname for medium storage(RWX): \x1B[0m"
+        printf "\x1B[1mEnter the file storage classname for medium storage(RWX): \x1B[0m"
         read -rp "" sc_medium_file_storage_classname
         if [ -z "$sc_medium_file_storage_classname" ]; then
             echo -e "\x1B[1;31mEnter a valid file storage classname(RWX)\x1B[0m"
@@ -667,7 +801,7 @@ function get_storage_class_name(){
 
     while [[ $sc_fast_file_storage_classname == "" ]] # While get fast storage clase name
     do
-        printf "\x1B[1mplease enter the file storage classname for fast storage(RWX): \x1B[0m"
+        printf "\x1B[1mEnter the file storage classname for fast storage(RWX): \x1B[0m"
         read -rp "" sc_fast_file_storage_classname
         if [ -z "$sc_fast_file_storage_classname" ]; then
             echo -e "\x1B[1;31mEnter a valid file storage classname(RWX)\x1B[0m"
@@ -676,7 +810,7 @@ function get_storage_class_name(){
     
     while [[ $block_storage_class_name == "" ]] # While get block storage clase name
     do
-        printf "\x1B[1mplease enter the block storage classname for Zen(RWO): \x1B[0m"
+        printf "\x1B[1mEnnter the block storage classname for Zen(RWO): \x1B[0m"
         read -rp "" block_storage_class_name
         if [ -z "$block_storage_class_name" ]; then
             echo -e "\x1B[1;31mEnter a valid block storage classname(RWO)\x1B[0m"
@@ -723,7 +857,7 @@ function verify_local_registry_password(){
             break
             ;;
         "n"|"N"|"no"|"No"|"NO")
-            echo -e "\x1B[1;31mPlease pull the images to the local images to proceed.\n\x1B[0m"
+            echo -e "\x1B[1;31mPull the images to the local images to proceed.\n\x1B[0m"
             exit 1
             ;;
         *)
@@ -832,7 +966,7 @@ function select_iam_default_admin(){
 function select_profile_type(){
     printf "\n"
     COLUMNS=12
-    echo -e "\x1B[1mPlease select the deployment profile (default: small).  Refer to the documentation in BAI standalone Knowledge Center for details on profile.\x1B[0m"
+    echo -e "\x1B[1mSelect the deployment profile (default: small).  Refer to the documentation in BAI standalone Knowledge Center for details on profile.\x1B[0m"
     options=("small" "medium" "large")
     if [ -z "$existing_profile_type" ]; then
         PS3='Enter a valid option [1 to 3]: '
@@ -865,7 +999,7 @@ function select_profile_type(){
         done
         echo -e "\x1B[1;31mExisting profile size type found in CR: \"$existing_profile_type\"\x1B[0m"
         # echo -e "\x1B[1;31mDo not need to select again.\n\x1B[0m"
-        read -rsn1 -p"Press any key to continue ...";echo        
+        prompt_press_any_key_to_continue        
     fi
 }
 
@@ -904,7 +1038,7 @@ function select_deployment_type(){
         fi
     done
     echo -e "${YELLOW_TEXT}BAI standalone only supports production deployment${RESET_TEXT}"
-    read -rsn1 -p"Press any key to continue ...";echo
+    prompt_press_any_key_to_continue
 }
 
 function select_upgrade_mode(){
@@ -1008,7 +1142,7 @@ function select_ldap_user_for_zen(){
     echo -e  "${YELLOW_TEXT}For BAI standalone, if you select LDAP, then provide one ldap user here for onborading ZEN.${RESET_TEXT}"    
     while [[ $LDAP_USER_NAME == "" ]] # While get medium storage clase name
     do
-        printf "\x1B[1mplease enter one LDAP user for BAI standalone: \x1B[0m"
+        printf "\x1B[1mEnter one LDAP user for BAI standalone: \x1B[0m"
         read -rp "" LDAP_USER_NAME
         if [ -z "$LDAP_USER_NAME" ]; then
         echo -e "\x1B[1;31mEnter a valid LDAP user\x1B[0m"
@@ -1148,7 +1282,9 @@ function input_information(){
                 fi
                 validate_kube_oc_cli
 
-                LDAP_USER_NAME=$(prop_user_profile_property_file BAI_STANDALONE.LDAP_USER_NAME_ONBORADING_ZEN)
+                # Fixing the retrieval of this property LDAP_USER_NAME_ONBOARDING_ZEN after the spelling was corrected in the property files
+                # DBACLD-167210
+                LDAP_USER_NAME=$(prop_user_profile_property_file BAI_STANDALONE.LDAP_USER_NAME_ONBOARDING_ZEN)
                 NON_DEFAULT_IAM_ADMIN=$(prop_user_profile_property_file BAI_STANDALONE.IAM_ADMIN_USER_NAME)
                 MEDIUM_STORAGE_CLASS_NAME=$(prop_user_profile_property_file BAI_STANDALONE.MEDIUM_FILE_STORAGE_CLASSNAME)
                 FAST_STORAGE_CLASS_NAME=$(prop_user_profile_property_file BAI_STANDALONE.FAST_FILE_STORAGE_CLASSNAME)
@@ -1164,7 +1300,7 @@ function input_information(){
                 done
                 # echo "flink_job_cr_arr: ${flink_job_cr_arr[@]}"
             else 
-                fail "Not Found existing property file under \"$PROPERTY_FILE_FOLDER\", Please run \"bai-prerequisites.sh\" to complate prerequisites"
+                fail "Not Found existing property file under \"$PROPERTY_FILE_FOLDER\". Run \"bai-prerequisites.sh\" to complete prerequisites"
                 exit 1
             fi
             # show_summary
@@ -1331,23 +1467,23 @@ function sync_property_into_final_cr(){
 
     # ${COPY_CMD} -rf ${BAI_PATTERN_FILE_TMP} ${BAI_PATTERN_FILE_BAK}
     success "All values in the property file have been applied in the final CR under $FINAL_CR_FOLDER"
-    msgB "Please confirm final custom resource under $FINAL_CR_FOLDER"
+    msgB "Confirm final custom resource under $FINAL_CR_FOLDER"
 }
 
 function select_private_catalog_bai(){
     printf "\n"
-    echo "${YELLOW_TEXT}[NOTES] You can switch the BAI Standalone deployment as a private catalog (namespace scope) or keep the global catalog namespace (GCN). The private catalog (recommended) uses the same target namespace of the BAI Standalone deployment, the GCN uses the openshift-marketplace namespace.${RESET_TEXT}"
+    echo "${YELLOW_TEXT}[NOTES] You can switch the BAI Standalone deployment to a private catalog (namespace scope) or keep it in the global catalog namespace (GCN). The private catalog (recommended) uses the same target namespace as the BAI Standalone deployment, while the GCN uses the openshift-marketplace namespace.${RESET_TEXT}"
 
     while true; do
-        printf "\x1B[1mDo you want to switch BAI Standalone deployment to use global catalog? (Yes/No, default: No): \x1B[0m"
+        printf "\x1B[1mDo you want to switch BAI Standalone deployment to use private catalog? (Yes/No, default: Yes): \x1B[0m"
         read -rp "" ans
         case "$ans" in
         "y"|"Y"|"yes"|"Yes"|"YES"|"")
-            ENABLE_PRIVATE_CATALOG=0
+            ENABLE_PRIVATE_CATALOG=1
             break
             ;;
         "n"|"N"|"no"|"No"|"NO")          
-            ENABLE_PRIVATE_CATALOG=1
+            ENABLE_PRIVATE_CATALOG=0
             break
             ;;
         *)
@@ -1362,7 +1498,7 @@ function apply_bai_final_cr(){
 
     # Keep existing value
     if [[ "${INSTALLATION_TYPE}" == "existing" ]]; then
-        # read -rsn1 -p"Before Merge: Press any key to continue";echo
+        # read -rsn1 -p"Before Merge: Press Enter/Return to continue";echo
         ${YQ_CMD} d -i ${BAI_EXISTING_TMP} spec.shared_configuration.sc_deployment_patterns
         ${YQ_CMD} d -i ${BAI_EXISTING_TMP} spec.shared_configuration.sc_optional_components
         ${SED_COMMAND} '/tag: /d' ${BAI_EXISTING_TMP}
@@ -1371,7 +1507,7 @@ function apply_bai_final_cr(){
         # ${YQ_CMD} m -a -i -M ${BAI_EXISTING_BAK} ${BAI_PATTERN_FILE_TMP}
         # ${COPY_CMD} -rf ${BAI_EXISTING_BAK} ${BAI_PATTERN_FILE_TMP}
         # ${YQ_CMD} m -a -i -M ${BAI_PATTERN_FILE_TMP} ${BAI_EXISTING_BAK}
-        # read -rsn1 -p"After Merge: Press any key to continue";echo
+        # read -rsn1 -p"After Merge: Press Enter/Return to continue";echo
     fi
 
     ${SED_COMMAND_FORMAT} ${BAI_PATTERN_FILE_TMP}
@@ -1661,11 +1797,11 @@ function create_project() {
         returnValue=$?
         if [ "$returnValue" == 1 ]; then
             if [ -z "$BAI_AUTO_NAMESPACE" ]; then
-                echo -e "\x1B[1;31mInvalid project name, please enter a valid name...\x1B[0m"
+                echo -e "\x1B[1;31mInvalid project name, enter a valid name...\x1B[0m"
                 project_name=""
                 return 1
             else
-                echo -e "\x1B[1;31mInvalid project name \"$BAI_AUTO_NAMESPACE\", please set a valid name...\x1B[0m"
+                echo -e "\x1B[1;31mInvalid project name \"$BAI_AUTO_NAMESPACE\", set a valid name...\x1B[0m"
                 project_name=""
                 exit 1
             fi
@@ -1674,7 +1810,7 @@ function create_project() {
             return 0
         fi
     else
-        echo -e "\x1B[1mProject \"${project_name}\" already exists! Continue...\x1B[0m"
+        echo -e "\x1B[1mProject \"${project_name}\" already exists! Continuing...\x1B[0m"
         return 0
     fi
 }
@@ -1705,141 +1841,72 @@ function cncf_install(){
 }
 
 function show_help() {
-    echo -e "\nUsage: bai-deployment.sh -m [modetype] -s [automatic or manual] -n <NAMESPACE>\n"
+    echo -e "\nUsage: bai-deployment.sh -m [modetype] -n <BAI_NAMESPACE>\n"
+    echo -e "  OR"
+    echo -e " ./bai-deployment.sh -n <BAI_NAMESPACE>"
     echo "Options:"
-    echo "  -h  Display the help"
-    echo "  -m  The valid mode types are:[upgradeOperator], [upgradeOperatorStatus], [upgradeDeployment] and [upgradeDeploymentStatus]"
-    echo "  -s  The value of the update approval strategy. The valid values are: [automatic] and [manual]."
-    echo "  -n  The target namespace of the BAI standalone operator and deployment."
-    echo "  -i  Optional: Operator image name, by default it is cp.icr.io/cp/cp4a/icp4a-operator:$BAI_RELEASE_BASE"
-    echo "  -p  Optional: Pull secret to use to connect to the registry, by default it is ibm-entitlement-key"
-    echo "  --enable-private-catalog Optional: Set this flag to let the script to switch CatalogSource from global to namespace scoped. Default is in openshift-marketplace namespace"
-    echo "  ${YELLOW_TEXT}* Running the script to create a custom resource file for new BAI standalone deployment:${RESET_TEXT}"
-    echo "      - STEP 1: Run the script without any parameter."
-    echo "  ${YELLOW_TEXT}* Running the script to upgrade a BAI standalone deployment from 23.0.1.X to $BAI_RELEASE_BASE GA/$BAI_RELEASE_BASE.X. You must run the modes in the following order:${RESET_TEXT}"
-    echo "      - STEP 1: Run the script in [upgradeOperator] mode to upgrade the BAI standalone operator"
-    echo "      - STEP 2: Run the script in [upgradeOperatorStatus] mode to check that the upgrade of the BAI standalone operator and its dependencies is successful."
-    echo "      - STEP 3: Run the script in [upgradeDeployment] mode to upgrade the BAI standalone deployment."
-    echo "      - STEP 4: Run the script in [upgradeDeploymentStatus] mode to check that the upgrade of the BAI standalone deployment is successful."
-    echo "  ${YELLOW_TEXT}* Running the script to upgrade a BAI standalone deployment from $BAI_RELEASE_BASE GA/$BAI_RELEASE_BASE.X to $BAI_RELEASE_BASE.X. You must run the modes in the following order:${RESET_TEXT}"
-    echo "      - STEP 1: Run the script in [upgradeOperator] mode to upgrade the BAI standalone operator"
-    echo "      - STEP 2: Run the script in [upgradeOperatorStatus] mode to check that the upgrade of the BAI standalone operator and its dependencies is successful."
-    echo "      - STEP 3: Run the script in [upgradeDeploymentStatus] mode to check that the upgrade of the BAI standalone deployment is successful."
+    echo "  -h  Display help."
+    echo "  -m  The valid mode types are: [upgradeOperator], [upgradeOperatorStatus], [upgradeDeployment], and [upgradeDeploymentStatus]."
+    echo "  -n  The target namespace of the BAI Standalone operator and deployment."
+    echo "  -i  Optional: Operator image name. By default, it is cp.icr.io/cp/cp4a/icp4a-operator:$BAI_RELEASE_BASE."
+    echo "  -p  Optional: Pull secret to use to connect to the registry. By default, it is ibm-entitlement-key."
+    echo "  --enable-private-catalog Optional: Set this flag to switch CatalogSource from global to namespace-scoped. Default is in the openshift-marketplace namespace."
+    echo "  ${YELLOW_TEXT}* Running the script to create a custom resource file for a new BAI Standalone deployment:${RESET_TEXT}"
+    echo "      - STEP 1: Run the script without any parameters."
+    echo "  ${YELLOW_TEXT}* Running the script to upgrade a BAI Standalone deployment from 24.0.0.X to $BAI_RELEASE_BASE GA/$BAI_RELEASE_BASE.X. You must run the modes in the following order:${RESET_TEXT}"
+    echo "      - STEP 1: Run the script in [upgradeOperator] mode to upgrade the BAI Standalone operator."
+    echo "      - STEP 2: Run the script in [upgradeOperatorStatus] mode to check that the upgrade of the BAI Standalone operator and its dependencies was successful."
+    echo "      - STEP 3: Run the script in [upgradeDeployment] mode to upgrade the BAI Standalone deployment."
+    echo "      - STEP 4: Run the script in [upgradeDeploymentStatus] mode to check that the upgrade of the BAI Standalone deployment was successful."
+    echo "  ${YELLOW_TEXT}* Running the script to upgrade a BAI Standalone deployment from $BAI_RELEASE_BASE GA/$BAI_RELEASE_BASE.X to $BAI_RELEASE_BASE.X. You must run the modes in the following order:${RESET_TEXT}"
+    echo "      - STEP 1: Run the script in [upgradeOperator] mode to upgrade the BAI Standalone operator."
+    echo "      - STEP 2: Run the script in [upgradeOperatorStatus] mode to check that the upgrade of the BAI Standalone operator and its dependencies was successful."
+    echo "      - STEP 3: Run the script in [upgradeDeploymentStatus] mode to check that the upgrade of the BAI Standalone deployment was successful."
 
 }
 
-function parse_arguments() {
-    # process options
-    while [[ "$@" != "" ]]; do
-        case "$1" in
-        -m)
-            shift
-            if [ -z $1 ]; then
-                echo "Invalid option: -m requires an argument"
-                exit 1
-            fi
-            RUNTIME_MODE=$1
-            if [[ $RUNTIME_MODE == "upgradeOperator" || $RUNTIME_MODE == "upgradeOperatorStatus" || $RUNTIME_MODE == "upgradeDeployment" || $RUNTIME_MODE == "upgradeDeploymentStatus" ]]; then
-                echo -n
-            else
-                msg "Use a valid value: -m [upgradeOperator] or [upgradeOperatorStatus] or [upgradeDeployment] [upgradeDeploymentStatus]"
-                exit -1
-            fi
-            ;;
-        -s)
-            shift
-            if [ -z $1 ]; then
-                echo "Invalid option: -s requires an argument"
-                exit 1
-            fi
-            UPDATE_APPROVAL_STRATEGY=$1
-            if [[ $UPDATE_APPROVAL_STRATEGY == "automatic" || $UPDATE_APPROVAL_STRATEGY == "manual" ]]; then
-                echo -n
-            else
-                msg "Use a valid value: -s [automatic] or [manual]"
-                exit -1
-            fi
-            ;;
-        -n)
-            shift
-            if [ -z $1 ]; then
-                echo "Invalid option: -n requires an argument"
-                exit 1
-            fi
-            TARGET_PROJECT_NAME=$1
-            case "$TARGET_PROJECT_NAME" in
-            "")
-                echo -e "\x1B[1;31mEnter a valid namespace name, namespace name can not be blank\x1B[0m"
-                exit -1
-                ;;
-            "openshift"*)
-                echo -e "\x1B[1;31mEnter a valid project name, project name should not be 'openshift' or start with 'openshift' \x1B[0m"
-                exit -1
-                ;;
-            "kube"*)
-                echo -e "\x1B[1;31mEnter a valid project name, project name should not be 'kube' or start with 'kube' \x1B[0m"
-                exit -1
-                ;;
-            *)
-                isProjExists=`kubectl get project $TARGET_PROJECT_NAME --ignore-not-found | wc -l`  >/dev/null 2>&1
-                if [ $isProjExists -ne 2 ] ; then
-                    echo -e "\x1B[1;31mInvalid project name \"$TARGET_PROJECT_NAME\", please set a valid name...\x1B[0m"
-                    exit 1
-                fi
-                echo -n
-                ;;
-            esac
-            ;;
-        -i)
-            shift
-            if [ -z $1 ]; then
-                echo "Invalid option: -i requires an argument"
-                exit 1
-            fi
-            IMAGEREGISTRY=$1
-            ;;
-        -p)
-            shift
-            if [ -z $1 ]; then
-                echo "Invalid option: -p requires an argument"
-                exit 1
-            fi
-            PULLSECRET=$1
-            ;;
-        -h | --help | \?)
-            show_help
-            exit 0
-            ;;
-        --enable-private-catalog)
-            ENABLE_PRIVATE_CATALOG=1
-            ;;
-        --original-bai-csv-ver)
-            shift
-            BAI_ORIGINAL_CSV_VERSION=$1
-            ;;
-        --cpfs-upgrade-mode)
-            shift
-            UPGRADE_MODE=$1
-            ;;
-        *) 
-            echo "Invalid option"
-            show_help
-            exit 1
-            ;;
-        esac
-        shift
-    done
+function patch_edb_configmap(){
+# DBACLD-166239 -> Update EDB configmap ibm-zen-metastore-edb-cm to add new parameters with CPFS 4.10 or later.
+# During upgrade, we check the existence of the configmap along with these 2 new parameters (DATABASE_ENABLE_SSL and DATABASE_SSL_MODE).
+# If those parameters exists then we will not patch the configmap as the configmap is same for embedded and external postgres.
+# Input:
+#   namespace: The namespace that the configmap is located
+
+local namespace=$1
+
+is_edb_missing_ssl_enable_param=$(${CLI_CMD} get configmap ${ZEN_EDB_CFG} -n $namespace -o jsonpath='{.data.DATABASE_ENABLE_SSL}' 2>&1 )
+is_edb_missing_ssl_mode_param=$(${CLI_CMD} get configmap ${ZEN_EDB_CFG} -n $namespace -o jsonpath='{.data.DATABASE_SSL_MODE}' 2>&1 )
+
+#Patch cm if DATABASE_ENABLE_SSL does not exist
+if [[  -z $is_edb_missing_ssl_enable_param ]]; then
+    info "Patching ${ZEN_EDB_CFG} with DATABASE_ENABLE_SSL parameter"
+    ${CLI_CMD} patch configmap ${ZEN_EDB_CFG} -n $namespace --type=merge -p '{"data": {"DATABASE_ENABLE_SSL":"'true'"}}'
+fi
+#Patch cm if DATABASE_SSL_MODE does not exist
+if [[  -z $is_edb_missing_ssl_mode_param ]]; then
+    info "Patching ${ZEN_EDB_CFG} with DATABASE_SSL_MODE parameter"
+    ${CLI_CMD} patch configmap ${ZEN_EDB_CFG} -n $namespace --type=merge -p '{"data": {"DATABASE_SSL_MODE":"require"}}'
+
+fi
 }
 ################################################
 #### Begin - Main step for install operator ####
 ################################################
-save_log "bai-script-logs" "bai-deployment-log"
+# Log files to be generated in the folder specific to the project being used with the scripts
+# For DBACLD-166508
+save_log "bai-script-logs/project/$TARGET_PROJECT_NAME" "bai-deployment-log"
 trap cleanup_log EXIT
-if [[ $1 == "" || $1 == "dev" || $1 == "review" ]]
+# Import upgrade upgrade_check_version.sh script
+source ${CUR_DIR}/helper/upgrade/upgrade_check_status.sh
+
+if [[ ($SCRIPT_MODE == "" && $RUNTIME_MODE == "") || ($SCRIPT_MODE == "dev" && $RUNTIME_MODE == "") || ($SCRIPT_MODE == "review" && $RUNTIME_MODE == "") || ($SCRIPT_MODE == "baw-dev" && $RUNTIME_MODE == "") ]]
 then
     prompt_license
 
     set_script_mode
+
+    # Check cluster login
+    check_cluster_login
 
     input_information
 
@@ -1863,20 +1930,20 @@ then
             printf "\n"
             if [[ "${INSTALLATION_TYPE}"  == "new" ]]; then
                 if [[ "$SCRIPT_MODE" == "review" ]]; then
-                    echo -e "\x1B[1mReview mode running, just generate final CR, will not deploy operator\x1B[0m"
-                    # read -rsn1 -p"Press any key to continue";echo
+                    echo -e "\x1B[1mReview mode is running. The final CR will be generated, but the operator will not be deployed.\x1B[0m"
+                    # prompt_press_any_key_to_continue
                 elif [[ "$SCRIPT_MODE" == "OLM" ]]
                 then
                     echo -e "\x1B[1mA custom resource file to apply in the OCP Catalog is being generated.\x1B[0m"
-                    # read -rsn1 -p"Press any key to continue";echo
+                    # prompt_press_any_key_to_continue
                 else
                     if [ "$use_entitlement" = "no" ] ; then
                         isReady=$(${CLI_CMD} get secret | grep ibm-entitlement-key)
                         if [[ -z $isReady ]]; then
-                            echo "NOT found secret \"ibm-entitlement-key\", exiting..."
+                            echo "Secret \"ibm-entitlement-key\" not found, exiting..."
                             exit 1
                         else
-                            echo "Found secret \"ibm-entitlement-key\", continue...."
+                            echo "Secret \"ibm-entitlement-key\" found, continuing...."
                         fi
                     fi
                 fi
@@ -1898,8 +1965,8 @@ then
                     if [[ $DEPLOYMENT_WITH_PROPERTY == "No" ]]; then
                         select_platform
                     else
-                        info "Please run bai-prerequisites.sh to modify the platform type"
-                        read -rsn1 -p"Press any key to continue";echo
+                        info "Run bai-prerequisites.sh to modify the platform type"
+                        prompt_press_any_key_to_continue
                     fi
                     break
                     ;;
@@ -1907,8 +1974,8 @@ then
                     if [[ $DEPLOYMENT_WITH_PROPERTY == "No" ]]; then
                         select_ldap_type
                     else
-                        info "Please run bai-prerequisites.sh to modify the LDAP type"
-                        read -rsn1 -p"Press any key to continue";echo
+                        info "Run bai-prerequisites.sh to modify the LDAP type"
+                        prompt_press_any_key_to_continue
                     fi
                     break
                     ;;
@@ -1916,8 +1983,8 @@ then
                     if [[ $DEPLOYMENT_WITH_PROPERTY == "No" ]]; then
                         select_profile_type
                     else
-                        info "Please run bai-prerequisites.sh to modify the profile size"
-                        read -rsn1 -p"Press any key to continue";echo
+                        info "Run bai-prerequisites.sh to modify the profile size"
+                        prompt_press_any_key_to_continue
                     fi
                     break
                     ;;
@@ -1925,8 +1992,8 @@ then
                     if [[ $DEPLOYMENT_WITH_PROPERTY == "No" ]]; then
                         select_iam_default_admin
                     else
-                        info "Please run bai-prerequisites.sh to modify the IAM default admin"
-                        read -rsn1 -p"Press any key to continue";echo
+                        info "Run bai-prerequisites.sh to modify the IAM default admin"
+                        prompt_press_any_key_to_continue
                     fi
                     break
                     ;;
@@ -1934,8 +2001,8 @@ then
                     if [[ $DEPLOYMENT_WITH_PROPERTY == "No" ]]; then
                         get_storage_class_name
                     else
-                        info "Please run bai-prerequisites.sh to modify the storage class"
-                        read -rsn1 -p"Press any key to continue";echo
+                        info "Run bai-prerequisites.sh to modify the storage class"
+                        prompt_press_any_key_to_continue
                     fi
                     break
                     ;;
@@ -1944,8 +2011,8 @@ then
                         TARGET_PROJECT_NAME=""
                         select_project
                     else
-                        info "Please run bai-prerequisites.sh to modify the target project"
-                        read -rsn1 -p"Press any key to continue";echo
+                        info "Run bai-prerequisites.sh to modify the target project"
+                        prompt_press_any_key_to_continue
                     fi
                     break
                     ;;
@@ -1953,8 +2020,8 @@ then
                     if [[ $DEPLOYMENT_WITH_PROPERTY == "No" ]]; then
                         select_restricted_internet_access
                     else
-                        info "Please run bai-prerequisites.sh to modify the storage class"
-                        read -rsn1 -p"Press any key to continue";echo
+                        info "Run bai-prerequisites.sh to modify the storage class"
+                        prompt_press_any_key_to_continue
                     fi
                     break
                     ;;
@@ -1962,8 +2029,8 @@ then
                     if [[ $DEPLOYMENT_WITH_PROPERTY == "No" ]]; then
                         select_flink_job
                     else
-                        info "Please run bai-prerequisites.sh to modify the flink job for which component(s)"
-                        read -rsn1 -p"Press any key to continue";echo
+                        info "Run bai-prerequisites.sh to modify the flink job for which component(s)"
+                        prompt_press_any_key_to_continue
                     fi
                     break
                     ;;
@@ -1980,19 +2047,8 @@ else
     # Import upgrade prerequisite.sh script
     # source ${CUR_DIR}/helper/upgrade/prerequisite.sh
     ENABLE_PRIVATE_CATALOG=0
-    parse_arguments "$@"
-    if [[ -z "$RUNTIME_MODE" ]]; then
-        echo -e "\x1B[1;31mPlease input value for \"-m <MODE_NAME>\" option.\n\x1B[0m"
-        exit 1
-    fi
-    if [[ -z "$TARGET_PROJECT_NAME" ]]; then
-        echo -e "\x1B[1;31mPlease input value for \"-n <NAME_SPACE>\" option.\n\x1B[0m"
-        exit 1
-    fi
 fi
 
-# Import upgrade upgrade_check_version.sh script
-source ${CUR_DIR}/helper/upgrade/upgrade_check_status.sh
 
 
 # This runtime does the upgrade of BAI Standalone operators
@@ -2000,11 +2056,13 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
     info "Starting to upgrade BAI standalone operators and IBM foundation services"
     # check current bai operator version
     check_bai_operator_version $TARGET_PROJECT_NAME
+
+    #### Check for the operator to validate if it is already up to date with the current version the scripts correspond too ######
     if [[ "$bai_operator_csv_version" == "${BAI_CSV_VERSION//v/}" ]]; then
         warning "The BAI standalone operator is already at $BAI_CSV_VERSION."
         printf "\n"
         while true; do
-            printf "\x1B[1mDo you want to continue to run the upgrade? (Yes/No, default: No): \x1B[0m"
+            printf "\x1B[1mDo you want to continue running the upgrade? (Yes/No, default: No): \x1B[0m"
             read -rp "" ans
             case "$ans" in
             "y"|"Y"|"yes"|"Yes"|"YES")
@@ -2020,16 +2078,22 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
             esac
         done
     fi
+    #### Check for the operator to validate if it is already up to date with the current version the scripts correspond too ######
+
+    #### Seperaration of duties check ####
     # check if the deployment has seperate operators and operands
     check_bai_separate_operand $TARGET_PROJECT_NAME
+
+    # If SEPARATE_OPERAND_FLAG gets set to Yes which happens in the check_bai_separate_operand function in upgrade_check_status.sh , then the variables being set below get set to the appropriate values.
     if [[ $SEPARATE_OPERAND_FLAG == "No" ]]; then
 
         BAI_SERVICES_NS=$TARGET_PROJECT_NAME
         bai_services_namespace=$TARGET_PROJECT_NAME
         bai_operators_namespace=$TARGET_PROJECT_NAME
     fi
+    #### End of Seperaration of duties check ####
 
-    # ENV variables needed
+    ##### Definition of ENV variables required for this mode ######
     TEMP_OPERATOR_PROJECT_NAME=$TARGET_PROJECT_NAME
     UPGRADE_DEPLOYMENT_FOLDER=${CUR_DIR}/bai-upgrade/project/$BAI_SERVICES_NS
     UPGRADE_DEPLOYMENT_PROPERTY_FILE=${UPGRADE_DEPLOYMENT_FOLDER}/bai_upgrade.property
@@ -2041,10 +2105,14 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
     UPGRADE_DEPLOYMENT_BAI_CR_TMP=${UPGRADE_DEPLOYMENT_CR}/.insightsengine_tmp.yaml
     UPGRADE_DEPLOYMENT_BAI_CR_BAK=${UPGRADE_DEPLOYMENT_CR_BAK}/insightsengine_cr_backup.yaml
     RUN_BAI_SAVEPOINT="No"
+    # Sourcing the messages function
+    source ${CUR_DIR}/helper/messages.sh
 
     UPGRADE_DEPLOYMENT_BAI_TMP=${UPGRADE_DEPLOYMENT_CR}/.bai_tmp.yaml
     mkdir -p ${UPGRADE_DEPLOYMENT_CR} >/dev/null 2>&1
     mkdir -p ${TEMP_FOLDER} >/dev/null 2>&1
+
+    ##### End of Definition of ENV variables required for this mode ######
 
     if [[ $SEPARATE_OPERAND_FLAG == "Yes" ]]; then
         source ${CUR_DIR}/helper/upgrade/upgrade_merge_yaml.sh $BAI_SERVICES_NS
@@ -2053,6 +2121,7 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
     fi
 
     
+    #### Start the upgrade of BAI S Operators and CPFS ####
     info "Starting to upgrade BAI Standalone operators and IBM Cloud Pak foundational services"
     # bai_operator_csv_version is set from the check_bai_operator_version function
     if [[ "$bai_operator_csv_version" == "${BAI_CSV_VERSION//v/}" ]]; then
@@ -2064,13 +2133,7 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
             read -rp "" ans
             case "$ans" in
             "y"|"Y"|"yes"|"Yes"|"YES")
-                echo "${YELLOW_TEXT}[ATTENTION]:${RESET_TEXT} You can run follow command to try upgrade again."
-                echo "           ${GREEN_TEXT}# ./bai-deployment.sh -m upgradeOperator -n $TARGET_PROJECT_NAME --cpfs-upgrade-mode <migration mode> --original-bai-csv-ver <bai-csv-version-before-upgrade>${RESET_TEXT}"
-                echo "           Usage:"
-                echo "           --cpfs-upgrade-mode     : The migration mode for IBM Cloud Pak foundational services, the valid values [shared2shared/shared2dedicated/dedicated2dedicated]"
-                echo "           --original-bai-csv-ver: The version of csv for BAI operator before upgrade, the example value [24.1.0] for 24.1.0 GA"
-                echo "           Example command: "
-                echo "           ${GREEN_TEXT}# ./bai-deployment.sh -m upgradeOperator -n $TARGET_PROJECT_NAME --cpfs-upgrade-mode dedicated2dedicated --original-bai-csv-ver 24.1.0${RESET_TEXT}"
+                displayUpgradeOperatorMessage '' $TARGET_PROJECT_NAME $cp4a_operator_csv_version
                 exit 1
                 ;;
             "n"|"N"|"no"|"No"|"NO"|"")
@@ -2086,7 +2149,7 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
 
     PLATFORM_SELECTED=$(eval echo $(kubectl get insightsengine $(kubectl get insightsengine --no-headers --ignore-not-found -n $BAI_SERVICES_NS | grep NAME -v | awk '{print $1}') --no-headers --ignore-not-found -n $BAI_SERVICES_NS -o yaml | grep sc_deployment_platform | tail -1 | cut -d ':' -f 2))
     if [[ -z $PLATFORM_SELECTED ]]; then
-        fail "Not found any custom resource for BAI standalone under project \"$BAI_SERVICES_NS\", exiting"
+        fail "No custom resource found for BAI Standalone under project \"$BAI_SERVICES_NS\", exiting"
         exit 1
     fi
 
@@ -2095,10 +2158,11 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
         #[ -f ${UPGRADE_DEPLOYMENT_FOLDER}/upgradeOperator.yaml ] && rm ${UPGRADE_DEPLOYMENT_FOLDER}/upgradeOperator.yaml
         #cp ${CUR_DIR}/../descriptors/operator.yaml ${UPGRADE_DEPLOYMENT_FOLDER}/upgradeOperator.yaml
         #cncf_install
-        fail "Upgraded Not support for Platform type \"$BAI_SERVICES_NS\", exiting"
+        fail "Upgrade not supported for platform type \"$BAI_SERVICES_NS\", exiting"
         exit
     else
-        info "Checking ibm-bai-shared-info configMap existing or not in the project \"$BAI_SERVICES_NS\""
+        ############## Start - Create ibm-bai-shared-info configMap ##############
+        info "Checking if ibm-bai-shared-info configMap exists in the project \"$BAI_SERVICES_NS\""
         ibm_bai_shared_info_cm=$(${CLI_CMD} get configmap ibm-bai-shared-info --no-headers --ignore-not-found -n $BAI_SERVICES_NS -o jsonpath='{.data.bai_operator_of_last_reconcile}')
         
         # Create ibm-bai-shared-info configMap if it doesn't exist
@@ -2108,7 +2172,7 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
             cr_metaname=$(${CLI_CMD} get insightsengine $insightsengine_cr_name -n $BAI_SERVICES_NS -o yaml | ${YQ_CMD} r - metadata.name)
             cr_uid=$(${CLI_CMD} get insightsengine $insightsengine_cr_name -n $BAI_SERVICES_NS -o yaml | ${YQ_CMD} r - metadata.uid)
             if [[ -z $ibm_bai_shared_info_cm ]]; then
-                info "ibm-bai-shared-info configMap was not found,the script will now create it."
+                info "ibm-bai-shared-info configMap was not found, the script will now create it."
                 create_ibm_bai_shared_info_cm_yaml
                 ${SED_COMMAND} "s|<bai_namespace>|$BAI_SERVICES_NS|g" ${UPGRADE_BAI_SHARED_INFO_CM_FILE}
                 ${SED_COMMAND} "s|<cr_metaname>|$cr_metaname|g" ${UPGRADE_BAI_SHARED_INFO_CM_FILE}
@@ -2130,7 +2194,10 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
                 bai_original_csv_ver_for_upgrade_script=$bai_operator_csv_version
             fi
         fi
-        # Checking the CPfs mode
+        ############## End - Create ibm-bai-shared-info configMap ##############
+
+        
+        ############## Start - Decide which CPfs migration mode should be used ##############
         ALL_NAMESPACE_FLAG="No" # no all namespaces support for BAI Standalone
         
         if [[ -z $UPGRADE_MODE ]]; then
@@ -2153,7 +2220,9 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
             CATALOG_FOUND="No"
             PINNED="Yes" # Fresh install use pinned catalog source
         fi
+        ############## End - Decide which CPfs migration mode should be used ##############
 
+        ############## Start - Decide which catalog source (GNC/Private) should be used ##############
         # Check if --enable-private-catalog is set or not
         # shared to shared code can be removed
         # Call select_private_catalog_bai if --enable-private-catalog option is not set
@@ -2167,7 +2236,7 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
             if [[ $ENABLE_PRIVATE_CATALOG -eq 1 && $UPGRADE_MODE == "shared2shared" ]]; then
                 ENABLE_PRIVATE_CATALOG=0
                 warning "Can NOT switch catalog source from global catalog namespace (GCN) to private catalog (namespace-scoped) when migration IBM Cloud Pak foundational services from \"Cluster-scoped to Namespace-scoped\"."
-                read -rsn1 -p"Press any key to continue";echo
+                prompt_press_any_key_to_continue
             elif [[ $ENABLE_PRIVATE_CATALOG -eq 1 && ($UPGRADE_MODE == "shared2dedicated" || $UPGRADE_MODE == "dedicated2dedicated") ]]; then
                 info "You have set the option \"--enable-private-catalog\" for this BAI Standalone deployment to use private catalog"
             elif [[ $ENABLE_PRIVATE_CATALOG -eq 0 || -z $ENABLE_PRIVATE_CATALOG ]]; then
@@ -2181,7 +2250,7 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
                 fi
             fi
         fi
-
+        
         
         if [[ $ENABLE_PRIVATE_CATALOG -eq 1 && $PRIVATE_CATALOG_FOUND == "No" && ($UPGRADE_MODE == "shared2dedicated" || $UPGRADE_MODE == "dedicated2dedicated") ]]; then
             info "The global catalog namespace (GCN) will be switched to private catalog (namespace-scoped)."
@@ -2194,9 +2263,10 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
 
         # For shared->dedicated upgrade, we should allow user option to keep "global catalog"
         if [[ $ENABLE_PRIVATE_CATALOG -eq 0 && $UPGRADE_MODE == "shared2dedicated" ]]; then
-            echo "${RED_TEXT}[WARNING]${RESET_TEXT}: ${YELLOW_TEXT}Before proceeding with the upgrade: if you have multiple BAI Standalone deployments on this cluster and you don't want them to be updated, please update installPlan approval for BTS, EDB PostgreSQL on the other BAI deployments from \"Automatic\" to \"Manual\".${RESET_TEXT}"
-            read -rsn1 -p"Press any key to continue ...";echo
+            echo "${RED_TEXT}[WARNING]${RESET_TEXT}: ${YELLOW_TEXT}Before proceeding with the upgrade: if you have multiple BAI Standalone deployments on this cluster and you don't want them to be updated, update installPlan approval for BTS and EDB PostgreSQL on the other BAI deployments from \"Automatic\" to \"Manual\".${RESET_TEXT}"
+            prompt_press_any_key_to_continue
         fi
+        ############## Start - Decide which catalog source (GNC/Private) should be used ##############
 
         # Retrieve existing InsightsEngine CR
         insightsengine_cr_name=$(${CLI_CMD} get insightsengine -n $BAI_SERVICES_NS --no-headers --ignore-not-found | awk '{print $1}')
@@ -2235,7 +2305,7 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
                     current_version=$(${CLI_CMD} get subscriptions.operators.coreos.com ${sub_array[i]} --no-headers --ignore-not-found -n $TEMP_OPERATOR_PROJECT_NAME -o 'jsonpath={.status.currentCSV}') >/dev/null 2>&1
                     installed_version=$(${CLI_CMD} get subscriptions.operators.coreos.com ${sub_array[i]} --no-headers --ignore-not-found -n $TEMP_OPERATOR_PROJECT_NAME -o 'jsonpath={.status.installedCSV}') >/dev/null 2>&1
                     if [[ -z $current_version || -z $installed_version ]]; then
-                        error "Failed to get installed or current CSV. Aborting the upgrade procedure. Please check ${sub_array[i]} subscription status."
+                        error "Failed to retrieve installed or current CSV. Aborting the upgrade procedure. Check the subscription status of ${sub_array[i]}."
                         exit 1
                     fi
                     case "${sub_array[i]}" in
@@ -2253,12 +2323,13 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
                     fi
                 fi
             else
-                fail "No found subscription '${sub_array[i]}'! exiting now..."
+                fail "No subscription found for '${sub_array[i]}'! exiting now..."
                 exit 1
             fi
         done
 
         # No need to create Flink job savepoint for upgrading from IFIX to IFIX
+        # For IFIX to IFIX upgrade Save points are created manually and the instructions are documented in each IFIX readme https://jsw.ibm.com/browse/DBACLD-165326
         if [[ "$is_ifix_to_ifix_upgrade" == "false" ]]; then
             # In 24.0.0, follow the flow of migration from  Elasticsearch to Opensearch, the bai savepoint creation already done before upgrade BAI
             # So do not rerun savepoint. But need to covert bai json into UPGRADE_DEPLOYMENT_BAI_TMP for next upgradeDeployment mode.
@@ -2301,22 +2372,22 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
                     if [[ "$machine" == "Mac" ]]; then
                         which jq &>/dev/null
                         [[ $? -ne 0 ]] && \
-                        echo -e  "\x1B[1;31mUnable to locate an jq CLI. You must install it to run this script on MacOS.\x1B[0m" && \
+                        echo -e  "\x1B[1;31mUnable to locate the jq CLI. You must install it to run this script on macOS.\x1B[0m" && \
                         exit 1
                     fi
                     info "Creating the BAI savepoints for recovery path used for updating the custom resource file"
                     ${CLI_CMD} get crd |grep insightsengines.bai.ibm.com >/dev/null 2>&1
                     if [ $? -eq 0 ]; then
-                        INSIGHTS_ENGINE_CR=$(${CLI_CMD} get insightsengines.bai.ibm.com --no-headers --ignore-not-found -n ${TARGET_PROJECT_NAME} -o name)
+                        INSIGHTS_ENGINE_CR=$(${CLI_CMD} get insightsengines.bai.ibm.com --no-headers --ignore-not-found -n ${BAI_SERVICES_NS} -o name)
                     fi
                     if [[ -z $INSIGHTS_ENGINE_CR ]]; then
-                        error "Insightsengine custom resource instance not found in the project \"${TARGET_PROJECT_NAME}\"."
+                        error "Insightsengine custom resource instance not found in the project \"${BAI_SERVICES_NS}\"."
                     fi
                     if [[ ! -z $INSIGHTS_ENGINE_CR ]]; then
-                        MANAGEMENT_URL=$(${CLI_CMD} get ${INSIGHTS_ENGINE_CR} --no-headers --ignore-not-found -n ${TARGET_PROJECT_NAME} -o jsonpath='{.status.components.management.endpoints[?(@.scope=="External")].uri}')
-                        MANAGEMENT_AUTH_SECRET=$(${CLI_CMD} get ${INSIGHTS_ENGINE_CR} --no-headers --ignore-not-found -n ${TARGET_PROJECT_NAME} -o jsonpath='{.status.components.management.endpoints[?(@.scope=="External")].authentication.secret.secretName}')
-                        MANAGEMENT_USERNAME=$(${CLI_CMD} get secret ${MANAGEMENT_AUTH_SECRET} --no-headers --ignore-not-found -n ${TARGET_PROJECT_NAME} -o jsonpath='{.data.username}' | base64 -d)
-                        MANAGEMENT_PASSWORD=$(${CLI_CMD} get secret ${MANAGEMENT_AUTH_SECRET} --no-headers --ignore-not-found -n ${TARGET_PROJECT_NAME} -o jsonpath='{.data.password}' | base64 -d)
+                        MANAGEMENT_URL=$(${CLI_CMD} get ${INSIGHTS_ENGINE_CR} --no-headers --ignore-not-found -n ${BAI_SERVICES_NS} -o jsonpath='{.status.components.management.endpoints[?(@.scope=="External")].uri}')
+                        MANAGEMENT_AUTH_SECRET=$(${CLI_CMD} get ${INSIGHTS_ENGINE_CR} --no-headers --ignore-not-found -n ${BAI_SERVICES_NS} -o jsonpath='{.status.components.management.endpoints[?(@.scope=="External")].authentication.secret.secretName}')
+                        MANAGEMENT_USERNAME=$(${CLI_CMD} get secret ${MANAGEMENT_AUTH_SECRET} --no-headers --ignore-not-found -n ${BAI_SERVICES_NS} -o jsonpath='{.data.username}' | base64 -d)
+                        MANAGEMENT_PASSWORD=$(${CLI_CMD} get secret ${MANAGEMENT_AUTH_SECRET} --no-headers --ignore-not-found -n ${BAI_SERVICES_NS} -o jsonpath='{.data.password}' | base64 -d)
                         if [[ -z "$MANAGEMENT_URL" || -z "$MANAGEMENT_AUTH_SECRET" || -z "$MANAGEMENT_USERNAME" || -z "$MANAGEMENT_PASSWORD" ]]; then
                             error "Can not create the BAI savepoints for recovery path."
                             # exit 1
@@ -2331,8 +2402,8 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
                             json_file_content="[]"
                             if [ "$json_file_content" == "$(cat ${UPGRADE_DEPLOYMENT_CR}/bai.json)" ] ;then
                                 fail "None return in \"${UPGRADE_DEPLOYMENT_CR}/bai.json\" when request BAI savepoint through REST API: curl -X POST -k -u ${MANAGEMENT_USERNAME}:${MANAGEMENT_PASSWORD} \"${MANAGEMENT_URL}/api/v1/processing/jobs/savepoints\" "
-                                warning "Please fetch Flink job savepoints for recovery path using above REST API manually, and then put JSON file (bai.json) under the directory \"${TEMP_FOLDER}/\""
-                                read -rsn1 -p"Press any key to continue";echo
+                                warning "Fetch Flink job savepoints for the recovery path using above REST API manually, then place the JSON file (bai.json) under the directory \"${TEMP_FOLDER}/\""
+                                prompt_press_any_key_to_continue
                             fi
                             ##########################################################################################################################
                             ## In 24.0.1 and later, we'll only support n-1 upgrade therefore we're back to the old way of saving content event-forwarder savepoint and bai-content savepoint UNLESS the ALLOW_DIRECT_UPGRADE == 1 .
@@ -2436,13 +2507,14 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
                 fi
             fi
         fi
+        ############## End - Decide whether to create savepoint for Flink job ##############
         
         ############## Start - Migration CPfs mode and upgrade BAI Standalone Operators ##############
         #  Switch BAI Operator to private catalog source
         if [ $ENABLE_PRIVATE_CATALOG -eq 1 ]; then
             sub_inst_list=$(${CLI_CMD} get subscriptions.operators.coreos.com -n $TARGET_PROJECT_NAME|grep ibm-bai-operator-catalog|awk '{if(NR>0){if(NR==1){ arr=$1; }else{ arr=arr" "$1; }} } END{ print arr }')
             if [[ -z $sub_inst_list ]]; then
-                info "Not existing BAI Standalone subscriptions has been found, continuing ..."
+                info "No existing BAI Standalone subscriptions found, continuing ..."
                 # exit 1
             fi
 
@@ -2461,54 +2533,17 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
                         fi
                     fi
                 else
-                    fail "No found subscription '${sub_array[i]}' in the project \"$TARGET_PROJECT_NAME\"! exiting now..."
+                    fail "Subscription '${sub_array[i]}' not found in the project \"$TARGET_PROJECT_NAME\"! exiting now..."
                     exit 1
                 fi
             done
+
         fi
-        if [[ ! -z $bai_operators_namespace ]]; then
-            bts_sub_flag=""
-            export bts_sub_flag=$(${CLI_CMD} get subscriptions.operators.coreos.com --no-headers --ignore-not-found -n $bai_operators_namespace|grep ibm-bts-operator|awk '{print $1}')
-            info "BTS subscription name is: $bts_sub_flag"
-            if [[ ! -z "$bts_sub_flag" ]]; then
-                info "Updating the catalog source of subscription "${bts_sub_flag}" to $BTS_CATALOG_VERSION"
-                if [[ $ENABLE_PRIVATE_CATALOG -eq 1 || $PRIVATE_CATALOG_FOUND == "Yes" ]]; then
-                    ${CLI_CMD} patch subscriptions.operators.coreos.com "${bts_sub_flag}" -n $bai_operators_namespace -p '{"spec":{"sourceNamespace":"'"$bai_operators_namespace"'"}}' --type=merge >/dev/null 2>&1
-                    if [ $? -eq 0 ]
-                    then
-                        success "Switch the catalog source of subscription "${bts_sub_flag}" to $bai_operators_namespace"
-                        printf "\n"
-                    else
-                        fail "Failed to switch the catalog source of subscription "${bts_sub_flag}" to $bai_operators_namespace! exiting now..."
-                        exit 1
-                    fi
-                fi
-                ${CLI_CMD} patch subscriptions.operators.coreos.com "${bts_sub_flag}" -n $bai_operators_namespace -p '{"spec":{"source":"'"$BTS_CATALOG_VERSION"'"}}' --type=merge >/dev/null 2>&1
-                if [ $? -eq 0 ]
-                then
-                    success "Updated the catalog source of subscription "${bts_sub_flag}" to $BTS_CATALOG_VERSION"
-                    printf "\n"
-                else
-                    fail "Failed to update the catalog source of subscription "${bts_sub_flag}" to $BTS_CATALOG_VERSION! exiting now..."
-                    exit 1
-                fi
-                
-                info "Updating the channel of subscription "${bts_sub_flag}" to $BTS_CHANNEL_VERSION"
-                ${CLI_CMD} patch subscriptions.operators.coreos.com "${bts_sub_flag}" -n $bai_operators_namespace -p '{"spec":{"channel":"'"$BTS_CHANNEL_VERSION"'"}}' --type=merge >/dev/null 2>&1
-                if [ $? -eq 0 ]
-                then
-                    success "Updated the channel of subscription "${bts_sub_flag}" to $BTS_CHANNEL_VERSION"
-                    printf "\n"
-                else
-                    fail "Failed to update the channel of subscription "${bts_sub_flag}" to $BTS_CHANNEL_VERSION! exiting now..."
-                    exit 1
-                fi
-            fi
-        fi
+
         #  Patch BAI channel to latest version, wait for all the operators are upgraded before applying operandRequest.
         sub_inst_list=$(${CLI_CMD} get subscriptions.operators.coreos.com -n $TARGET_PROJECT_NAME|grep ibm-bai-operator-catalog|awk '{if(NR>0){if(NR==1){ arr=$1; }else{ arr=arr" "$1; }} } END{ print arr }')
         if [[ -z $sub_inst_list ]]; then
-            info "No existing BAI Standalone subscriptions has been found, continuing ..."
+            info "No existing BAI Standalone subscriptions found, continuing ..."
             # exit 1
         fi
 
@@ -2527,7 +2562,7 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
                     fi
                 fi
             else
-                fail "No found subscription '${sub_array[i]}'! exiting now..."
+                fail "No subscription found for '${sub_array[i]}'! exiting now..."
                 exit 1
             fi
         done
@@ -2663,7 +2698,7 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
                 fi
             done
         else
-            fail "Not found IBM Business Automation Insights catalog source!"
+            fail "IBM Business Automation Insights catalog source not found!"
             exit 1
         fi
 
@@ -2679,68 +2714,9 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
 
         # Check cloud-native-postgresql/ibm-bts-operator
         if [[ $ENABLE_PRIVATE_CATALOG -eq 0 ]]; then
-            cloud_native_postgresql_flag=$(${CLI_CMD} get subscriptions.operators.coreos.com cloud-native-postgresql --no-headers --ignore-not-found -n $cs_service_target_namespace | wc -l)
-            ibm_bts_operator_flag=$(${CLI_CMD} get subscriptions.operators.coreos.com "${bts_sub_flag}" --no-headers --ignore-not-found -n $cs_service_target_namespace | wc -l)
-            maxRetry=50
-            if [ $cloud_native_postgresql_flag -ne 0 ]; then
-                info "Checking the version of subscription 'cloud-native-postgresql' in the project \"$cs_service_target_namespace\""
-                sleep 60
-                for ((retry=0;retry<=${maxRetry};retry++)); do
-                    current_version_postgresql=$(${CLI_CMD} get subscriptions.operators.coreos.com cloud-native-postgresql --no-headers --ignore-not-found -n $cs_service_target_namespace -o 'jsonpath={.status.currentCSV}') >/dev/null 2>&1
-                    installed_version_postgresql=$(${CLI_CMD} get subscriptions.operators.coreos.com cloud-native-postgresql --no-headers --ignore-not-found -n $cs_service_target_namespace -o 'jsonpath={.status.installedCSV}') >/dev/null 2>&1
-                    prefix_postgresql="cloud-native-postgresql.v"
-                    current_version_postgresql=${current_version_postgresql#"$prefix_postgresql"}
-                    installed_version_postgresql=${installed_version_postgresql#"$prefix_postgresql"}
-                    # REQUIREDVER_POSTGRESQL="1.18.5"
-                    if [[ (! "$(printf '%s\n' "$REQUIREDVER_POSTGRESQL" "$current_version_postgresql" | sort -V | head -n1)" = "$REQUIREDVER_POSTGRESQL") || (! "$(printf '%s\n' "$REQUIREDVER_POSTGRESQL" "$installed_version_postgresql" | sort -V | head -n1)" = "$REQUIREDVER_POSTGRESQL") ]]; then
-                        if [[ $retry -eq ${maxRetry} ]]; then
-                            info "Timeout Checking for the version of cloud-native-postgresql subscription in the project \"$cs_service_target_namespace\""
-                            cloud_native_postgresql_ready="No"
-                            break
-                        else
-                            sleep 30
-                            echo -n "..."
-                            continue
-
-                        fi
-                    else
-                        success "The version of subscription 'cloud-native-postgresql' is v$current_version_postgresql."
-                        cloud_native_postgresql_ready="Yes"
-                        break
-                    fi
-                done
-            else
-                cloud_native_postgresql_ready="Yes"
-            fi
-
-            if [ $ibm_bts_operator_flag -ne 0 ]; then
-                info "Checking the version of subscription "${bts_sub_flag}" in the project \"$cs_service_target_namespace\""
-                for ((retry=0;retry<=${maxRetry};retry++)); do
-                    current_version_bts=$(${CLI_CMD} get subscriptions.operators.coreos.com "${bts_sub_flag}" --no-headers --ignore-not-found -n $cs_service_target_namespace -o 'jsonpath={.status.currentCSV}') >/dev/null 2>&1
-                    installed_version_bts=$(${CLI_CMD} get subscriptions.operators.coreos.com "${bts_sub_flag}" --no-headers --ignore-not-found -n $cs_service_target_namespace -o 'jsonpath={.status.installedCSV}') >/dev/null 2>&1
-                    prefix_bts="ibm-bts-operator.v"
-                    current_version_bts=${current_version_bts#"$prefix_bts"}
-                    installed_version_bts=${installed_version_bts#"$prefix_bts"}
-                    # REQUIREDVER_BTS="3.28.0"
-                    if [[ (! "$(printf '%s\n' "$REQUIREDVER_BTS" "$current_version_bts" | sort -V | head -n1)" = "$REQUIREDVER_BTS") || (! "$(printf '%s\n' "$REQUIREDVER_BTS" "$installed_version_bts" | sort -V | head -n1)" = "$REQUIREDVER_BTS") ]]; then
-                        if [[ $retry -eq ${maxRetry} ]]; then
-                            info "Timeout Checking for the version of "${bts_sub_flag}" subscription in the project \"$cs_service_target_namespace\""
-                            ibm_bts_operator_ready="No"
-                            break
-                        else
-                            sleep 30
-                            echo -n "..."
-                            continue
-                        fi
-                    else
-                        success "The version of subscription "${bts_sub_flag}" is v$current_version_bts."
-                        ibm_bts_operator_ready="Yes"
-                        break
-                    fi
-                done
-            else
-                ibm_bts_operator_ready="Yes"
-            fi
+            # No longer required to check for Postgres upgrade sub logic, upgrading CPFS is sufficient
+            cloud_native_postgresql_ready="Yes"
+            ibm_bts_operator_ready="Yes"
         elif [[ $ENABLE_PRIVATE_CATALOG -eq 1 ]]; then
             # For shared2dedicated/dedicated2dedicated enable private catalog, we do not switch common service catalog source in ibm-common-services project.
             ibm_bts_operator_ready="Yes"
@@ -2777,16 +2753,23 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
         #    done
         #fi
 
-        if [[ "$bai_operator_csv_version" == "24.0."* && (("$ibm_bts_operator_ready" == "Yes" && "$cloud_native_postgresql_ready" == "Yes" )) ]]; then
+        # Calling function to see if the operator version is the right version
+        # the valid_bai_operator_version is set to true if it meets the condition in check_valid_bai_operator_version in common.sh
+        valid_bai_operator_version=false
+        check_valid_bai_operator_version $bai_operator_csv_version
+
+        if [[ "$valid_bai_operator_version" == true && (("$ibm_bts_operator_ready" == "Yes" && "$cloud_native_postgresql_ready" == "Yes" )) ]]; then
             READY_FOR_DIRECT_UPGRADE="Yes"
         else
             READY_FOR_DIRECT_UPGRADE="No"
             fail "Prerequisite for upgrade did not complete, exiting..."
+            exit
         fi
+
         # upgrading the CPFS operators
         if [[ $READY_FOR_DIRECT_UPGRADE == "Yes" ]]; then
             info "Prerequisites for upgrade have been completed with no errors, continue..."
-            if [[ "$bai_operator_csv_version" == "24.0."* ]]; then
+            if [[ "$bai_operator_csv_version" == "24.0."* || "$bai_operator_csv_version" == "24.1."* ]]; then
                 info "Starting to upgrade IBM Cloud Pak foundational services to $CS_OPERATOR_VERSION"
                 # Check if without option --enable-private-catalog, the catalog is in target project, set the private catalog as default.
                 info "Checking if ibm-bai-operator-catalog catalog source is global or private namespace scoped"
@@ -2843,104 +2826,72 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
                     msg "All arguments passed into the CPfs script: $COMMON_SERVICES_SCRIPT_FOLDER/setup_singleton.sh --license-accept --enable-licensing --enable-private-catalog --yq \"$CPFS_YQ_PATH\" -c $CERT_LICENSE_CHANNEL_VERSION"
                     $COMMON_SERVICES_SCRIPT_FOLDER/setup_singleton.sh --license-accept --enable-licensing --enable-private-catalog --yq "$CPFS_YQ_PATH" -c $CERT_LICENSE_CHANNEL_VERSION
                     if [ $? -ne 0 ]; then
-                        warning "Failed to execute command: $COMMON_SERVICES_SCRIPT_FOLDER/setup_singleton.sh --license-accept --enable-licensing --enable-private-catalog --yq \"$CPFS_YQ_PATH\" -c $CERT_LICENSE_CHANNEL_VERSION"
-                        echo "${YELLOW_TEXT}[ATTENTION]:${RESET_TEXT} You can run follow command to try upgrade again after fix migration issue of IBM Cloud Pak foundational services."
-                        echo "           ${GREEN_TEXT}# ./bai-deployment.sh -m upgradeOperator -n $TARGET_PROJECT_NAME --cpfs-upgrade-mode <migration mode> --original-bai-csv-ver <bai-csv-version-before-upgrade>${RESET_TEXT}"
-                        echo "           Usage:"
-                        echo "           --cpfs-upgrade-mode     : The migration mode for IBM Cloud Pak foundational services, the valid values [shared2shared/shared2dedicated/dedicated2dedicated]"
-                        echo "           --original-bai-csv-ver: The version of csv for BAI operator before upgrade, the example value [24.0.1] for 24.0.0-IF001"
-                        echo "           Example command: "
-                        echo "           # ./bai-deployment.sh -m upgradeOperator -n $TARGET_PROJECT_NAME --cpfs-upgrade-mode dedicated2dedicated --original-bai-csv-ver 24.0.1"
+                        TMP_MESSAGE="Failed to execute command: $COMMON_SERVICES_SCRIPT_FOLDER/setup_singleton.sh --license-accept --enable-licensing --enable-private-catalog --yq \"$CPFS_YQ_PATH\" -c $CERT_LICENSE_CHANNEL_VERSION"
+                        displayUpgradeOperatorMessage "$TMP_MESSAGE" $TARGET_PROJECT_NAME $bai_operator_csv_version
                         exit 1
                     fi
+
+                    # set --service-namespace property to BAI_SERVICES_NS when it's seperation of duty
                     if [[ $SEPARATE_OPERAND_FLAG == "Yes" ]]; then
-                        # switch catalog from GCN to private
-                        msg "All arguments passed into the CPfs script: $COMMON_SERVICES_SCRIPT_FOLDER/setup_tenant.sh --license-accept --enable-licensing --operator-namespace $TARGET_PROJECT_NAME --services-namespace $BAI_SERVICES_NS --yq \"$CPFS_YQ_PATH\" -c $CS_CHANNEL_VERSION -s $CS_CATALOG_VERSION --enable-private-catalog -v 1"
-                        $COMMON_SERVICES_SCRIPT_FOLDER/setup_tenant.sh --license-accept --enable-licensing --operator-namespace $TARGET_PROJECT_NAME --services-namespace $BAI_SERVICES_NS --yq "$CPFS_YQ_PATH" -c $CS_CHANNEL_VERSION -s $CS_CATALOG_VERSION --enable-private-catalog -v 1
-                        if [ $? -ne 0 ]; then
-                            warning "Failed to execute command: $COMMON_SERVICES_SCRIPT_FOLDER/setup_tenant.sh --license-accept --enable-licensing --operator-namespace $TARGET_PROJECT_NAME --services-namespace $BAI_SERVICES_NS --yq \"$CPFS_YQ_PATH\" -c $CS_CHANNEL_VERSION -s $CS_CATALOG_VERSION --enable-private-catalog -v 1"
-                            echo "${YELLOW_TEXT}[ATTENTION]:${RESET_TEXT} You can run follow command to try upgrade again after fix migration issue of IBM Cloud Pak foundational services."
-                            echo "           ${GREEN_TEXT}# ./bai-deployment.sh -m upgradeOperator -n $TARGET_PROJECT_NAME --cpfs-upgrade-mode <migration mode> --original-bai-csv-ver <bai-csv-version-before-upgrade>${RESET_TEXT}"
-                            echo "           Usage:"
-                            echo "           --cpfs-upgrade-mode     : The migration mode for IBM Cloud Pak foundational services, the valid values [shared2shared/shared2dedicated/dedicated2dedicated]"
-                            echo "           --original-bai-csv-ver: The version of csv for BAI operator before upgrade, the example value [24.0.1] for 24.0.0-IF001"
-                            echo "           Example command: "
-                            echo "           # ./bai-deployment.sh -m upgradeOperator -n $TARGET_PROJECT_NAME --cpfs-upgrade-mode dedicated2dedicated --original-bai-csv-ver 24.0.1"
-                            exit 1
-                        fi
+                        TMP_SERVICES_NAMESPACE=$BAI_SERVICES_NS
+                    # set --service-namespace property to TARGET_PROJECT_NAME when it's not seperation of duty
                     else
-                        # switch catalog from GCN to private
-                        msg "All arguments passed into the CPfs script: $COMMON_SERVICES_SCRIPT_FOLDER/setup_tenant.sh --license-accept --enable-licensing --operator-namespace $TARGET_PROJECT_NAME --services-namespace $TARGET_PROJECT_NAME --yq \"$CPFS_YQ_PATH\" -c $CS_CHANNEL_VERSION -s $CS_CATALOG_VERSION --enable-private-catalog -v 1"
-                        $COMMON_SERVICES_SCRIPT_FOLDER/setup_tenant.sh --license-accept --enable-licensing --operator-namespace $TARGET_PROJECT_NAME --services-namespace $TARGET_PROJECT_NAME --yq "$CPFS_YQ_PATH" -c $CS_CHANNEL_VERSION -s $CS_CATALOG_VERSION --enable-private-catalog -v 1
-                        if [ $? -ne 0 ]; then
-                            warning "Failed to execute command: $COMMON_SERVICES_SCRIPT_FOLDER/setup_tenant.sh --license-accept --enable-licensing --operator-namespace $TARGET_PROJECT_NAME --services-namespace $TARGET_PROJECT_NAME --yq \"$CPFS_YQ_PATH\" -c $CS_CHANNEL_VERSION -s $CS_CATALOG_VERSION --enable-private-catalog -v 1"
-                            echo "${YELLOW_TEXT}[ATTENTION]:${RESET_TEXT} You can run follow command to try upgrade again after fix migration issue of IBM Cloud Pak foundational services."
-                            echo "           ${GREEN_TEXT}# ./bai-deployment.sh -m upgradeOperator -n $TARGET_PROJECT_NAME --cpfs-upgrade-mode <migration mode> --original-bai-csv-ver <bai-csv-version-before-upgrade>${RESET_TEXT}"
-                            echo "           Usage:"
-                            echo "           --cpfs-upgrade-mode     : The migration mode for IBM Cloud Pak foundational services, the valid values [shared2shared/shared2dedicated/dedicated2dedicated]"
-                            echo "           --original-bai-csv-ver: The version of csv for BAI operator before upgrade, the example value [24.0.1] for 24.0.0-IF001"
-                            echo "           Example command: "
-                            echo "           # ./bai-deployment.sh -m upgradeOperator -n $TARGET_PROJECT_NAME --cpfs-upgrade-mode dedicated2dedicated --original-bai-csv-ver 24.0.1"
-                            exit 1
-                        fi
+                        TMP_SERVICES_NAMESPACE=$TARGET_PROJECT_NAME
                     fi
+                    
+                    # switch catalog from GCN to private when it's seperation of duty.
+                    # Upgrading CPFS
+                    msg "All arguments passed into the CPfs script: $COMMON_SERVICES_SCRIPT_FOLDER/setup_tenant.sh --license-accept --enable-licensing --operator-namespace $TARGET_PROJECT_NAME --services-namespace $TMP_SERVICES_NAMESPACE --yq \"$CPFS_YQ_PATH\" -c $CS_CHANNEL_VERSION -s $CS_CATALOG_VERSION --enable-private-catalog -v 1"
+                    $COMMON_SERVICES_SCRIPT_FOLDER/setup_tenant.sh --license-accept --enable-licensing --operator-namespace $TARGET_PROJECT_NAME --services-namespace $TMP_SERVICES_NAMESPACE --yq "$CPFS_YQ_PATH" -c $CS_CHANNEL_VERSION -s $CS_CATALOG_VERSION --enable-private-catalog -v 1
+                    if [ $? -ne 0 ]; then
+                        TMP_MESSAGE="Failed to execute command: $COMMON_SERVICES_SCRIPT_FOLDER/setup_tenant.sh --license-accept --enable-licensing --operator-namespace $TARGET_PROJECT_NAME --services-namespace $TMP_SERVICES_NAMESPACE --yq \"$CPFS_YQ_PATH\" -c $CS_CHANNEL_VERSION -s $CS_CATALOG_VERSION --enable-private-catalog -v 1"
+                        #source ${CUR_DIR}/helper/messages.sh
+                        displayUpgradeOperatorMessage "$TMP_MESSAGE" $TARGET_PROJECT_NAME  $bai_operator_csv_version
+                        exit 1
+                    fi
+
                 elif [[ $UPGRADE_MODE == "dedicated2dedicated" && $ENABLE_PRIVATE_CATALOG -eq 0 ]]; then
                     # Upgrading Cert-Manager and Licensing Service
                     msg "All arguments passed into the CPfs script: $COMMON_SERVICES_SCRIPT_FOLDER/setup_singleton.sh --license-accept --enable-licensing --yq \"$CPFS_YQ_PATH\" -c $CERT_LICENSE_CHANNEL_VERSION"
                     $COMMON_SERVICES_SCRIPT_FOLDER/setup_singleton.sh --license-accept --enable-licensing --yq "$CPFS_YQ_PATH" -c $CERT_LICENSE_CHANNEL_VERSION
                     if [ $? -ne 0 ]; then
-                        warning "Failed to execute command: $COMMON_SERVICES_SCRIPT_FOLDER/setup_singleton.sh --license-accept --enable-licensing --yq \"$CPFS_YQ_PATH\" -c $CERT_LICENSE_CHANNEL_VERSION"
-                        echo "${YELLOW_TEXT}[ATTENTION]:${RESET_TEXT} You can run follow command to try upgrade again after fix migration issue of IBM Cloud Pak foundational services."
-                        echo "           ${GREEN_TEXT}# ./bai-deployment.sh -m upgradeOperator -n $TARGET_PROJECT_NAME --cpfs-upgrade-mode <migration mode> --original-bai-csv-ver <bai-csv-version-before-upgrade>${RESET_TEXT}"
-                        echo "           Usage:"
-                        echo "           --cpfs-upgrade-mode     : The migration mode for IBM Cloud Pak foundational services, the valid values [shared2shared/shared2dedicated/dedicated2dedicated]"
-                        echo "           --original-bai-csv-ver: The version of csv for BAI operator before upgrade, the example value [24.0.1] for 24.0.0-IF001"
-                        echo "           Example command: "
-                        echo "           # ./bai-deployment.sh -m upgradeOperator -n $TARGET_PROJECT_NAME --cpfs-upgrade-mode dedicated2dedicated --original-bai-csv-ver 24.0.1"
+                        TMP_MESSAGE="Failed to execute command: $COMMON_SERVICES_SCRIPT_FOLDER/setup_singleton.sh --license-accept --enable-licensing --yq \"$CPFS_YQ_PATH\" -c $CERT_LICENSE_CHANNEL_VERSION"
+                        #source ${CUR_DIR}/helper/messages.sh
+                        displayUpgradeOperatorMessage "$TMP_MESSAGE" $TARGET_PROJECT_NAME $bai_operator_csv_version
                         exit 1
                     fi
+
+                    # set --service-namespace property to CP4BA_SERVICES_NS when it's seperation of duty
                     if [[ $SEPARATE_OPERAND_FLAG == "Yes" ]]; then
-                        # keep GCN catalog
-                        msg "All arguments passed into the CPfs script: $COMMON_SERVICES_SCRIPT_FOLDER/setup_tenant.sh --license-accept --enable-licensing --operator-namespace $TARGET_PROJECT_NAME --services-namespace $BAI_SERVICES_NS --yq \"$CPFS_YQ_PATH\" -c $CS_CHANNEL_VERSION -s $CS_CATALOG_VERSION -v 1"
-                        $COMMON_SERVICES_SCRIPT_FOLDER/setup_tenant.sh --license-accept --enable-licensing --operator-namespace $TARGET_PROJECT_NAME --services-namespace $BAI_SERVICES_NS --yq "$CPFS_YQ_PATH" -c $CS_CHANNEL_VERSION -s $CS_CATALOG_VERSION -v 1
-                        if [ $? -ne 0 ]; then
-                            warning "Failed to execute command: $COMMON_SERVICES_SCRIPT_FOLDER/setup_tenant.sh --license-accept --enable-licensing --operator-namespace $TARGET_PROJECT_NAME --services-namespace $BAI_SERVICES_NS --yq \"$CPFS_YQ_PATH\" -c $CS_CHANNEL_VERSION -s $CS_CATALOG_VERSION -v 1"
-                            echo "${YELLOW_TEXT}[ATTENTION]:${RESET_TEXT} You can run follow command to try upgrade again after fix migration issue of IBM Cloud Pak foundational services."
-                            echo "           ${GREEN_TEXT}# ./bai-deployment.sh -m upgradeOperator -n $TARGET_PROJECT_NAME --cpfs-upgrade-mode <migration mode> --original-bai-csv-ver <bai-csv-version-before-upgrade>${RESET_TEXT}"
-                            echo "           Usage:"
-                            echo "           --cpfs-upgrade-mode     : The migration mode for IBM Cloud Pak foundational services, the valid values [shared2shared/shared2dedicated/dedicated2dedicated]"
-                            echo "           --original-bai-csv-ver: The version of csv for BAI operator before upgrade, the example value [24.0.1] for 24.0.0-IF001"
-                            echo "           Example command: "
-                            echo "           # ./bai-deployment.sh -m upgradeOperator -n $TARGET_PROJECT_NAME --cpfs-upgrade-mode dedicated2dedicated --original-bai-csv-ver 24.0.1"
-                            exit 1
-                        fi
+                        TMP_SERVICES_NAMESPACE=$CP4BA_SERVICES_NS
+                    
+                    # set --service-namespace property to TARGET_PROJECT_NAME when it's not seperation of duty
                     else
-                        # keep GCN catalog
-                        msg "All arguments passed into the CPfs script: $COMMON_SERVICES_SCRIPT_FOLDER/setup_tenant.sh --license-accept --enable-licensing --operator-namespace $TARGET_PROJECT_NAME --services-namespace $TARGET_PROJECT_NAME --yq \"$CPFS_YQ_PATH\" -c $CS_CHANNEL_VERSION -s $CS_CATALOG_VERSION -v 1"
-                        $COMMON_SERVICES_SCRIPT_FOLDER/setup_tenant.sh --license-accept --enable-licensing --operator-namespace $TARGET_PROJECT_NAME --services-namespace $TARGET_PROJECT_NAME --yq "$CPFS_YQ_PATH" -c $CS_CHANNEL_VERSION -s $CS_CATALOG_VERSION -v 1
-                        if [ $? -ne 0 ]; then
-                            warning "Failed to execute command: $COMMON_SERVICES_SCRIPT_FOLDER/setup_tenant.sh --license-accept --enable-licensing --operator-namespace $TARGET_PROJECT_NAME --services-namespace $TARGET_PROJECT_NAME --yq \"$CPFS_YQ_PATH\" -c $CS_CHANNEL_VERSION -s $CS_CATALOG_VERSION -v 1"
-                            echo "${YELLOW_TEXT}[ATTENTION]:${RESET_TEXT} You can run follow command to try upgrade again after fix migration issue of IBM Cloud Pak foundational services."
-                            echo "           ${GREEN_TEXT}# ./bai-deployment.sh -m upgradeOperator -n $TARGET_PROJECT_NAME --cpfs-upgrade-mode <migration mode> --original-bai-csv-ver <bai-csv-version-before-upgrade>${RESET_TEXT}"
-                            echo "           Usage:"
-                            echo "           --cpfs-upgrade-mode     : The migration mode for IBM Cloud Pak foundational services, the valid values [shared2shared/shared2dedicated/dedicated2dedicated]"
-                            echo "           --original-bai-csv-ver: The version of csv for BAI operator before upgrade, the example value [24.0.1] for 24.0.0-IF001"
-                            echo "           Example command: "
-                            echo "           # ./bai-deployment.sh -m upgradeOperator -n $TARGET_PROJECT_NAME --cpfs-upgrade-mode dedicated2dedicated --original-bai-csv-ver 24.0.1"
-                            exit 1
-                        fi
+                        TMP_SERVICES_NAMESPACE=$TARGET_PROJECT_NAME
                     fi
+
+                    # keep GCN catalog
+                    msg "All arguments passed into the CPfs script: $COMMON_SERVICES_SCRIPT_FOLDER/setup_tenant.sh --license-accept --enable-licensing --operator-namespace $TARGET_PROJECT_NAME --services-namespace $TMP_SERVICES_NAMESPACE --yq \"$CPFS_YQ_PATH\" -c $CS_CHANNEL_VERSION -s $CS_CATALOG_VERSION -v 1"
+                    $COMMON_SERVICES_SCRIPT_FOLDER/setup_tenant.sh --license-accept --enable-licensing --operator-namespace $TARGET_PROJECT_NAME --services-namespace $TMP_SERVICES_NAMESPACE --yq "$CPFS_YQ_PATH" -c $CS_CHANNEL_VERSION -s $CS_CATALOG_VERSION -v 1
+                    if [ $? -ne 0 ]; then
+                        TMP_MESSAGE= "Failed to execute command: $COMMON_SERVICES_SCRIPT_FOLDER/setup_tenant.sh --license-accept --enable-licensing --operator-namespace $TARGET_PROJECT_NAME --services-namespace $TMP_SERVICES_NAMESPACE --yq \"$CPFS_YQ_PATH\" -c $CS_CHANNEL_VERSION -s $CS_CATALOG_VERSION -v 1"
+                        #source ${CUR_DIR}/helper/messages.sh
+                        displayUpgradeOperatorMessage "$TMP_MESSAGE" $TARGET_PROJECT_NAME $bai_operator_csv_version
+                        exit 1
+                    fi
+
+                # Not a scenario currently supported, but code in it for now.    
                 elif [[ $UPGRADE_MODE == "shared2shared" && $ALL_NAMESPACE_FLAG == "No" ]]; then
                     # Upgrading Cert-Manager and Licensing Service
                     msg "All arguments passed into the CPfs script: $COMMON_SERVICES_SCRIPT_FOLDER/setup_singleton.sh --license-accept --enable-licensing --yq \"$CPFS_YQ_PATH\" -c $CERT_LICENSE_CHANNEL_VERSION"
                     $COMMON_SERVICES_SCRIPT_FOLDER/setup_singleton.sh --license-accept --enable-licensing --yq "$CPFS_YQ_PATH" -c $CERT_LICENSE_CHANNEL_VERSION
                     if [ $? -ne 0 ]; then
                         warning "Failed to execute command: $COMMON_SERVICES_SCRIPT_FOLDER/setup_singleton.sh --license-accept --enable-licensing --yq \"$CPFS_YQ_PATH\" -c $CERT_LICENSE_CHANNEL_VERSION"
-                        echo "${YELLOW_TEXT}[ATTENTION]:${RESET_TEXT} You can run follow command to try upgrade again after fix migration issue of IBM Cloud Pak foundational services."
+                        echo "${YELLOW_TEXT}[ATTENTION]:${RESET_TEXT} You can run the following command to try upgrading again after fixing the migration issue of IBM Cloud Pak foundational services."
                         echo "           ${GREEN_TEXT}# ./bai-deployment.sh -m upgradeOperator -n $TARGET_PROJECT_NAME --cpfs-upgrade-mode <migration mode> --original-bai-csv-ver <bai-csv-version-before-upgrade>${RESET_TEXT}"
                         echo "           Usage:"
-                        echo "           --cpfs-upgrade-mode     : The migration mode for IBM Cloud Pak foundational services, the valid values [shared2shared/shared2dedicated/dedicated2dedicated]"
-                        echo "           --original-bai-csv-ver: The version of csv for BAI operator before upgrade, the example value [24.0.1] for 24.0.0-IF001"
+                        echo "           --cpfs-upgrade-mode     : The migration mode for IBM Cloud Pak foundational services; valid values are [shared2shared/shared2dedicated/dedicated2dedicated]."
+                        echo "           --original-bai-csv-ver  : The version of the CSV for the BAI operator before the upgrade. For example, use [24.0.1] for 24.0.0-IF001."
                         echo "           Example command: "
                         echo "           # ./bai-deployment.sh -m upgradeOperator -n $TARGET_PROJECT_NAME --cpfs-upgrade-mode dedicated2dedicated --original-bai-csv-ver 24.0.1"
                         exit 1
@@ -2950,11 +2901,11 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
                     $COMMON_SERVICES_SCRIPT_FOLDER/setup_tenant.sh --license-accept --enable-licensing --operator-namespace $TARGET_PROJECT_NAME --services-namespace ibm-common-services --yq "$CPFS_YQ_PATH" -c $CS_CHANNEL_VERSION -s $CS_CATALOG_VERSION -v 1
                     if [ $? -ne 0 ]; then
                         warning "Failed to execute command: $COMMON_SERVICES_SCRIPT_FOLDER/setup_tenant.sh --license-accept --enable-licensing --operator-namespace $TARGET_PROJECT_NAME --services-namespace ibm-common-services --yq \"$CPFS_YQ_PATH\" -c $CS_CHANNEL_VERSION -s $CS_CATALOG_VERSION -v 1"
-                        echo "${YELLOW_TEXT}[ATTENTION]:${RESET_TEXT} You can run follow command to try upgrade again after fix migration issue of IBM Cloud Pak foundational services."
+                        echo "${YELLOW_TEXT}[ATTENTION]:${RESET_TEXT} You can run the following command to try upgrading again after fixing the migration issue of IBM Cloud Pak foundational services."
                         echo "           ${GREEN_TEXT}# ./bai-deployment.sh -m upgradeOperator -n $TARGET_PROJECT_NAME --cpfs-upgrade-mode <migration mode> --original-bai-csv-ver <bai-csv-version-before-upgrade>${RESET_TEXT}"
                         echo "           Usage:"
-                        echo "           --cpfs-upgrade-mode     : The migration mode for IBM Cloud Pak foundational services, the valid values [shared2shared/shared2dedicated/dedicated2dedicated]"
-                        echo "           --original-bai-csv-ver: The version of csv for BAI operator before upgrade, the example value [24.0.1] for 24.0.0-IF001"
+                        echo "           --cpfs-upgrade-mode     : The migration mode for IBM Cloud Pak foundational services; valid values are [shared2shared/shared2dedicated/dedicated2dedicated]."
+                        echo "           --original-bai-csv-ver  : The version of the CSV for the BAI operator before the upgrade. For example, use [24.0.1] for 24.0.0-IF001."
                         echo "           Example command: "
                         echo "           # ./bai-deployment.sh -m upgradeOperator -n $TARGET_PROJECT_NAME --cpfs-upgrade-mode dedicated2dedicated --original-bai-csv-ver 24.0.1"
                         exit 1
@@ -2974,10 +2925,10 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
                 if [[ $retry -eq ${maxRetry} ]]; then
                 printf "\n"
                 warning "Timeout waiting for IBM Cloud Pak foundational operator to start"
-                echo -e "\x1B[1mPlease check the status of Pod by issue cmd:\x1B[0m"
+                echo -e "\x1B[1mCheck the status of Pod by issuing the following command:\x1B[0m"
                 echo "${CLI_CMD} describe pod $(${CLI_CMD} get pod -n $TEMP_OPERATOR_PROJECT_NAME|grep ibm-common-service-operator|awk '{print $1}') -n $TEMP_OPERATOR_PROJECT_NAME"
                 printf "\n"
-                echo -e "\x1B[1mPlease check the status of ReplicaSet by issue cmd:\x1B[0m"
+                echo -e "\x1B[1mCheck the status of ReplicaSet by issuing the following command:\x1B[0m"
                 echo "${CLI_CMD} describe rs $(${CLI_CMD} get rs -n $TEMP_OPERATOR_PROJECT_NAME|grep ibm-common-service-operator|awk '{print $1}') -n $TEMP_OPERATOR_PROJECT_NAME"
                 printf "\n"
                 exit 1
@@ -3005,7 +2956,7 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
         # Checking BAI operator CSV
         sub_inst_list=$(${CLI_CMD} get subscriptions.operators.coreos.com -n $TEMP_OPERATOR_PROJECT_NAME|grep ibm-bai-operator-catalog|awk '{if(NR>0){if(NR==1){ arr=$1; }else{ arr=arr" "$1; }} } END{ print arr }')
         if [[ -z $sub_inst_list ]]; then
-            fail "Not found any existing BAI Standalone subscriptions (version $BAI_CSV_VERSION), exiting ..."
+            fail "No existing BAI Standalone subscriptions found (version $BAI_CSV_VERSION), exiting ..."
             exit 1
         fi
         sub_array=($sub_inst_list)
@@ -3024,7 +2975,7 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
                             current_version=$(${CLI_CMD} get subscriptions.operators.coreos.com ${sub_array[i]} --no-headers --ignore-not-found -n $TEMP_OPERATOR_PROJECT_NAME -o 'jsonpath={.status.currentCSV}') >/dev/null 2>&1
                             installed_version=$(${CLI_CMD} get subscriptions.operators.coreos.com ${sub_array[i]} --no-headers --ignore-not-found -n $TEMP_OPERATOR_PROJECT_NAME -o 'jsonpath={.status.installedCSV}') >/dev/null 2>&1
                             if [[ -z $current_version || -z $installed_version ]]; then
-                                error "Failed to get installed or current CSV, abort the upgrade procedure. Please check ${sub_array[i]} subscription status."
+                                error "Failed to retrieve installed or current CSV, abort the upgrade procedure. Check the subscription status of ${sub_array[i]}."
                                 exit 1
                             fi
                             case "${sub_array[i]}" in
@@ -3041,7 +2992,7 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
                             if [[ $current_version != $installed_version || $current_version != $target_csv_version || $installed_version != $target_csv_version ]]; then
                                 approval_mode=$(${CLI_CMD} get subscription.operators.coreos.com ${sub_array[i]} --no-headers --ignore-not-found -n $TEMP_OPERATOR_PROJECT_NAME -o jsonpath={.spec.installPlanApproval})
                                 if [[ $approval_mode == "Manual" ]]; then
-                                    error "${sub_array[i]} subscription is set to Manual Approval mode, please approve installPlan to upgrade."
+                                    error "${sub_array[i]} subscription is set to Manual Approval mode. Approve the installPlan to proceed with the upgrade."
                                     exit 1
                                 fi
                                 if [[ $retry -eq ${maxRetry} ]]; then
@@ -3064,36 +3015,63 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
                     fi
                 fi
             else
-                fail "No found subscription '${sub_array[i]}'! exiting now..."
+                fail "No subscription found for '${sub_array[i]}'! exiting now..."
                 exit 1
             fi
         done
         success "Completed the check for channels of all subscriptions of BAI Standalone operators"
 
+        # DBACLD-166239 -> Update EDB configmap ibm-zen-metastore-edb-cm to add new parameters with CPFS 4.10 or later by calling patch_edb_configmap()
+        patch_edb_configmap $BAI_SERVICES_NS
+
+        # DBACLD-166239 -> Update EDB configmap ibm-zen-metastore-edb-cm to add new parameters with CPFS 4.10 or later.
+        # During upgrade, we check the existence of the configmap along with these 2 new parameters.
+        # If those parameters exists then we will not patch the configmap as the configmap is same for embedded and external postgres.
+        zen_edb_cfg="ibm-zen-metastore-edb-cm"
+        zen_edb_parm1="DATABASE_ENABLE_SSL"
+        zen_edb_parm1_value="true"
+        zen_edb_parm2="DATABASE_SSL_MODE"
+        zen_edb_parm2_value="require"
+        #zen_edb_cfg_found=$(${CLI_CMD} get configmap $zen_edb_cfg --no-headers | head -1 | awk '{print $1}' -n $BAI_SERVICES_NS )
+        if ${CLI_CMD} get configmap $zen_edb_cfg -o jsonpath='{.data.$zen_edb_parm1}' &> /dev/null && ${CLI_CMD} get configmap $zen_edb_cfg -o jsonpath='{.data.$zen_edb_parm2}' -n $BAI_SERVICES_NS &> /dev/null; then
+            echo "Required parameters exist in the $zen_edb_cfg configmap"
+            edb_parm_result="true"
+        else
+            echo "Required Zen parameters does not exist in the $zen_edb_cfg configmap"
+            edb_parm_result="false"
+        fi
+
+        # Patch configmap if the required parameters does not exist.
+        if [ "$edb_parm_result" = "false" ]; then
+           ${CLI_CMD} patch configmap $zen_edb_cfg -n $BAI_SERVICES_NS --type=merge -p '{"data": {"'$zen_edb_parm1'":"'$zen_edb_parm1_value'","'$zen_edb_parm2'":"'$zen_edb_parm2_value'"}}' 
+        fi  
+
         # For Major release upgrade
+        # shutdown CP4BA operators and show tips for [NEXT ACTION]
         if [[ "$bai_original_csv_ver_for_upgrade_script" != "24.1."* ]]; then
-            printf "\n"
             echo "${YELLOW_TEXT}[NEXT ACTIONS]:${RESET_TEXT}"
             step_num=1
-            echo "  - STEP ${step_num} ${YELLOW_TEXT}(Optional)${RESET_TEXT}: You can run ${GREEN_TEXT}\"./bai-deployment.sh -m upgradeOperatorStatus -n $TARGET_PROJECT_NAME\"${RESET_TEXT} to check that the upgrade of the IBM Business Automation Insights operator and its dependencies is successful."
+            echo "  - STEP ${step_num} ${YELLOW_TEXT}(Optional)${RESET_TEXT}: You can run ${GREEN_TEXT}\"./bai-deployment.sh -m upgradeOperatorStatus -n $TARGET_PROJECT_NAME\"${RESET_TEXT} to check whether the upgrade of the IBM Business Automation Insights operator and its dependencies was successful."
             printf "\n"
             step_num=$((step_num + 1))
             echo "  - STEP ${step_num} ${RED_TEXT}(Required)${RESET_TEXT}: You can run ${GREEN_TEXT}\"./bai-deployment.sh -m upgradeDeployment -n $TARGET_PROJECT_NAME\"${RESET_TEXT} to upgrade the IBM Business Automation Insights deployment."
             printf "\n"
             step_num=$((step_num + 1))
-            echo "  - STEP ${step_num} ${RED_TEXT}(Required)${RESET_TEXT}: You can run ${GREEN_TEXT}\"./bai-deployment.sh -m upgradeDeploymentStatus -n $TARGET_PROJECT_NAME\"${RESET_TEXT} to check that the upgrade of the IBM Business Automation Insights deployment is successful."
+            echo "  - STEP ${step_num} ${RED_TEXT}(Required)${RESET_TEXT}: You can run ${GREEN_TEXT}\"./bai-deployment.sh -m upgradeDeploymentStatus -n $TARGET_PROJECT_NAME\"${RESET_TEXT} to check whether the upgrade of the IBM Business Automation Insights deployment was successful."
         # for upgrading IFIX by IFIX
         else
             printf "\n"
             echo "${YELLOW_TEXT}[NEXT ACTIONS]:${RESET_TEXT}"
             step_num=1
-            echo "  - STEP ${step_num} ${YELLOW_TEXT}(Optional)${RESET_TEXT}: You can run ${GREEN_TEXT}\"./bai-deployment.sh -m upgradeOperatorStatus -n $TARGET_PROJECT_NAME\"${RESET_TEXT} to check that the upgrade of the IBM Business Automation Insights operator and its dependencies is successful."
+            echo "  - STEP ${step_num} ${YELLOW_TEXT}(Optional)${RESET_TEXT}: You can run ${GREEN_TEXT}\"./bai-deployment.sh -m upgradeOperatorStatus -n $TARGET_PROJECT_NAME\"${RESET_TEXT} to check whether the upgrade of the IBM Business Automation Insights operator and its dependencies was successful."
             printf "\n"
             step_num=$((step_num + 1))
-            echo "  - STEP ${step_num} ${RED_TEXT}(Required)${RESET_TEXT}: You can run ${GREEN_TEXT}\"./bai-deployment.sh -m upgradeDeploymentStatus -n $TARGET_PROJECT_NAME\"${RESET_TEXT} to check that the upgrade of the IBM Business Automation Insights deployment is successful."
+            echo "  - STEP ${step_num} ${RED_TEXT}(Required)${RESET_TEXT}: You can run ${GREEN_TEXT}\"./bai-deployment.sh -m upgradeDeploymentStatus -n $TARGET_PROJECT_NAME\"${RESET_TEXT} to check whether the upgrade of the IBM Business Automation Insights deployment was successful."
         fi
     fi
 fi
+
+############## End - Migration CPfs mode and upgrade BAIS Operators ##############
 
 #This runtime is to check the operator status after the upgrade is completed
 if [ "$RUNTIME_MODE" == "upgradeOperatorStatus" ]; then
@@ -3161,7 +3139,7 @@ if [ "$RUNTIME_MODE" == "upgradeOperatorStatus" ]; then
         fi
     fi
     if [[ -z $insightsengine_cr_name ]]; then
-        fail "Not found any BAI Standalone custom resource file in the project \"$BAI_SERVICES_NS\"."
+        fail "No custom resource found for BAI Standalone under the project \"$BAI_SERVICES_NS\"."
         exit 1
     fi
 
@@ -3187,7 +3165,7 @@ if [ "$RUNTIME_MODE" == "upgradeOperatorStatus" ]; then
             printf "\n"
             echo "${YELLOW_TEXT}[NEXT ACTION]${RESET_TEXT}: "
             printf "\n"
-            echo "${YELLOW_TEXT}* Run the script in [upgradeDeploymentStatus] mode directly when upgrade BAI standalone from $BAI_RELEASE_BASE IFix to IFix.${RESET_TEXT}"
+            echo "${YELLOW_TEXT}* Run the script in [upgradeDeploymentStatus] mode directly to upgrade BAI standalone from $BAI_RELEASE_BASE IFix to IFix.${RESET_TEXT}"
             echo "${GREEN_TEXT}# ./bai-deployment.sh -m upgradeDeploymentStatus -n $TARGET_PROJECT_NAME${RESET_TEXT}"
         fi
         
@@ -3235,7 +3213,7 @@ if [ "$RUNTIME_MODE" == "upgradeDeployment" ]; then
             warning "The release version of insightsengine custom resource \"$insightsengine_cr_name\" is already \"$cr_version\"."
             printf "\n"
             while true; do
-                printf "\x1B[1mDo you want to continue run upgrade? (Yes/No, default: No): \x1B[0m"
+                printf "\x1B[1mDo you want to continue running the upgrade? (Yes/No, default: No): \x1B[0m"
                 read -rp "" ans
                 case "$ans" in
                 "y"|"Y"|"yes"|"Yes"|"YES")
@@ -3251,6 +3229,8 @@ if [ "$RUNTIME_MODE" == "upgradeDeployment" ]; then
                     ;;
                 esac
             done
+        else #DBACLD-160277: Setting the original version of the ICP4ACluster CR to the current version of the content CR
+            export original_cr_version=$cr_version
         fi
     fi
 
@@ -3267,7 +3247,7 @@ if [ "$RUNTIME_MODE" == "upgradeDeployment" ]; then
     printf "\n"
     msgB "To check zenService status and progress manually: "
     echo "  # ${CLI_CMD} get zenService $(${CLI_CMD} get zenService --no-headers --ignore-not-found -n $BAI_SERVICES_NS |awk '{print $1}') --no-headers --ignore-not-found -n $BAI_SERVICES_NS -o jsonpath='{.status.zenStatus}'"
-    echo "  # ${CLI_CMD} get zenService $(${CLI_CMD} get zenService --no-headers --ignore-not-found -n $BAI_SERVICES_NS |awk '{print $1}') --no-headers --ignore-not-found -n $BAI_SERVICES_NS -o jsonpath='{.status.Progress}'"
+    echo "  # ${CLI_CMD} get zenService $(${CLI_CMD} get zenService --no-headers --ignore-not-found -n $BAI_SERVICES_NS |awk '{print $1}') --no-headers --ignore-not-found -n $BAI_SERVICES_NS -o jsonpath='{.status.progress}'"
 fi
 
 # This mode is for upgradeDeploymentStatus , shows the upgrade status for zen and also how to track the deployment status 
@@ -3330,7 +3310,7 @@ if [[ "$RUNTIME_MODE" == "upgradeDeploymentStatus" ]]; then
 
         cr_version=$(${CLI_CMD} get insightsengine $insightsengine_cr_name -n $BAI_SERVICES_NS -o yaml | ${YQ_CMD} r - spec.appVersion)
         if [[ $cr_version != "${BAI_RELEASE_BASE}" ]]; then
-            fail "The release version: \"$cr_version\" in insightsengine custom resource \"$insightsengine_cr_name\" is not correct, please apply new version of the custom resource file first."
+            fail "The release version: \"$cr_version\" in insightsengine custom resource \"$insightsengine_cr_name\" is not correct, apply new version of the custom resource file first."
             exit 1
         fi
     fi
@@ -3349,7 +3329,8 @@ if [[ "$RUNTIME_MODE" == "upgradeDeploymentStatus" ]]; then
 
             zenservice_version=$(${CLI_CMD} get zenService $zen_service_name --no-headers --ignore-not-found -n $BAI_SERVICES_NS -o jsonpath='{.status.currentVersion}')
             isCompleted=$(${CLI_CMD} get zenService $zen_service_name --no-headers --ignore-not-found -n $BAI_SERVICES_NS -o jsonpath='{.status.zenStatus}')
-            isProgressDone=$(${CLI_CMD} get zenService $zen_service_name --no-headers --ignore-not-found -n $BAI_SERVICES_NS -o jsonpath='{.status.Progress}')
+            # DBACLD-165802:Updated zenService check from "Progress" to "progress" for CPFS 4.10 and above.
+            isProgressDone=$(${CLI_CMD} get zenService $zen_service_name --no-headers --ignore-not-found -n $BAI_SERVICES_NS -o jsonpath='{.status.progress}')
 
             if [[ "$isCompleted" != "Completed" || "$isProgressDone" != "100%" || "$zenservice_version" != "${ZEN_OPERATOR_VERSION//v/}" ]]; then
                 clear
@@ -3381,7 +3362,7 @@ if [[ "$RUNTIME_MODE" == "upgradeDeploymentStatus" ]]; then
             elif [[ $retry -eq ${maxRetry} ]]; then
                 printf "\n"
                 warning "Timeout waiting for the Zen Service to start"
-                echo -e "\x1B[1mPlease check the status of the Zen Service\x1B[0m"
+                echo -e "\x1B[1mCheck the status of the Zen Service\x1B[0m"
                 printf "\n"
                 exit 1
             fi
@@ -3411,7 +3392,7 @@ if [[ "$RUNTIME_MODE" == "upgradeDeploymentStatus" ]]; then
         fi
 
     else
-        fail "No found the zenService in the project \"$BAI_SERVICES_NS\", exit..."
+        fail "ZenService not found in the project \"$BAI_SERVICES_NS\", exiting..."
         echo "****************************************************************************"
         exit 1
     fi
