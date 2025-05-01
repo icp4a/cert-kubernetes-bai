@@ -254,7 +254,9 @@ function prompt_license(){
 }
 
 function set_script_mode(){
-    if [[ -f $TEMPORARY_PROPERTY_FILE && -f $LDAP_PROPERTY_FILE ]]; then
+    # The property file required and created in all scenarios is the user profile property file, ldap is optional with BAI
+    # DBACLD-168779
+    if [[ -f $TEMPORARY_PROPERTY_FILE && -f $USER_PROFILE_PROPERTY_FILE ]]; then
         DEPLOYMENT_WITH_PROPERTY="Yes"
     else
         DEPLOYMENT_WITH_PROPERTY="No"
@@ -292,6 +294,9 @@ function load_property_before_generate(){
     optional_component_list="$(prop_tmp_property_file OPTION_COMPONENT_LIST)"
     optional_component_name_list="$(prop_tmp_property_file OPTION_COMPONENT_NAME_LIST)"
     foundation_list="$(prop_tmp_property_file FOUNDATION_LIST)"
+    # Loading the LDAP_FLAG that will help the script know if the ldap section in the CR is required or not
+    # DBACLD-168779
+    selected_ldap_flag="$(prop_tmp_property_file SELECTED_LDAP_FLAG)"
 
     OIFS=$IFS
     IFS=',' read -ra pattern_cr_arr <<< "$pattern_list"
@@ -1383,28 +1388,33 @@ function sync_property_into_final_cr(){
         ${YQ_CMD} w -i ${BAI_PATTERN_FILE_TMP} spec.shared_configuration.enable_fips "false"
     fi
     
-    # Applying value in LDAP property file into final CR
-    for i in "${!LDAP_COMMON_CR_MAPPING[@]}"; do
-        ${YQ_CMD} w -i ${BAI_PATTERN_FILE_TMP} "${LDAP_COMMON_CR_MAPPING[i]}" "\"$(prop_ldap_property_file ${LDAP_COMMON_PROPERTY[i]})\""
-    done
+    # Applying value in LDAP property file into final CR if LDAP was selected
+    # DBACLD-168779
+    if [[ "$(echo "$selected_ldap_flag" | tr '[:upper:]' '[:lower:]')" == "yes" ]]; then
+        for i in "${!LDAP_COMMON_CR_MAPPING[@]}"; do
+            ${YQ_CMD} w -i ${BAI_PATTERN_FILE_TMP} "${LDAP_COMMON_CR_MAPPING[i]}" "\"$(prop_ldap_property_file ${LDAP_COMMON_PROPERTY[i]})\""
+        done
 
-    if [[ $LDAP_TYPE == "AD" ]]; then
-        for i in "${!AD_LDAP_CR_MAPPING[@]}"; do
-            ${YQ_CMD} w -i ${BAI_PATTERN_FILE_TMP} "${AD_LDAP_CR_MAPPING[i]}" "\"$(prop_ldap_property_file ${AD_LDAP_PROPERTY[i]})\""
-        done
-    elif [[ $LDAP_TYPE == "TDS" ]]; then
-        for i in "${!TDS_LDAP_CR_MAPPING[@]}"; do
-            ${YQ_CMD} w -i ${BAI_PATTERN_FILE_TMP} "${TDS_LDAP_CR_MAPPING[i]}" "\"$(prop_ldap_property_file ${TDS_LDAP_PROPERTY[i]})\""
-        done
+        if [[ $LDAP_TYPE == "AD" ]]; then
+            for i in "${!AD_LDAP_CR_MAPPING[@]}"; do
+                ${YQ_CMD} w -i ${BAI_PATTERN_FILE_TMP} "${AD_LDAP_CR_MAPPING[i]}" "\"$(prop_ldap_property_file ${AD_LDAP_PROPERTY[i]})\""
+            done
+        elif [[ $LDAP_TYPE == "TDS" ]]; then
+            for i in "${!TDS_LDAP_CR_MAPPING[@]}"; do
+                ${YQ_CMD} w -i ${BAI_PATTERN_FILE_TMP} "${TDS_LDAP_CR_MAPPING[i]}" "\"$(prop_ldap_property_file ${TDS_LDAP_PROPERTY[i]})\""
+            done
+        else
+            for i in "${!CUSTOM_LDAP_CR_MAPPING[@]}"; do
+                ${YQ_CMD} w -i ${BAI_PATTERN_FILE_TMP} "${CUSTOM_LDAP_CR_MAPPING[i]}" "\"$(prop_ldap_property_file ${CUSTOM_LDAP_PROPERTY[i]})\""
+            done
+        fi
+
+        # set lc_bind_secret
+        tmp_secret_name=`kubectl get secret -l name=ldap-bind-secret -o yaml | ${YQ_CMD} r - items.[0].metadata.name`
+        ${YQ_CMD} w -i ${BAI_PATTERN_FILE_TMP} spec.ldap_configuration.lc_bind_secret "\"$tmp_secret_name\""
     else
-        for i in "${!CUSTOM_LDAP_CR_MAPPING[@]}"; do
-            ${YQ_CMD} w -i ${BAI_PATTERN_FILE_TMP} "${CUSTOM_LDAP_CR_MAPPING[i]}" "\"$(prop_ldap_property_file ${CUSTOM_LDAP_PROPERTY[i]})\""
-        done
+        ${YQ_CMD} d -i ${BAI_PATTERN_FILE_TMP} spec.ldap_configuration
     fi
-
-    # set lc_bind_secret
-    tmp_secret_name=`kubectl get secret -l name=ldap-bind-secret -o yaml | ${YQ_CMD} r - items.[0].metadata.name`
-    ${YQ_CMD} w -i ${BAI_PATTERN_FILE_TMP} spec.ldap_configuration.lc_bind_secret "\"$tmp_secret_name\""
 
     # echo "DOCKER_REG_SERVER=$DOCKER_REG_SERVER, use_entitlement=$use_entitlement, CONVERT_LOCAL_REGISTRY_SERVER=$CONVERT_LOCAL_REGISTRY_SERVER, PLATFORM_SELECTED=$PLATFORM_SELECTED,"
     # Set bai_configuration.admin_user
@@ -1841,9 +1851,9 @@ function cncf_install(){
 }
 
 function show_help() {
-    echo -e "\nUsage: bai-deployment.sh -m [modetype] -n <BAI_NAMESPACE>\n"
+    echo -e "\nUsage: ${CUR_DIR}/bai-deployment.sh -m [modetype] -n <BAI_NAMESPACE>\n"
     echo -e "  OR"
-    echo -e " ./bai-deployment.sh -n <BAI_NAMESPACE>"
+    echo -e " ${CUR_DIR}/bai-deployment.sh -n <BAI_NAMESPACE>"
     echo "Options:"
     echo "  -h  Display help."
     echo "  -m  The valid mode types are: [upgradeOperator], [upgradeOperatorStatus], [upgradeDeployment], and [upgradeDeploymentStatus]."
@@ -2888,7 +2898,7 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
                     if [ $? -ne 0 ]; then
                         warning "Failed to execute command: $COMMON_SERVICES_SCRIPT_FOLDER/setup_singleton.sh --license-accept --enable-licensing --yq \"$CPFS_YQ_PATH\" -c $CERT_LICENSE_CHANNEL_VERSION"
                         echo "${YELLOW_TEXT}[ATTENTION]:${RESET_TEXT} You can run the following command to try upgrading again after fixing the migration issue of IBM Cloud Pak foundational services."
-                        echo "           ${GREEN_TEXT}# ./bai-deployment.sh -m upgradeOperator -n $TARGET_PROJECT_NAME --cpfs-upgrade-mode <migration mode> --original-bai-csv-ver <bai-csv-version-before-upgrade>${RESET_TEXT}"
+                        echo "           ${GREEN_TEXT}# ${CUR_DIR}/bai-deployment.sh -m upgradeOperator -n $TARGET_PROJECT_NAME --cpfs-upgrade-mode <migration mode> --original-bai-csv-ver <bai-csv-version-before-upgrade>${RESET_TEXT}"
                         echo "           Usage:"
                         echo "           --cpfs-upgrade-mode     : The migration mode for IBM Cloud Pak foundational services; valid values are [shared2shared/shared2dedicated/dedicated2dedicated]."
                         echo "           --original-bai-csv-ver  : The version of the CSV for the BAI operator before the upgrade. For example, use [24.0.1] for 24.0.0-IF001."
@@ -2902,7 +2912,7 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
                     if [ $? -ne 0 ]; then
                         warning "Failed to execute command: $COMMON_SERVICES_SCRIPT_FOLDER/setup_tenant.sh --license-accept --enable-licensing --operator-namespace $TARGET_PROJECT_NAME --services-namespace ibm-common-services --yq \"$CPFS_YQ_PATH\" -c $CS_CHANNEL_VERSION -s $CS_CATALOG_VERSION -v 1"
                         echo "${YELLOW_TEXT}[ATTENTION]:${RESET_TEXT} You can run the following command to try upgrading again after fixing the migration issue of IBM Cloud Pak foundational services."
-                        echo "           ${GREEN_TEXT}# ./bai-deployment.sh -m upgradeOperator -n $TARGET_PROJECT_NAME --cpfs-upgrade-mode <migration mode> --original-bai-csv-ver <bai-csv-version-before-upgrade>${RESET_TEXT}"
+                        echo "           ${GREEN_TEXT}# ${CUR_DIR}/bai-deployment.sh -m upgradeOperator -n $TARGET_PROJECT_NAME --cpfs-upgrade-mode <migration mode> --original-bai-csv-ver <bai-csv-version-before-upgrade>${RESET_TEXT}"
                         echo "           Usage:"
                         echo "           --cpfs-upgrade-mode     : The migration mode for IBM Cloud Pak foundational services; valid values are [shared2shared/shared2dedicated/dedicated2dedicated]."
                         echo "           --original-bai-csv-ver  : The version of the CSV for the BAI operator before the upgrade. For example, use [24.0.1] for 24.0.0-IF001."
@@ -3051,22 +3061,22 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
         if [[ "$bai_original_csv_ver_for_upgrade_script" != "24.1."* ]]; then
             echo "${YELLOW_TEXT}[NEXT ACTIONS]:${RESET_TEXT}"
             step_num=1
-            echo "  - STEP ${step_num} ${YELLOW_TEXT}(Optional)${RESET_TEXT}: You can run ${GREEN_TEXT}\"./bai-deployment.sh -m upgradeOperatorStatus -n $TARGET_PROJECT_NAME\"${RESET_TEXT} to check whether the upgrade of the IBM Business Automation Insights operator and its dependencies was successful."
+            echo "  - STEP ${step_num} ${YELLOW_TEXT}(Optional)${RESET_TEXT}: You can run ${GREEN_TEXT}\"${CUR_DIR}/bai-deployment.sh -m upgradeOperatorStatus -n $TARGET_PROJECT_NAME\"${RESET_TEXT} to check whether the upgrade of the IBM Business Automation Insights operator and its dependencies was successful."
             printf "\n"
             step_num=$((step_num + 1))
-            echo "  - STEP ${step_num} ${RED_TEXT}(Required)${RESET_TEXT}: You can run ${GREEN_TEXT}\"./bai-deployment.sh -m upgradeDeployment -n $TARGET_PROJECT_NAME\"${RESET_TEXT} to upgrade the IBM Business Automation Insights deployment."
+            echo "  - STEP ${step_num} ${RED_TEXT}(Required)${RESET_TEXT}: You can run ${GREEN_TEXT}\"${CUR_DIR}/bai-deployment.sh -m upgradeDeployment -n $TARGET_PROJECT_NAME\"${RESET_TEXT} to upgrade the IBM Business Automation Insights deployment."
             printf "\n"
             step_num=$((step_num + 1))
-            echo "  - STEP ${step_num} ${RED_TEXT}(Required)${RESET_TEXT}: You can run ${GREEN_TEXT}\"./bai-deployment.sh -m upgradeDeploymentStatus -n $TARGET_PROJECT_NAME\"${RESET_TEXT} to check whether the upgrade of the IBM Business Automation Insights deployment was successful."
+            echo "  - STEP ${step_num} ${RED_TEXT}(Required)${RESET_TEXT}: You can run ${GREEN_TEXT}\"${CUR_DIR}/bai-deployment.sh -m upgradeDeploymentStatus -n $TARGET_PROJECT_NAME\"${RESET_TEXT} to check whether the upgrade of the IBM Business Automation Insights deployment was successful."
         # for upgrading IFIX by IFIX
         else
             printf "\n"
             echo "${YELLOW_TEXT}[NEXT ACTIONS]:${RESET_TEXT}"
             step_num=1
-            echo "  - STEP ${step_num} ${YELLOW_TEXT}(Optional)${RESET_TEXT}: You can run ${GREEN_TEXT}\"./bai-deployment.sh -m upgradeOperatorStatus -n $TARGET_PROJECT_NAME\"${RESET_TEXT} to check whether the upgrade of the IBM Business Automation Insights operator and its dependencies was successful."
+            echo "  - STEP ${step_num} ${YELLOW_TEXT}(Optional)${RESET_TEXT}: You can run ${GREEN_TEXT}\"${CUR_DIR}/bai-deployment.sh -m upgradeOperatorStatus -n $TARGET_PROJECT_NAME\"${RESET_TEXT} to check whether the upgrade of the IBM Business Automation Insights operator and its dependencies was successful."
             printf "\n"
             step_num=$((step_num + 1))
-            echo "  - STEP ${step_num} ${RED_TEXT}(Required)${RESET_TEXT}: You can run ${GREEN_TEXT}\"./bai-deployment.sh -m upgradeDeploymentStatus -n $TARGET_PROJECT_NAME\"${RESET_TEXT} to check whether the upgrade of the IBM Business Automation Insights deployment was successful."
+            echo "  - STEP ${step_num} ${RED_TEXT}(Required)${RESET_TEXT}: You can run ${GREEN_TEXT}\"${CUR_DIR}/bai-deployment.sh -m upgradeDeploymentStatus -n $TARGET_PROJECT_NAME\"${RESET_TEXT} to check whether the upgrade of the IBM Business Automation Insights deployment was successful."
         fi
     fi
 fi
@@ -3155,10 +3165,10 @@ if [ "$RUNTIME_MODE" == "upgradeOperatorStatus" ]; then
             printf "\n"
             echo "${YELLOW_TEXT}[NEXT ACTIONS]:${RESET_TEXT}"
             step_num=1
-            echo "  - STEP ${step_num} ${RED_TEXT}(Required)${RESET_TEXT}: You can run ${GREEN_TEXT}\"./bai-deployment.sh -m upgradeDeployment -n $TARGET_PROJECT_NAME\"${RESET_TEXT} to upgrade the IBM Business Automation Insights deployment."
+            echo "  - STEP ${step_num} ${RED_TEXT}(Required)${RESET_TEXT}: You can run ${GREEN_TEXT}\"${CUR_DIR}/bai-deployment.sh -m upgradeDeployment -n $TARGET_PROJECT_NAME\"${RESET_TEXT} to upgrade the IBM Business Automation Insights deployment."
             printf "\n"
             step_num=$((step_num + 1))
-            echo "  - STEP ${step_num} ${RED_TEXT}(Required)${RESET_TEXT}: You can run ${GREEN_TEXT}\"./bai-deployment.sh -m upgradeDeploymentStatus -n $TARGET_PROJECT_NAME\"${RESET_TEXT} to check that the upgrade of the IBM Business Automation Insights deployment is successful."
+            echo "  - STEP ${step_num} ${RED_TEXT}(Required)${RESET_TEXT}: You can run ${GREEN_TEXT}\"${CUR_DIR}/bai-deployment.sh -m upgradeDeploymentStatus -n $TARGET_PROJECT_NAME\"${RESET_TEXT} to check that the upgrade of the IBM Business Automation Insights deployment is successful."
         # for upgrading IFIX by IFIX
         else
             success "Business Automation Insights operators upgraded successfully!"
@@ -3166,7 +3176,7 @@ if [ "$RUNTIME_MODE" == "upgradeOperatorStatus" ]; then
             echo "${YELLOW_TEXT}[NEXT ACTION]${RESET_TEXT}: "
             printf "\n"
             echo "${YELLOW_TEXT}* Run the script in [upgradeDeploymentStatus] mode directly to upgrade BAI standalone from $BAI_RELEASE_BASE IFix to IFix.${RESET_TEXT}"
-            echo "${GREEN_TEXT}# ./bai-deployment.sh -m upgradeDeploymentStatus -n $TARGET_PROJECT_NAME${RESET_TEXT}"
+            echo "${GREEN_TEXT}# ${CUR_DIR}/bai-deployment.sh -m upgradeDeploymentStatus -n $TARGET_PROJECT_NAME${RESET_TEXT}"
         fi
         
     fi
