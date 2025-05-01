@@ -23,8 +23,8 @@ COMMON_SERVICES_SCRIPT_FOLDER=${CUR_DIR}/cpfs/installer_scripts/cp3pt0-deploymen
 
 COMMON_SERVICES_SCRIPT_YQ_FOLDER=${CUR_DIR}/cpfs/yq
 
-PREREQUISITES_FOLDER=${CUR_DIR}/bai-prerequisites
-PREREQUISITES_FOLDER_BAK=${CUR_DIR}/bai-prerequisites-backup
+PREREQUISITES_FOLDER=${CUR_DIR}/bai-prerequisites/project/$1
+PREREQUISITES_FOLDER_BAK=${CUR_DIR}/bai-prerequisites-backup/project/$1
 PROPERTY_FILE_FOLDER=${PREREQUISITES_FOLDER}/propertyfile
 PROPERTY_FILE_FOLDER_BAK=${PREREQUISITES_FOLDER_BAK}/propertyfile
 CREATE_SECRET_SCRIPT_FILE=$PREREQUISITES_FOLDER/create_secret.sh
@@ -64,23 +64,23 @@ LDAP_SECRET_FILE=${SECRET_FILE_FOLDER}/ldap-bind-secret.yaml
 # BAI_RELEASE_BASE is for fetch content/foundation operator pod, only need to change for major release.
 BAI_RELEASE_BASE="24.0.0"
 
-BAI_PATCH_VERSION="IF002"
+BAI_PATCH_VERSION="IF003"
 # BAI_CSV_VERSION is for checking BAI operator upgrade status, need to update for each IFIX
-BAI_CSV_VERSION="v24.0.2"
+BAI_CSV_VERSION="v24.0.3"
 # BAI_CHANNEL_VERSION is for switch BAI operator upgrade status, need to update for major release
 BAI_CHANNEL_VERSION="v24.0"
 # CS_OPERATOR_VERSION is for checking CPFS operator upgrade status, need to update for each IFIX
-CS_OPERATOR_VERSION="v4.6.9"
+CS_OPERATOR_VERSION="v4.6.11"
 # CS_CHANNEL_VERSION is for for CPFS script -c option, need to update for each IFIX
 CS_CHANNEL_VERSION="v4.6"
 # CERT_LICENSE_OPERATOR_VERSION is for checking IBM cert-manager/licensing operator upgrade status, need to update for each IFIX
-CERT_LICENSE_OPERATOR_VERSION="v4.2.11"
+CERT_LICENSE_OPERATOR_VERSION="v4.2.13"
 # CERT_LICENSE_CHANNEL_VERSION is for for IBM cert-manager/licensing script -c option, need to update for each IFIX
 CERT_LICENSE_CHANNEL_VERSION="v4.2"
 # CS_CATALOG_VERSION is for CPFS script -s option, need to update for each IFIX
-CS_CATALOG_VERSION="ibm-cs-install-catalog-v4-6-9"
+CS_CATALOG_VERSION="ibm-cs-install-catalog-v4-6-11"
 # ZEN_OPERATOR_VERSION is for checking ZenService operator upgrade status, need to update for each IFIX
-ZEN_OPERATOR_VERSION="v5.1.11"
+ZEN_OPERATOR_VERSION="v5.1.13"
 # BTS_CHANNEL_VERSION is for for BTS, need to update for each IFIX
 BTS_CHANNEL_VERSION="v3.35"
 # BTS_CATALOG_VERSION is for BTS 3.35.1.
@@ -91,6 +91,8 @@ REQUIREDVER_BTS="3.35.1"
 REQUIREDVER_POSTGRESQL="1.22.7"
 # EVENTS_OPERATOR_VERSION is for checking IBM Events operator upgrade status, need to update for each IFIX
 EVENTS_OPERATOR_VERSION="v5.0.1"
+# List of BAI versions that are supported for upgrade to $BAI_CSV_VERSION
+MINIMUM_SUPPORTED_UPGRADE_VERSIONS=("24.0." "23.2." )
 
 CERT_MANAGER_PROJECT="ibm-cert-manager"
 LICENSE_MANAGER_PROJECT="ibm-licensing"
@@ -164,11 +166,11 @@ else
 fi
 
 function set_global_env_vars() {
-    readonly unameOut="$(uname -s)"
+    unameOut="$(uname -s)"
     case "${unameOut}" in
-        Linux*)     readonly machine="Linux";;
-        Darwin*)    readonly machine="Mac";;
-        *)          readonly machine="UNKNOWN:${unameOut}"
+        Linux*)     machine="Linux";;
+        Darwin*)    machine="Mac";;
+        *)          machine="UNKNOWN:${unameOut}"
     esac
 
     if [[ "$machine" == "Mac" ]]; then
@@ -436,9 +438,10 @@ function echo_impl() {
 }
 
 ## <https://jsw.ibm.com/browse/DBACLD-159357> - Introduced new function to deal with pressing control keys to continune, need to clear buffer before and after reading user input.
+## - - https://jsw.ibm.com/browse/DBACLD-165921 - <Press any key to continue...does not continue when "shift key" is pressed>
 function prompt_press_any_key_to_continue() {
     while read -r -t 1; do :; done  # Clear the buffer
-    read -rsn1 -p "Press any key to continue ${1}..."; echo # wait for user input
+    read -rsn1 -p "Press Enter/Return to continue ${1}..."; echo # wait for user input
     read -r -t 1 # Clear any remaining escape seqence
 }
 
@@ -455,6 +458,26 @@ function check_platform_version(){
         PLATFORM_VERSION="4.4OrLater"
         echo -e "\x1B[1;31mIMPORTANT: Only support OCp4.4 or Later, exit...\n\x1B[0m"
         exit 1
+    fi
+}
+
+## <https://jsw.ibm.com/browse/DBACLD-161428> - Create a common function to check cluster login for all related scripts.
+#############################
+# Check Cluster Login
+#############################
+function check_cluster_login() {
+    if [[ "$CLI_CMD" == "oc" ]]; then
+        oc whoami >/dev/null 2>&1
+        if [ $? -gt 0 ]; then
+            error "Not logged in to a cluster. Please login to a cluster before running this script."
+            exit 1
+        fi
+    elif [[ "$CLI_CMD" == "kubectl" ]]; then
+        kubectl auth whoami >/dev/null 2>&1
+        if [ $? -gt 0 ]; then
+            error "Not logged in to a cluster. Please login to a cluster before running this script.."
+            exit 1
+        fi
     fi
 }
 
@@ -489,6 +512,22 @@ function cleanup_log() {
         # Remove ANSI escape sequences from log file
         sed -E 's/\x1B\[[0-9;]+[A-Za-z]//g' "$LOG_FILE" > "$LOG_FILE.tmp" && mv "$LOG_FILE.tmp" "$LOG_FILE"
     fi
+}
+
+## <https://jsw.ibm.com/browse/DBACLD-172803> - We are now asking user to use {xor} for special characters in password, so we need to use decode_xor_password to get the password decoded before validation.
+function decode_xor_password() {
+
+  local encoded=$1
+  local operator_project_name=$2
+  local operator_pod_name=$3
+  local was_home="/opt/ibm/securityUtility"
+  local class_path="${was_home}/plugins/com.ibm.ws.runtime.jar:${was_home}/lib/bootstrap.jar:${was_home}/plugins/com.ibm.ws.emf.jar:${was_home}/lib/ffdc.jar:${was_home}/plugins/org.eclipse.emf.ecore.jar:${was_home}/plugins/org.eclipse.emf.common.jar:${was_home}/glassfish-corba-omgapi-4.2.4.jar"
+  if [[ $encoded != "" ]] && [[ "$encoded" == *"{xor}"* ]]; then
+    local decoded=$( ${CLI_CMD} exec -i -n $operator_project_name $operator_pod_name -- bash -c "java -cp \"${class_path}\" com.ibm.ws.security.util.PasswordDecoder \"$encoded\"")
+    echo "$decoded" | grep -i 'decoded password == ' | awk '{print $8}' | sed -e 's/^"//' -e 's/"$//'
+  else
+    echo $encoded
+  fi
 }
 
 function allocate_operator_pvc(){
@@ -575,4 +614,39 @@ function update_secret_template_passwords(){
     else
         echo "Field $secret_template_field not found in stringData."
     fi
+}
+
+
+# This function is used to display a latency warning based on the time taken for a DB/LDAP connection
+# Takes in 2 parameters
+# 1. time_taken which is used to display the latency and make comparisons using bc -l which allows for float point based comparisons
+# connection_type which is used to display if the connection is for a DB or LDAP
+# DBACLD-159742
+function display_latency_warning() {
+    local time_taken=$1
+    local connection_type=$2
+    echo "Latency: $time_taken ms"
+    # Check if elapsed time is greater than 10 ms using awk. [[ ]] not used since it doesnt do float point comparisons correctly
+    # If tt is between 10 and 30, it exits with 0 (success)
+    if awk -v tt="$time_taken" 'BEGIN { exit !(tt < 10) }'; then
+        echo "The latency is less than 10ms, which is acceptable performance for a simple $connection_type operation."
+    elif awk -v tt="$time_taken" 'BEGIN { exit !(tt >= 10 && tt <= 30) }'; then
+        echo "The latency is between 10ms and 30ms, which exceeds acceptable performance of 10 ms for a simple $connection_type operation, but the service is still accessible."
+    else
+        echo "The latency exceeds 30ms for a simple $connection_type operation, which indicates potential for failures."
+    fi
+}
+# This function checks if its a valid version during the course of upgrade
+# It looks at the current csv version and compares it to the minimum support upgraded versions stored in MINIMUM_SUPPORTED_UPGRADE_VERSIONS.
+# The version the operator should be in that channel and not equal to the CSV version of BAI Operator that the scripts are for.
+function check_valid_bai_operator_version() {
+    local current_operator_version=$1
+    valid_bai_operator_version=false
+    for version in "${MINIMUM_SUPPORTED_UPGRADE_VERSIONS[@]}"; do
+        if [[ "$current_operator_version" == "$version"* && "$current_operator_version" != "${BAI_CSV_VERSION#v}" ]]; then
+            valid_bai_operator_version=true
+            break
+        fi
+    done
+
 }

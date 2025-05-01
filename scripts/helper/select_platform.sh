@@ -26,7 +26,7 @@ function select_platform(){
         if [[ $DEPLOYMENT_TYPE == "starter" ]];then
             # echo -e "\x1B[1mOnly Openshift Container Platform (OCP) - Private Cloud is supported.\x1B[0m"
             # PLATFORM_SELECTED="OCP"
-            # read -rsn1 -p"Press any key to continue";echo
+            # read -rsn1 -p"Press Enter/Return to continue";echo
             options=("RedHat OpenShift Kubernetes Service (ROKS) - Public Cloud" "Openshift Container Platform (OCP) - Private Cloud")
             PS3='Enter a valid option [1 to 2]: '
         elif [[ $DEPLOYMENT_TYPE == "production" ]]
@@ -66,7 +66,7 @@ function select_platform(){
         if [[ $DEPLOYMENT_TYPE == "starter" ]];then
             # echo -e "\x1B[1mOnly Openshift Container Platform (OCP) - Private Cloud is supported.\x1B[0m"
             # PLATFORM_SELECTED="OCP"
-            # read -rsn1 -p"Press any key to continue";echo
+            # read -rsn1 -p"Press Enter/Return to continue";echo
             options=("RedHat OpenShift Kubernetes Service (ROKS) - Public Cloud" "Openshift Container Platform (OCP) - Private Cloud")
             options_var=("ROKS" "OCP")
         elif [[ $DEPLOYMENT_TYPE == "production" ]]

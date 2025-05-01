@@ -94,14 +94,8 @@ function verify_ldap_connection(){
     output=$(java -Dsemeru.fips=$fips_flag -Djavax.net.ssl.trustStore=/tmp/ldap-truststore.jks -Djavax.net.ssl.trustStorePassword=changeit -jar ${LDAP_TEST_JAR_PATH}/LdapTest.jar -u "ldaps://$ldap_server:$ldap_port" -b "$ldap_basedn" -D "$ldap_binddn" -w "$ldap_binddn_pwd" 2>&1)
     retVal_verify_ldap_tmp=$?
     connection_time=$(echo $output | awk -F 'Round Trip time: ' '{print $2}' | awk '{print $1}')
-    echo "Latency: $connection_time ms"
-    # Check if elapsed time is greater than 10 ms using awk
-    if [[ $(awk 'BEGIN { print ("'$connection_time'" < 10) }') -eq 1 ]]; then
-      echo "The latency is less than 10ms, which is acceptable performance for a simple LDAP operation."
-    elif [[ $(awk 'BEGIN { print ("'$connection_time'" > 10 && "'$connection_time'" < 30) }') -eq 1 ]]; then
-      echo "The latency is between 10ms and 30ms, which exceeds acceptable performance of 10 ms for a simple LDAP operation, but the service is still accessible."
-    elif [[ $(awk 'BEGIN { print ("'$connection_time'" > 30) }') -eq 1 ]]; then
-      echo "The latency exceeds 30ms for a simple LDAP operation, which indicates potential for failures."
+    if [[ ! -z $connection_time ]]; then
+      display_latency_warning $connection_time "LDAP"
     fi
 
     [[ retVal_verify_ldap_tmp -ne 0 ]] && \
@@ -114,14 +108,8 @@ function verify_ldap_connection(){
     output=$(java -Dsemeru.fips=$fips_flag -jar ${LDAP_TEST_JAR_PATH}/LdapTest.jar -u "ldap://$ldap_server:$ldap_port" -b "$ldap_basedn" -D "$ldap_binddn" -w "$ldap_binddn_pwd" 2>&1)
     retVal_verify_ldap_tmp=$?
     connection_time=$(echo $output | awk -F 'Round Trip time: ' '{print $2}' | awk '{print $1}')
-    echo "Latency: $connection_time ms"
-    # Check if elapsed time is greater than 10 ms using awk
-    if [[ $(awk 'BEGIN { print ("'$connection_time'" < 10) }') -eq 1 ]]; then
-      echo "The latency is less than 10ms, which is acceptable performance for a simple LDAP operation."
-    elif [[ $(awk 'BEGIN { print ("'$connection_time'" > 10 && "'$connection_time'" < 30) }') -eq 1 ]]; then
-      echo "The latency is between 10ms and 30ms, which exceeds acceptable performance of 10 ms for a simple LDAP operation, but the service is still accessible."
-    elif [[ $(awk 'BEGIN { print ("'$connection_time'" > 30) }') -eq 1 ]]; then
-      echo "The latency exceeds 30ms for a simple LDAP operation, which indicates potential for failures."
+    if [[ ! -z $connection_time ]]; then
+      display_latency_warning $connection_time "LDAP"
     fi
 
     [[ retVal_verify_ldap_tmp -ne 0 ]] && \

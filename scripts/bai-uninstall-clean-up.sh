@@ -12,6 +12,7 @@
 # Import common utilities and environment variables
 CUR_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 PARENT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
+CLI_CMD="oc"
 source ${CUR_DIR}/helper/common.sh
 
 #Options
@@ -42,23 +43,20 @@ if [[ $HELP == "true" ]]; then
 fi
 
 # Check if OpenShift CLI is installed
-if ! [ -x "$(command -v oc)" ]; then
-  echo -e "\x1B[1;31mError: OpenShift CLI (oc) is not installed. Please install OpenShift CLI (oc) before running this script. \x1B[0m" >&2
-  exit 1
+if ! [ -x "$(command -v ${CLI_CMD})" ]; then
+    error "OpenShift CLI is not installed. Please install OpenShift CLI before running this script."
+    exit 1
 fi
 
-# Check if user is logged in to OCP cluster.
-oc project > /dev/null 2>&1
-if [ $? -gt 0 ]; then
-  echo -e "\x1B[1;31mError: Not logged in to OCP cluster. Please login to an OCP cluster. \x1B[0m" && exit 1
-fi
+# Check cluster login
+check_cluster_login
 
 # BAI Standalone Namespace check
 while [ -z "$BAI_NAMESPACE" ]; do
 	printf "\x1B[1mEnter namespace of your BAI deployment: \x1B[0m"
 	read -rp "" ans 
     BAI_NAMESPACE=$ans
-    if [ -z "$(oc get project "${BAI_NAMESPACE}" 2>/dev/null)" ]; then
+    if [ -z "$(${CLI_CMD} get project "${BAI_NAMESPACE}" 2>/dev/null)" ]; then
 	    echo -e "\x1B[1;31mError: Namespace ${BAI_NAMESPACE} does not exist. Please re-enter the namespace.\x1B[0m"
         BAI_NAMESPACE=""
     fi
@@ -87,7 +85,7 @@ if [ -z "$BAI_SERVICE_NAMESPACE" ]; then
                     printf "\x1B[1mEnter Operand namespace of your BAI deployment: \x1B[0m"
                     read -rp "" ans 
                     BAI_SERVICE_NAMESPACE=$ans
-                    if [ -z "$(oc get project "${BAI_SERVICE_NAMESPACE}" 2>/dev/null)" ]; then
+                    if [ -z "$(${CLI_CMD} get project "${BAI_SERVICE_NAMESPACE}" 2>/dev/null)" ]; then
                         echo -e "\x1B[1;31mError: Namespace ${BAI_SERVICE_NAMESPACE} does not exist. Please re-enter the namespace.\x1B[0m"
                         BAI_SERVICE_NAMESPACE=""
                         max_counter=$(($max_counter + 1))
@@ -101,7 +99,7 @@ if [ -z "$BAI_SERVICE_NAMESPACE" ]; then
                     exit
                 fi
                 echo -e "\x1B[1mGetting Operator Namespace... \x1B[0m"
-                BAI_NAMESPACE=$(oc get cm ibm-cp4ba-common-config -n $BAI_SERVICE_NAMESPACE --ignore-not-found -o jsonpath="{ .data.operators_namespace}")
+                BAI_NAMESPACE=$(${CLI_CMD} get cm ibm-cp4ba-common-config -n $BAI_SERVICE_NAMESPACE --ignore-not-found -o jsonpath="{ .data.operators_namespace}")
                 if [[ -z "$BAI_NAMESPACE" ]]; then
                     echo -e "\x1B[31;5mError: ibm-cp4ba-common-config ConfigMap not found in ${BAI_SERVICE_NAMESPACE} \x1B[0m\n"
                     exit 1
@@ -124,7 +122,7 @@ if [ -z "$BAI_SERVICE_NAMESPACE" ]; then
 fi
 
 # Validate BAI_NAMESPACE env var is for existing namespace
-if [ -z "$(oc get project "${BAI_SERVICE_NAMESPACE}" 2>/dev/null)" ]; then
+if [ -z "$(${CLI_CMD} get project "${BAI_SERVICE_NAMESPACE}" 2>/dev/null)" ]; then
 	echo -e "\x1B[1;31mError: Namespace ${BAI_SERVICE_NAMESPACE} does not exist. Specify an existing namespace where BAI is deployed.\x1B[0m" && exit 1
 fi
 
@@ -164,7 +162,7 @@ if [[ "$BAI_SERVICE_NAMESPACE" != "$BAI_NAMESPACE" ]]; then
 fi
 
 # Check if user is logged in to OCP cluster.
-oc project $BAI_SERVICE_NAMESPACE
+${CLI_CMD} project $BAI_SERVICE_NAMESPACE
 if [ $? -gt 0 ]; then
   echo -e "\x1B[1;31mError: Not logged in to OCP cluster. Please login to an OCP cluster. \x1B[0m" && exit 1
 fi
@@ -186,11 +184,11 @@ read -p "Enter Y or y to continue: " -n 1 -r
 function delete_resource() {
 	local RESOURCE_NAME=$1
 	local NAMESPACE_NAME=$2
-	oc get "${RESOURCE_NAME}" -n "${NAMESPACE_NAME}" --ignore-not-found=true &>/dev/null
+	${CLI_CMD} get "${RESOURCE_NAME}" -n "${NAMESPACE_NAME}" --ignore-not-found=true &>/dev/null
 	if [ $? -eq 0 ]; then
-		for i in $(oc get "${RESOURCE_NAME}" --no-headers -n "${NAMESPACE_NAME}" --ignore-not-found=true | awk '{print $1}'); do
-			oc patch "${RESOURCE_NAME}"/"$i" -n "${NAMESPACE_NAME}" -p '{"metadata":{"finalizers":[]}}' --type=merge
-			oc delete "${RESOURCE_NAME}" "$i" -n "${NAMESPACE_NAME}" --ignore-not-found=true
+		for i in $(${CLI_CMD} get "${RESOURCE_NAME}" --no-headers -n "${NAMESPACE_NAME}" --ignore-not-found=true | awk '{print $1}'); do
+			${CLI_CMD} patch "${RESOURCE_NAME}"/"$i" -n "${NAMESPACE_NAME}" -p '{"metadata":{"finalizers":[]}}' --type=merge
+			${CLI_CMD} delete "${RESOURCE_NAME}" "$i" -n "${NAMESPACE_NAME}" --ignore-not-found=true
 		done
 	fi
 }
@@ -205,14 +203,14 @@ delete_resource zenextension "${BAI_SERVICE_NAMESPACE}"
 echo -e "\n\x1B[1mFinsihed cleaning up all zenExtensions. \x1B[0m\n"
 # Clean up zen-metastore-edb secret
 echo -e "\x1B[1mCleaning up zen-metastore-edb secrets... \x1B[0m\n"
-for i in $(oc get secrets --no-headers|awk '{print $1}'| grep 'zen-metastore-edb'); do
-    oc delete secret "$i" -n "$BAI_SERVICE_NAMESPACE"
+for i in $(${CLI_CMD} get secrets --no-headers|awk '{print $1}'| grep 'zen-metastore-edb'); do
+    ${CLI_CMD} delete secret "$i" -n "$BAI_SERVICE_NAMESPACE"
 done
 echo -e "\n\x1B[1mFinsihed cleaning up all zen-metastore-edb related secrets. \x1B[0m\n"
 
 # Clean up cs-ca-certificate secret
 echo -e "\x1B[1mCleaning up cs-ca-certificate-secret secret... \x1B[0m\n"
-oc delete secret cs-ca-certificate-secret -n "$BAI_SERVICE_NAMESPACE"
+${CLI_CMD} delete secret cs-ca-certificate-secret -n "$BAI_SERVICE_NAMESPACE"
 echo -e "\n\x1B[1mFinsihed cleaning up cs-ca-certificate-secret secret. \x1B[0m\n"
 
 # delete FlinkDeployment CR
@@ -227,12 +225,12 @@ echo "Deleting FlinkSessionJobs"
 delete_resource FlinkSessionJobs $BAI_SERVICE_NAMESPACE
 
 # delete Flink operator certificate
-oc patch secret/flink-operator-cert -p '{"metadata":{"finalizers":[]}}' --type=merge -n $BAI_SERVICE_NAMESPACE
+${CLI_CMD} patch secret/flink-operator-cert -p '{"metadata":{"finalizers":[]}}' --type=merge -n $BAI_SERVICE_NAMESPACE
 echo "Deleting secret "
-oc delete secret flink-operator-cert -n $BAI_SERVICE_NAMESPACE --ignore-not-found=true --wait=true 
+${CLI_CMD} delete secret flink-operator-cert -n $BAI_SERVICE_NAMESPACE --ignore-not-found=true --wait=true 
 if [[ "$BAI_SERVICE_NAMESPACE" != "$BAI_NAMESPACE" ]]; then
-    oc patch secret/flink-operator-cert -p '{"metadata":{"finalizers":[]}}' --type=merge -n $BAI_NAMESPACE
-    oc delete secret flink-operator-cert -n $BAI_NAMESPACE --ignore-not-found=true --wait=true 
+    ${CLI_CMD} patch secret/flink-operator-cert -p '{"metadata":{"finalizers":[]}}' --type=merge -n $BAI_NAMESPACE
+    ${CLI_CMD} delete secret flink-operator-cert -n $BAI_NAMESPACE --ignore-not-found=true --wait=true 
 fi
 
 # delete common service

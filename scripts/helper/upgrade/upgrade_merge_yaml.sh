@@ -498,10 +498,10 @@ function upgrade_deployment(){
                     if [[ $retry -eq ${maxRetry} ]]; then
                     printf "\n"
                     warning "Timeout Waiting for IBM CP4BA Workflow Process Service operator to start"
-                    echo -e "\x1B[1mPlease check the status of Pod by issue cmd:\x1B[0m"
+                    echo -e "\x1B[1mCheck the status of Pod by issuing the following command:\x1B[0m"
                     echo "oc describe pod $(oc get pod -n $project_name|grep ibm-cp4a-wfps-operator|awk '{print $1}') -n $project_name"
                     printf "\n"
-                    echo -e "\x1B[1mPlease check the status of ReplicaSet by issue cmd:\x1B[0m"
+                    echo -e "\x1B[1mCheck the status of ReplicaSet issuing the following command:\x1B[0m"
                     echo "oc describe rs $(oc get rs -n $project_name|grep ibm-cp4a-wfps-operator|awk '{print $1}') -n $project_name"
                     printf "\n"
                     exit 1
@@ -698,7 +698,7 @@ function upgrade_deployment(){
                 baw_desktop_name=`cat $UPGRADE_DEPLOYMENT_ICP4ACLUSTER_CR_TMP | ${YQ_CMD} r - spec.workflow_authoring_configuration.case.desktop_name`
                 
                 if [[ (-z $baw_connection_point_name_tos || -z $baw_object_store_name_tos) && (-z $init_section) ]]; then    
-                    warning "Not found both workflow_authoring_configuration.case.connection_point_name_tos/object_store_name_tos and oc_cpe_obj_store_workflow_pe_conn_point_name under initialize_configuration, please refer KC  https://www.ibm.com/docs/en/cloud-paks/cp-biz-automation/$BAI_RELEASE_BASE?topic=deployment-upgrading-business-automation-workflow-authoring"
+                    warning "Not found both workflow_authoring_configuration.case.connection_point_name_tos/object_store_name_tos and oc_cpe_obj_store_workflow_pe_conn_point_name under initialize_configuration, refer KC  https://www.ibm.com/docs/en/cloud-paks/cp-biz-automation/$BAI_RELEASE_BASE?topic=deployment-upgrading-business-automation-workflow-authoring"
                 fi
                 if [[ ! -z "$baw_object_store_name_tos" ]]; then
                     ${YQ_CMD} w -i ${UPGRADE_DEPLOYMENT_ICP4ACLUSTER_CR_TMP} spec.workflow_authoring_configuration.case.tos_list.[0].object_store_name "$baw_object_store_name_tos"
@@ -789,7 +789,7 @@ function upgrade_deployment(){
                     baw_target_environment_name=`cat $UPGRADE_DEPLOYMENT_ICP4ACLUSTER_CR_TMP | ${YQ_CMD} r - spec.baw_configuration.[${baw_instance_index}].case.target_environment_name`
                     baw_desktop_name=`cat $UPGRADE_DEPLOYMENT_ICP4ACLUSTER_CR_TMP | ${YQ_CMD} r - spec.baw_configuration.[${baw_instance_index}].case.desktop_name`
                     if [[ (-z $baw_connection_point_name_tos || -z $baw_object_store_name_tos) && (-z $init_section) ]]; then    
-                        warning "Not found both baw_configuration.[0].case.connection_point_name_tos/object_store_name_tos and oc_cpe_obj_store_workflow_pe_conn_point_name under initialize_configuration, please refer KC  https://www.ibm.com/docs/en/cloud-paks/cp-biz-automation/$BAI_RELEASE_BASE?topic=deployment-upgrading-business-automation-workflow-runtime"
+                        warning "Not found both baw_configuration.[0].case.connection_point_name_tos/object_store_name_tos and oc_cpe_obj_store_workflow_pe_conn_point_name under initialize_configuration, refer KC  https://www.ibm.com/docs/en/cloud-paks/cp-biz-automation/$BAI_RELEASE_BASE?topic=deployment-upgrading-business-automation-workflow-runtime"
                     fi
                     if [[ ! -z "$baw_object_store_name_tos" ]]; then
                         ${YQ_CMD} w -i ${UPGRADE_DEPLOYMENT_ICP4ACLUSTER_CR_TMP} spec.baw_configuration.[${baw_instance_index}].case.tos_list.[0].object_store_name "$baw_object_store_name_tos"

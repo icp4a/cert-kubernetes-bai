@@ -11,40 +11,101 @@
 #
 ###############################################################################
 
+
+#Determine if it's an Ifix to ifix upgrade or a n-1 upgrade using CSV
+# Format of CSV x.y.z where x is major version, y is minor version and z is ifix version
+# For example: 
+# - 24.0.1 version will have 24.1.0 in the CSV
+# - 24.0.1-IF001 version will 24.1.1 in the CSV
+# - 25.0.0-GA version will have 25.0.0 in the CSV 
+# The rules are:
+# 1. n-1 upgrade: Use the desired major version such as 24 from the CP4BA_CSV_VERSION in the common.sh  to compare with the current install version
+#   - If x version of the current CSV is equal to the desired major version, then it's a n-1 upgrade.  For example, if the current version is 24.0.0-IF003 (24.0.3) and the desired version is 24.0.1 (24.1.0), then it's a n-1 upgrade
+#   - If x version of the current CSV is equal to the desired major version (x+1), then it's the n-1 upgrade. For example, if the current version is 24.x and the desired version is 25.x, then it's a n-1 upgrade
+# 2. Ifix to Ifix upgrade: Use the desired major version such as 24 from the CP4BA_CSV_VERSION in the common.sh  to compare with the current install version
+#   - If x.y version of the current CSV is equal to x.y of the desired major version, then it's an Ifix to Ifix upgrade. For example, if the current version is 24.0.0-IF003 (24.0.3) and the desired version is 24.0.0-IF004 (24.0.4), then it's an Ifix to Ifix upgrade
+# The function will set the is_ifix_to_ifix_upgrade flag to 1 if it's an Ifix to Ifix upgrade and 0 if it's a n-1 upgrade
+function determine_type_of_upgrade() {
+    info "Determining the type of upgrade"
+    local current_version=$1
+    local current_version_major=$(echo $current_version | cut -d'.' -f1)
+    local current_version_minor=$(echo $current_version | cut -d'.' -f2)
+    local desired_version="${BAI_CSV_VERSION//v/}"
+    local desired_version_major=$(echo $desired_version | cut -d'.' -f1)
+    local desired_version_minor=$(echo $desired_version | cut -d'.' -f2)
+    if [[ $current_version_major"."$current_version_minor == $desired_version_major"."$desired_version_minor ]]; then
+        export is_ifix_to_ifix_upgrade="true"
+        info "This is an upgrade from $current_version to $desired_version which is an Ifix to Ifix upgrade"
+    else
+        export is_ifix_to_ifix_upgrade="false"
+        info "This is an upgrade from $current_version to $desired_version which is an n-1 to n upgrade"
+    fi
+
+}
+
+# This function is used in check_bai_operator_version where it will check the version of the operator and compare it with the array of minimum supported upgrade versions
+# It will fail if the operator version is not less than the minimum supported upgrade version.
+# This function takes 3 arguments:
+# 1. current_csv_version: The csv of the version that needs to be checked such as "24.0.0", "24.0.4", "240.1"
+# 2. failed_upgrade_message: The message that will be displayed if the version is not supported
+function check_bai_minimum_version(){
+
+    local current_version=$1
+    local failed_upgrade_message=$2
+    for version in "${MINIMUM_SUPPORTED_UPGRADE_VERSIONS[@]}"; do
+        if [[ "$current_version" == "${BAI_CSV_VERSION//v/}" ]]; then
+            info "The current IBM Business Automation Insights Operator is already ${BAI_CSV_VERSION//v/}"
+            valid_version=true
+            break
+        fi
+        if [[ (! "$(printf '%s\n' "$version" "$current_version" | sort -V | head -n1)" = "$version") ]]; then
+            info "Found IBM Business Automation Insights Operator is \"$current_version\" version."
+            fail "$failed_upgrade_message"
+            valid_version=false
+            exit 1
+        else
+            info "Found IBM Business Automation Insights Operator is \"$current_version\" version."
+            valid_version=true
+            break
+        fi
+
+    done 
+}
+
 # function for checking bai standalone operator version
 function check_bai_operator_version(){
     local project_name=$1
     local maxRetry=5
     info "Checking the version of IBM Business Automation Insights Operator"
+    bai_operator_csv_name=$(kubectl get csv -n $project_name --no-headers --ignore-not-found | grep "IBM Business Automation Insights" | awk '{print $1}')
+    bai_operator_csv_version=$(kubectl get csv $bai_operator_csv_name -n $project_name --no-headers --ignore-not-found -o 'jsonpath={.spec.version}')
+    if [[ -z $bai_operator_csv_name ]]; then
+        fail "No IBM Business Automation Insights Operator found in \"$project_name\" project."
+        warning "Input correct project name for CP4BA."
+        exit 1
+    fi
     for ((retry=0;retry<=${maxRetry};retry++)); do
-        bai_operator_csv_name=$(kubectl get csv -n $project_name --no-headers --ignore-not-found | grep "IBM Business Automation Insights" | awk '{print $1}')
-        bai_operator_csv_version=$(kubectl get csv $bai_operator_csv_name -n $project_name --no-headers --ignore-not-found -o 'jsonpath={.spec.version}')
+        valid_version=false  #this is flag to check if the BAI S operator is a valid version
+        if [[ (! -z $cp4a_operator_csv_name_target_ns) ]]; then
+            success "Found IBM Business Automation Insights Operator deployed in the project \"$project_name\"."
+            ALL_NAMESPACE_FLAG="No"
+            TEMP_OPERATOR_PROJECT_NAME=$project_name
+        fi
+
         if [[ ! -z $BAI_ORIGINAL_CSV_VERSION ]]; then
             BAI_ORIGINAL_CSV_VERSION=$(sed -e 's/^"//' -e 's/"$//' <<<"$BAI_ORIGINAL_CSV_VERSION")
             bai_operator_csv_version=$BAI_ORIGINAL_CSV_VERSION
         fi
+        # DBACLD-165816: Calling check_bai_minimum_version function to check the minimum supported version
+        check_bai_minimum_version "$bai_operator_csv_version" "Upgrade to BAI Standalone v23.0.2 or a later iFix first before upgrading to BAI Standalone $BAI_CSV_VERSION"
 
-        if [[ "$bai_operator_csv_version" == "${BAI_CSV_VERSION//v/}" ]]; then
-            success "The current IBM Business Automation Insights Operator is already ${BAI_CSV_VERSION//v/}"
+        determine_type_of_upgrade "$bai_operator_csv_version"
+        if [[ "$valid_version" == true ]]; then
             break
-            # exit 1
-        elif [[ "$bai_operator_csv_version" == "22.2."* || "$bai_operator_csv_version" == "23.1."* || "$bai_operator_csv_version" == "23.2."* ]]; then
-            fail "Please upgrade to BAI Standalone 24.0.0 or a later iFix before you can upgrade to latest BAI interim fix ${BAI_CSV_VERSION//v/}"
-            exit 1
-        elif [[ "$bai_operator_csv_version" == "24.0."* ]]; then
-            bai_operator_csv=$(kubectl get csv $bai_operator_csv_name -n $project_name -o 'jsonpath={.spec.version}')
-            # cp4a_operator_csv="22.2.2"
-            requiredver="24.0.0"
-            if [ ! "$(printf '%s\n' "$requiredver" "$bai_operator_csv" | sort -V | head -n1)" = "$requiredver" ]; then
-                fail "Please upgrade to BAI Standalone 24.0.0 or later iFix before you can upgrade to the latest BAI interim fix ${BAI_CSV_VERSION//v/}"
-                exit 1
-            else
-                info "Found IBM Business Automation Insights Operator is \"$bai_operator_csv_version\" version."
-                break
-            fi
-        elif [[ "$bai_operator_csv_version" != "${BAI_CSV_VERSION//v/}" ]]; then
+        fi
+        if [[ "$bai_operator_csv_version" != "${BAI_CSV_VERSION//v/}" ]]; then
             if [[ $retry -eq ${maxRetry} ]]; then
-                info "Timeout Checking for the version of IBM Cloud Pak® for Business Automation under project \"$project_name\""
+                info "Timeout Checking for the version of IBM Business Automation Insights in the project \"$project_name\""
                 exit 1
             else
                 sleep 2
@@ -91,7 +152,7 @@ function check_bai_separate_operand(){
                 isProjExists=`${CLI_CMD} get project $BAI_SERVICES_NS --ignore-not-found | wc -l`  >/dev/null 2>&1
 
                 if [ "$isProjExists" -ne 2 ] ; then
-                    echo -e "\x1B[1;31mInvalid project name, please enter a existing project name ...\x1B[0m"
+                    echo -e "\x1B[1;31mInvalid project name, enter a existing project name ...\x1B[0m"
                     BAI_SERVICES_NS=""
                 else
                     echo -e "\x1B[1mUsing project ${BAI_SERVICES_NS}...\x1B[0m"
@@ -143,42 +204,6 @@ function check_bai_separate_operand(){
     fi
 }
 
-# function for checking operator version
-function check_content_operator_version(){
-    local project_name=$1
-    local maxRetry=5
-    info "Checking the version of IBM CP4BA FileNet Content Manager Operator"
-    for ((retry=0;retry<=${maxRetry};retry++)); do
-        cp4a_content_operator_csv_name=$(kubectl get csv -n $project_name --no-headers --ignore-not-found | grep "IBM CP4BA FileNet Content Manager" | awk '{print $1}')
-        cp4a_content_operator_csv_version=$(kubectl get csv $cp4a_content_operator_csv_name -n $project_name --no-headers --ignore-not-found -o 'jsonpath={.spec.version}')
-
-        if [[ "$cp4a_content_operator_csv_version" == "${BAI_CSV_VERSION//v/}" ]]; then
-            success "The current IBM CP4BA FileNet Content Manager Operator is already ${BAI_CSV_VERSION//v/}"
-            break
-        elif [[ "$cp4a_content_operator_csv_version" == "22.2."* || "$cp4a_content_operator_csv_version" == "23.1."* || "$cp4a_content_operator_csv_version" == "23.2."* ]]; then
-            cp4a_content_operator_csv=$(kubectl get csv $cp4a_content_operator_csv_name -n $project_name --no-headers --ignore-not-found -o 'jsonpath={.spec.version}')
-            # cp4a_operator_csv="22.2.2"
-            requiredver="22.2.2"
-            if [ ! "$(printf '%s\n' "$requiredver" "$cp4a_content_operator_csv" | sort -V | head -n1)" = "$requiredver" ]; then
-                fail "Please upgrade to CP4BA 22.0.2-IF002 or later iFix before you can upgrade to CP4BA 23.0.1 GA"
-                exit 1
-            else
-                info "Found IBM CP4BA FileNet Content Manager Operator is \"$cp4a_content_operator_csv_version\" version."
-                break
-            fi
-        elif [[ "$cp4a_content_operator_csv_version" != "${BAI_CSV_VERSION//v/}" ]]; then
-            if [[ $retry -eq ${maxRetry} ]]; then
-                info "Timeout Checking for the version of IBM CP4BA FileNet Content Manager Operator under project \"$project_name\""
-                exit 1
-            else
-                sleep 2
-                echo -n "..."
-                continue
-            fi
-        fi
-    done
-    # success "Found the IBM CP4BA FileNet Content Manager Operator $cp4a_content_operator_csv_version \n"
-}
 
 function check_operator_status(){
     local maxRetry=30
@@ -200,7 +225,7 @@ function check_operator_status(){
                 if [[ $retry -eq ${maxRetry} ]]; then
                     printf "\n"
                     warning "Timeout Waiting for IBM Cert-manager Operator to start"
-                    echo -e "\x1B[1mPlease check the status of Pod by issue cmd: \x1B[0m"
+                    echo -e "\x1B[1mCheck the status of Pod by issuing the following command: \x1B[0m"
                     if [[ -z $isReadyWebhook ]]; then
                         echo "kubectl describe pod $(kubectl get pod -l=app.kubernetes.io/instance=cert-manager,app.kubernetes.io/name=ibm-cert-manager-webhook --all-namespaces --no-headers|awk '{print $1}') --all-namespaces"
                     fi
@@ -247,10 +272,10 @@ function check_operator_status(){
                 if [[ $retry -eq ${maxRetry} ]]; then
                 printf "\n"
                 warning "Timeout Waiting for IBM Cloud Pak foundational operator to start"
-                echo -e "\x1B[1mPlease check the status of Pod by issue cmd:\x1B[0m"
+                echo -e "\x1B[1mCheck the status of Pod by issuing the following command:\x1B[0m"
                 echo "oc describe pod $(oc get pod -n $project_name|grep ibm-common-service-operator|awk '{print $1}') -n $project_name"
                 printf "\n"
-                echo -e "\x1B[1mPlease check the status of ReplicaSet by issue cmd:\x1B[0m"
+                echo -e "\x1B[1mCheck the status of ReplicaSet by issuing the following command:\x1B[0m"
                 echo "oc describe rs $(oc get rs -n $project_name|grep ibm-common-service-operator|awk '{print $1}') -n $project_name"
                 printf "\n"
                 exit 1
@@ -293,10 +318,10 @@ function check_operator_status(){
                 if [[ $retry -eq ${maxRetry} ]]; then
                 printf "\n"
                 warning "Timeout Waiting for IBM Business Automation Insights stand-alone (BAI S) operator to start"
-                echo -e "\x1B[1mPlease check the status of Pod by executing the below command:\x1B[0m"
+                echo -e "\x1B[1mCheck the status of Pod by executing the below command:\x1B[0m"
                 echo "oc describe pod $(oc get pod -n $project_name|grep ibm-bai-insights-engine-operator|awk '{print $1}') -n $project_name"
                 printf "\n"
-                echo -e "\x1B[1mPlease check the status of ReplicaSet by executing the below command:\x1B[0m"
+                echo -e "\x1B[1mCheck the status of ReplicaSet by executing the below command:\x1B[0m"
                 echo "oc describe rs $(oc get rs -n $project_name|grep ibm-bai-insights-engine-operator|awk '{print $1}') -n $project_name"
                 printf "\n"
                 exit 1
@@ -340,10 +365,10 @@ function check_operator_status(){
             if [[ $retry -eq ${maxRetry} ]]; then
             printf "\n"
             warning "Timeout Waiting for IBM BAI Foundation operator to start"
-            echo -e "\x1B[1mPlease check the status of Pod by issue cmd:\x1B[0m"
+            echo -e "\x1B[1mCheck the status of Pod by issuing the following command:\x1B[0m"
             echo "oc describe pod $(oc get pod -n $project_name|grep ibm-bai-foundation-operator|awk '{print $1}') -n $project_name"
             printf "\n"
-            echo -e "\x1B[1mPlease check the status of ReplicaSet by issue cmd:\x1B[0m"
+            echo -e "\x1B[1mCheck the status of ReplicaSet by issuing the following command:\x1B[0m"
             echo "oc describe rs $(oc get rs -n $project_name|grep ibm-bai-foundation-operator|awk '{print $1}') -n $project_name"
             printf "\n"
             exit 1
@@ -477,12 +502,13 @@ function show_bai_upgrade_status() {
     echo -en "[Press Ctrl+C to exit] \t\t"
     check_bai_deployment_status "${BAI_SERVICES_NS}"
 
-    if [[ "$bai_original_csv_ver_for_upgrade_script" == "24.0."* ]]; then
-        printf "\n"
-        step_num=1
-        echo "${YELLOW_TEXT}[NEXT ACTION]${RESET_TEXT}:"
-        # https://jsw.ibm.com/browse/DBACLD-158711 updating the upgrade status
-        echo "${YELLOW_TEXT}  * After the status of upgrade for Zen Service components showing as ${RESET_TEXT}${GREEN_TEXT}\"Completed\"${RESET_TEXT}${YELLOW_TEXT}, the BAI deployment upgrade can be monitored by monitoring the logs of the ibm-insights-engine-operator.${RESET_TEXT}"
-        echo "  - ${YELLOW_TEXT} Retrieve the the logs of of the insights engine operator pod by exiting the script and running \"kubectl logs $(kubectl get pod -n $project_name|grep ibm-bai-insights-engine-operator|awk '{print $1}') \"${RESET_TEXT}"
-    fi
+    
+    printf "\n"
+    step_num=1
+    echo "${YELLOW_TEXT}[NEXT ACTION]${RESET_TEXT}:"
+    # https://jsw.ibm.com/browse/DBACLD-158711 updating the upgrade status
+    echo "${YELLOW_TEXT}  * After the status of upgrade for Zen Service components showing as ${RESET_TEXT}${GREEN_TEXT}\"Completed\"${RESET_TEXT}${YELLOW_TEXT}, the BAI deployment upgrade can be monitored by monitoring the logs of the ibm-insights-engine-operator.${RESET_TEXT}"
+    echo "  - ${YELLOW_TEXT} Retrieve the the logs of of the Insights Engine operator pod by exiting the script and running \"kubectl logs $(kubectl get pod -n $project_name|grep ibm-bai-insights-engine-operator|awk '{print $1}') \"${RESET_TEXT}"
+    echo "  - ${YELLOW_TEXT}[ATTENTION]: ${RESET_TEXT}${YELLOW_TEXT}DON'T SET ${RESET_TEXT}${RED_TEXT}\"shared_configuration.sc_egress_configuration.sc_restricted_internet_access\"${RESET_TEXT}${YELLOW_TEXT} TO ${RESET_TEXT}${RED_TEXT}\"true\"${RESET_TEXT}${YELLOW_TEXT} UNTIL AFTER YOU'VE COMPLETED THE BAI UPGRADE TO $BAI_RELEASE_BASE.${RESET_TEXT} ${GREEN_TEXT}(UNLESS YOU ALREADY HAD THIS SET TO \"true\" IN THE pre upgrade BAI VERSION)${RESET_TEXT}"
+
 }
