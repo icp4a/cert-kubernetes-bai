@@ -1,0 +1,571 @@
+[34m# Start to validate the parameters passed into script... [0m
+[32m[✔] oc command available[0m
+[32m[✔] /Users/varunsriram/Documents/Work/CloudPak/CodeRepos/cert-kubernetes-bai/scripts/cpfs/yq/macos/yq command available[0m
+[32m[✔] oc command logged in as kube:admin[0m
+[32m[✔] Channel v4.12 is valid[0m
+[INFO] ibm-common-service-operator subscription exists, it is upgrade scenario
+
+[33m[✗] It is simple namespace topology
+[0m
+[32m[✔] Profile size is valid.[0m
+[34m# Validate CatalogSource for operator ibm-common-service-operator in bai namespace[0m
+[32m[✔] CatalogSource ibm-cs-install-catalog-v4-12-0 from bai CatalogSourceNamespace is available for ibm-common-service-operator in bai namespace[0m
+
+[34m# Checking whether Namespace bai exist...[0m
+[32m[✔] Namespace bai already exists. Skip creating
+[0m
+[34m# Checking whether Namespace bai exist...[0m
+[32m[✔] Namespace bai already exists. Skip creating
+[0m
+[34m# Checking whether OperatorGroup in bai exist...[0m
+[32m[✔] OperatorGroup already exists in bai. Skip creating
+[0m
+[34m#  Checking whether Cert Manager exist...[0m
+[34m#  Smoke test for Cert Manager existence...[0m
+[33m[DEBUG] Creating Issuer test-issuer in namespace bai .[0m
+[INFO] Creating following issuer:
+
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: test-issuer
+  namespace: bai
+spec:
+  selfSigned: {}
+
+issuer.cert-manager.io/test-issuer created
+[33m[DEBUG] Creating Certificate test-certificate in namespace bai .[0m
+[INFO] Creating following certificate:
+
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: test-certificate
+  namespace: bai
+spec:
+  commonName: test-certificate
+  issuerRef:
+    kind: Issuer
+    name: test-issuer
+  secretName: test-certificate-secret
+
+certificate.cert-manager.io/test-certificate created
+[INFO] Waiting for Issuer test-issuer in namespace bai to be Ready
+[32m[✔] Issuer test-issuer in namespace bai is Ready
+[0m
+[INFO] Waiting for Certificate test-certificate in namespace bai to be Ready
+[32m[✔] Certificate test-certificate in namespace bai is Ready
+[0m
+[INFO] Deleting test-issuer Issuer ...
+issuer.cert-manager.io "test-issuer" deleted
+
+[INFO] Deleting test-certificate Certificate ...
+certificate.cert-manager.io "test-certificate" deleted
+
+[INFO] Deleting 35191secret_name Secret ...
+secret "test-certificate-secret" deleted
+
+[34m#  Checking IBMLicensing...[0m
+[33m[✗] NamespaceScope Configuration is not needed for simple or all namespaces topology, skip NamespaceScope setup
+[0m
+[34m# Installing IBM Foundational services operator into operator namespace bai...[0m
+[34m# Checking if CommonService CRD exists in the cluster...[0m
+[INFO] CommonService CRD exist
+
+[34m# Configuring CommonService CR in bai...[0m
+[INFO] Configuring CommonService CR common-service in bai
+
+apiVersion: operator.ibm.com/v3
+kind: CommonService
+metadata:
+  annotations:
+    version: "-1"
+  labels:
+    app.kubernetes.io/component: Operator
+    app.kubernetes.io/instance: bai
+    app.kubernetes.io/managed-by: Operator
+    app.kubernetes.io/name: bai-cp4ba
+    app.kubernetes.io/version: 24.0.1
+    foundationservices.cloudpak.ibm.com: commonservice
+    release: 24.0.1
+  name: common-service
+  namespace: bai
+spec:
+  license:
+    accept: true
+  operatorNamespace: bai
+  servicesNamespace: bai
+  size: small
+  storageClass: csi-cephfs
+status:
+  bedrockOperators:
+    - installPlanName: install-vlp7n
+      name: ibm-iam-operator
+      operatorStatus: Succeeded
+      subscriptionStatus: Succeeded
+      version: v4.10.0
+    - installPlanName: install-t9dwh
+      name: ibm-zen-operator
+      operatorStatus: Installing
+      subscriptionStatus: Succeeded
+      troubleshooting: Operator status is not healthy, please check https://ibm.biz/cpfs_general_troubleshooting for more information
+      version: v6.1.3
+    - installPlanName: install-t9dwh
+      name: cloud-native-postgresql
+      operatorStatus: Installing
+      subscriptionStatus: Succeeded
+      troubleshooting: Operator status is not healthy, please check https://ibm.biz/cpfs_general_troubleshooting for more information
+      version: v1.22.9
+  conditions:
+    - lastTransitionTime: "2025-05-22T16:08:18Z"
+      lastUpdateTime: "2025-05-22T16:08:18Z"
+      message: reconciling CommonService CR.
+      reason: StartReconciling
+      status: "False"
+      type: Reconciling
+    - lastTransitionTime: "2025-05-22T16:48:20Z"
+      lastUpdateTime: "2025-05-22T16:48:20Z"
+      message: 'initializing/updating: waiting for OperandRegistry and OperandConfig to become ready.'
+      reason: UpdatingResources
+      status: "False"
+      type: Pending
+    - lastTransitionTime: "2025-05-22T16:48:45Z"
+      lastUpdateTime: "2025-05-22T16:48:45Z"
+      message: configuring CommonService CR.
+      reason: Configuring
+      status: "False"
+      type: Reconciling
+    - lastTransitionTime: "2025-05-22T16:48:45Z"
+      lastUpdateTime: "2025-05-22T16:48:45Z"
+      message: CommonService CR is ready.
+      reason: ReconcileSucceeded
+      status: "True"
+      type: Ready
+  configStatus:
+    catalogName: ibm-cs-install-catalog-v4-11-0
+    catalogNamespace: bai
+    configurable: true
+    operatorDeployed: true
+    operatorNamespace: bai
+    servicesDeployed: true
+    servicesNamespace: bai
+    topologyConfigurableCRs:
+      - apiVersion: operator.ibm.com/v3
+        kind: CommonService
+        namespace: bai
+        objectName: common-service
+  overallStatus: NotReady
+  phase: Succeeded
+
+pod/ibm-common-service-operator-6bd4567f99-cq55j condition met
+[33m[DEBUG] ibm-common-service-operator pod is ready
+[0m
+Warning: resource commonservices/common-service is missing the kubectl.kubernetes.io/last-applied-configuration annotation which is required by oc apply. oc apply should only be used on resources created declaratively by either oc create --save-config or oc apply. The missing annotation will be patched automatically.
+commonservice.operator.ibm.com/common-service configured
+[32m[✔] Successfully patched CommonService CR in bai[0m
+[34m# Checking whether IBM Common Service operator exist...[0m
+[INFO] There is an ibm-common-service-operator Subscription already
+
+[34m# Updating ibm-common-service-operator-v4.11-ibm-cs-install-catalog-v4-11-0-bai in namesapce bai...[0m
+[INFO] v4.11 is less than v4.12
+[INFO] catalogsource ibm-cs-install-catalog-v4-11-0 is different from ibm-cs-install-catalog-v4-12-0
+[INFO] ibm-common-service-operator is ready for updating the subscription.
+subscription.operators.coreos.com/ibm-common-service-operator-v4.11-ibm-cs-install-catalog-v4-11-0-bai configured
+[32m[✔] Successfully patched subscription ibm-common-service-operator in bai[0m
+[INFO] Waiting for operator ibm-common-service-operator to be upgraded
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: subscription cloud-native-postgresql exists, subscription cloud-native-postgresql requires @existing/bai//cloud-native-postgresql.v1.22.9, @existing/bai//cloud-native-postgresql.v1.22.7 and @existing/bai//cloud-native-postgresql.v1.22.9 provide ScheduledBackup (postgresql.k8s.enterprisedb.io/v1), clusterserviceversion cloud-native-postgresql.v1.22.7 exists and is not referenced by a subscription","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (120 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: clusterserviceversion cloud-native-postgresql.v1.22.7 exists and is not referenced by a subscription, subscription cloud-native-postgresql requires @existing/bai//cloud-native-postgresql.v1.22.9, subscription cloud-native-postgresql exists, @existing/bai//cloud-native-postgresql.v1.22.7 and @existing/bai//cloud-native-postgresql.v1.22.9 provide ScheduledBackup (postgresql.k8s.enterprisedb.io/v1)","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (119 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: subscription ibm-zen-operator exists, clusterserviceversion ibm-zen-operator.v6.1.1-89 exists and is not referenced by a subscription, @existing/bai//ibm-zen-operator.v6.1.1-89 and @existing/bai//ibm-zen-operator.v6.1.3 originate from package ibm-zen-operator, subscription ibm-zen-operator requires @existing/bai//ibm-zen-operator.v6.1.3","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (118 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: subscription cloud-native-postgresql exists, clusterserviceversion cloud-native-postgresql.v1.22.7 exists and is not referenced by a subscription, @existing/bai//cloud-native-postgresql.v1.22.9 and @existing/bai//cloud-native-postgresql.v1.22.7 provide Backup (postgresql.k8s.enterprisedb.io/v1), subscription cloud-native-postgresql requires @existing/bai//cloud-native-postgresql.v1.22.9","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (117 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: @existing/bai//ibm-zen-operator.v6.1.3 and @existing/bai//ibm-zen-operator.v6.1.1-89 provide ZenExtension (zen.cpd.ibm.com/v1), subscription ibm-zen-operator requires @existing/bai//ibm-zen-operator.v6.1.3, subscription ibm-zen-operator exists, clusterserviceversion ibm-zen-operator.v6.1.1-89 exists and is not referenced by a subscription","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (116 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: subscription cloud-native-postgresql requires @existing/bai//cloud-native-postgresql.v1.22.9, @existing/bai//cloud-native-postgresql.v1.22.9 and @existing/bai//cloud-native-postgresql.v1.22.7 provide ScheduledBackup (postgresql.k8s.enterprisedb.io/v1), clusterserviceversion cloud-native-postgresql.v1.22.7 exists and is not referenced by a subscription, subscription cloud-native-postgresql exists","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (115 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: clusterserviceversion ibm-zen-operator.v6.1.1-89 exists and is not referenced by a subscription, subscription ibm-zen-operator exists, subscription ibm-zen-operator requires @existing/bai//ibm-zen-operator.v6.1.3, @existing/bai//ibm-zen-operator.v6.1.3 and @existing/bai//ibm-zen-operator.v6.1.1-89 provide ZenService (zen.cpd.ibm.com/v1)","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (114 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: subscription cloud-native-postgresql exists, @existing/bai//cloud-native-postgresql.v1.22.9 and @existing/bai//cloud-native-postgresql.v1.22.7 provide Pooler (postgresql.k8s.enterprisedb.io/v1), clusterserviceversion cloud-native-postgresql.v1.22.7 exists and is not referenced by a subscription, subscription cloud-native-postgresql requires @existing/bai//cloud-native-postgresql.v1.22.9","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (113 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: subscription cloud-native-postgresql requires @existing/bai//cloud-native-postgresql.v1.22.9, subscription cloud-native-postgresql exists, @existing/bai//cloud-native-postgresql.v1.22.9 and @existing/bai//cloud-native-postgresql.v1.22.7 originate from package cloud-native-postgresql, clusterserviceversion cloud-native-postgresql.v1.22.7 exists and is not referenced by a subscription","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (112 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: subscription cloud-native-postgresql exists, @existing/bai//cloud-native-postgresql.v1.22.7 and @existing/bai//cloud-native-postgresql.v1.22.9 provide Cluster (postgresql.k8s.enterprisedb.io/v1), clusterserviceversion cloud-native-postgresql.v1.22.7 exists and is not referenced by a subscription, subscription cloud-native-postgresql requires @existing/bai//cloud-native-postgresql.v1.22.9","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (111 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: subscription cloud-native-postgresql requires @existing/bai//cloud-native-postgresql.v1.22.9, @existing/bai//cloud-native-postgresql.v1.22.9 and @existing/bai//cloud-native-postgresql.v1.22.7 provide Cluster (postgresql.k8s.enterprisedb.io/v1), clusterserviceversion cloud-native-postgresql.v1.22.7 exists and is not referenced by a subscription, subscription cloud-native-postgresql exists","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (110 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: @existing/bai//cloud-native-postgresql.v1.22.9 and @existing/bai//cloud-native-postgresql.v1.22.7 provide Cluster (postgresql.k8s.enterprisedb.io/v1), clusterserviceversion cloud-native-postgresql.v1.22.7 exists and is not referenced by a subscription, subscription cloud-native-postgresql requires @existing/bai//cloud-native-postgresql.v1.22.9, subscription cloud-native-postgresql exists","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (109 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: clusterserviceversion ibm-zen-operator.v6.1.1-89 exists and is not referenced by a subscription, subscription ibm-zen-operator requires @existing/bai//ibm-zen-operator.v6.1.3, subscription ibm-zen-operator exists, @existing/bai//ibm-zen-operator.v6.1.1-89 and @existing/bai//ibm-zen-operator.v6.1.3 provide ZenExtension (zen.cpd.ibm.com/v1)","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (108 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: subscription ibm-zen-operator requires @existing/bai//ibm-zen-operator.v6.1.3, clusterserviceversion ibm-zen-operator.v6.1.1-89 exists and is not referenced by a subscription, @existing/bai//ibm-zen-operator.v6.1.3 and @existing/bai//ibm-zen-operator.v6.1.1-89 provide ZenExtension (zen.cpd.ibm.com/v1), subscription ibm-zen-operator exists","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (107 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: subscription cloud-native-postgresql exists, clusterserviceversion cloud-native-postgresql.v1.22.7 exists and is not referenced by a subscription, @existing/bai//cloud-native-postgresql.v1.22.9 and @existing/bai//cloud-native-postgresql.v1.22.7 originate from package cloud-native-postgresql, subscription cloud-native-postgresql requires @existing/bai//cloud-native-postgresql.v1.22.9","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (106 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: @existing/bai//cloud-native-postgresql.v1.22.9 and @existing/bai//cloud-native-postgresql.v1.22.7 provide Pooler (postgresql.k8s.enterprisedb.io/v1), subscription cloud-native-postgresql exists, subscription cloud-native-postgresql requires @existing/bai//cloud-native-postgresql.v1.22.9, clusterserviceversion cloud-native-postgresql.v1.22.7 exists and is not referenced by a subscription","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (105 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: clusterserviceversion cloud-native-postgresql.v1.22.7 exists and is not referenced by a subscription, @existing/bai//cloud-native-postgresql.v1.22.7 and @existing/bai//cloud-native-postgresql.v1.22.9 provide Backup (postgresql.k8s.enterprisedb.io/v1), subscription cloud-native-postgresql requires @existing/bai//cloud-native-postgresql.v1.22.9, subscription cloud-native-postgresql exists","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (104 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: @existing/bai//ibm-zen-operator.v6.1.1-89 and @existing/bai//ibm-zen-operator.v6.1.3 provide ZenExtension (zen.cpd.ibm.com/v1), subscription ibm-zen-operator exists, subscription ibm-zen-operator requires @existing/bai//ibm-zen-operator.v6.1.3, clusterserviceversion ibm-zen-operator.v6.1.1-89 exists and is not referenced by a subscription","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (103 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: clusterserviceversion cloud-native-postgresql.v1.22.7 exists and is not referenced by a subscription, @existing/bai//cloud-native-postgresql.v1.22.9 and @existing/bai//cloud-native-postgresql.v1.22.7 provide Cluster (postgresql.k8s.enterprisedb.io/v1), subscription cloud-native-postgresql requires @existing/bai//cloud-native-postgresql.v1.22.9, subscription cloud-native-postgresql exists","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (102 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: subscription ibm-zen-operator exists, subscription ibm-zen-operator requires @existing/bai//ibm-zen-operator.v6.1.3, @existing/bai//ibm-zen-operator.v6.1.3 and @existing/bai//ibm-zen-operator.v6.1.1-89 originate from package ibm-zen-operator, clusterserviceversion ibm-zen-operator.v6.1.1-89 exists and is not referenced by a subscription","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (101 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: subscription ibm-zen-operator requires @existing/bai//ibm-zen-operator.v6.1.3, clusterserviceversion ibm-zen-operator.v6.1.1-89 exists and is not referenced by a subscription, @existing/bai//ibm-zen-operator.v6.1.1-89 and @existing/bai//ibm-zen-operator.v6.1.3 provide ZenExtension (zen.cpd.ibm.com/v1), subscription ibm-zen-operator exists","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (100 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: subscription cloud-native-postgresql requires @existing/bai//cloud-native-postgresql.v1.22.9, @existing/bai//cloud-native-postgresql.v1.22.7 and @existing/bai//cloud-native-postgresql.v1.22.9 originate from package cloud-native-postgresql, clusterserviceversion cloud-native-postgresql.v1.22.7 exists and is not referenced by a subscription, subscription cloud-native-postgresql exists","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (99 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: clusterserviceversion cloud-native-postgresql.v1.22.7 exists and is not referenced by a subscription, @existing/bai//cloud-native-postgresql.v1.22.7 and @existing/bai//cloud-native-postgresql.v1.22.9 provide Pooler (postgresql.k8s.enterprisedb.io/v1), subscription cloud-native-postgresql requires @existing/bai//cloud-native-postgresql.v1.22.9, subscription cloud-native-postgresql exists","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (98 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: subscription cloud-native-postgresql requires @existing/bai//cloud-native-postgresql.v1.22.9, subscription cloud-native-postgresql exists, @existing/bai//cloud-native-postgresql.v1.22.7 and @existing/bai//cloud-native-postgresql.v1.22.9 provide Backup (postgresql.k8s.enterprisedb.io/v1), clusterserviceversion cloud-native-postgresql.v1.22.7 exists and is not referenced by a subscription","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (97 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: @existing/bai//ibm-zen-operator.v6.1.1-89 and @existing/bai//ibm-zen-operator.v6.1.3 provide ZenService (zen.cpd.ibm.com/v1), clusterserviceversion ibm-zen-operator.v6.1.1-89 exists and is not referenced by a subscription, subscription ibm-zen-operator requires @existing/bai//ibm-zen-operator.v6.1.3, subscription ibm-zen-operator exists","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (96 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: @existing/bai//ibm-zen-operator.v6.1.3 and @existing/bai//ibm-zen-operator.v6.1.1-89 provide ZenExtension (zen.cpd.ibm.com/v1), clusterserviceversion ibm-zen-operator.v6.1.1-89 exists and is not referenced by a subscription, subscription ibm-zen-operator requires @existing/bai//ibm-zen-operator.v6.1.3, subscription ibm-zen-operator exists","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (95 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: clusterserviceversion ibm-zen-operator.v6.1.1-89 exists and is not referenced by a subscription, @existing/bai//ibm-zen-operator.v6.1.3 and @existing/bai//ibm-zen-operator.v6.1.1-89 provide ZenService (zen.cpd.ibm.com/v1), subscription ibm-zen-operator requires @existing/bai//ibm-zen-operator.v6.1.3, subscription ibm-zen-operator exists","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (94 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: clusterserviceversion ibm-zen-operator.v6.1.1-89 exists and is not referenced by a subscription, subscription ibm-zen-operator exists, subscription ibm-zen-operator requires @existing/bai//ibm-zen-operator.v6.1.3, @existing/bai//ibm-zen-operator.v6.1.3 and @existing/bai//ibm-zen-operator.v6.1.1-89 provide ZenExtension (zen.cpd.ibm.com/v1)","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (93 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: clusterserviceversion ibm-zen-operator.v6.1.1-89 exists and is not referenced by a subscription, subscription ibm-zen-operator requires @existing/bai//ibm-zen-operator.v6.1.3, subscription ibm-zen-operator exists, @existing/bai//ibm-zen-operator.v6.1.3 and @existing/bai//ibm-zen-operator.v6.1.1-89 originate from package ibm-zen-operator","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (92 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: clusterserviceversion cloud-native-postgresql.v1.22.7 exists and is not referenced by a subscription, @existing/bai//cloud-native-postgresql.v1.22.7 and @existing/bai//cloud-native-postgresql.v1.22.9 provide Pooler (postgresql.k8s.enterprisedb.io/v1), subscription cloud-native-postgresql exists, subscription cloud-native-postgresql requires @existing/bai//cloud-native-postgresql.v1.22.9","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (91 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: subscription cloud-native-postgresql exists, @existing/bai//cloud-native-postgresql.v1.22.7 and @existing/bai//cloud-native-postgresql.v1.22.9 provide Pooler (postgresql.k8s.enterprisedb.io/v1), clusterserviceversion cloud-native-postgresql.v1.22.7 exists and is not referenced by a subscription, subscription cloud-native-postgresql requires @existing/bai//cloud-native-postgresql.v1.22.9","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (90 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: @existing/bai//cloud-native-postgresql.v1.22.7 and @existing/bai//cloud-native-postgresql.v1.22.9 provide Cluster (postgresql.k8s.enterprisedb.io/v1), subscription cloud-native-postgresql requires @existing/bai//cloud-native-postgresql.v1.22.9, subscription cloud-native-postgresql exists, clusterserviceversion cloud-native-postgresql.v1.22.7 exists and is not referenced by a subscription","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (89 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: @existing/bai//cloud-native-postgresql.v1.22.7 and @existing/bai//cloud-native-postgresql.v1.22.9 provide Pooler (postgresql.k8s.enterprisedb.io/v1), clusterserviceversion cloud-native-postgresql.v1.22.7 exists and is not referenced by a subscription, subscription cloud-native-postgresql requires @existing/bai//cloud-native-postgresql.v1.22.9, subscription cloud-native-postgresql exists","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (88 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: subscription ibm-zen-operator exists, @existing/bai//ibm-zen-operator.v6.1.3 and @existing/bai//ibm-zen-operator.v6.1.1-89 provide ZenExtension (zen.cpd.ibm.com/v1), clusterserviceversion ibm-zen-operator.v6.1.1-89 exists and is not referenced by a subscription, subscription ibm-zen-operator requires @existing/bai//ibm-zen-operator.v6.1.3","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (87 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: subscription ibm-zen-operator requires @existing/bai//ibm-zen-operator.v6.1.3, subscription ibm-zen-operator exists, @existing/bai//ibm-zen-operator.v6.1.3 and @existing/bai//ibm-zen-operator.v6.1.1-89 provide ZenExtension (zen.cpd.ibm.com/v1), clusterserviceversion ibm-zen-operator.v6.1.1-89 exists and is not referenced by a subscription","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (86 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: subscription ibm-zen-operator requires @existing/bai//ibm-zen-operator.v6.1.3, @existing/bai//ibm-zen-operator.v6.1.1-89 and @existing/bai//ibm-zen-operator.v6.1.3 provide ZenService (zen.cpd.ibm.com/v1), clusterserviceversion ibm-zen-operator.v6.1.1-89 exists and is not referenced by a subscription, subscription ibm-zen-operator exists","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (85 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: @existing/bai//cloud-native-postgresql.v1.22.9 and @existing/bai//cloud-native-postgresql.v1.22.7 originate from package cloud-native-postgresql, subscription cloud-native-postgresql exists, subscription cloud-native-postgresql requires @existing/bai//cloud-native-postgresql.v1.22.9, clusterserviceversion cloud-native-postgresql.v1.22.7 exists and is not referenced by a subscription","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (84 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: subscription cloud-native-postgresql requires @existing/bai//cloud-native-postgresql.v1.22.9, @existing/bai//cloud-native-postgresql.v1.22.9 and @existing/bai//cloud-native-postgresql.v1.22.7 provide Backup (postgresql.k8s.enterprisedb.io/v1), clusterserviceversion cloud-native-postgresql.v1.22.7 exists and is not referenced by a subscription, subscription cloud-native-postgresql exists","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (83 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: subscription ibm-zen-operator requires @existing/bai//ibm-zen-operator.v6.1.3, subscription ibm-zen-operator exists, clusterserviceversion ibm-zen-operator.v6.1.1-89 exists and is not referenced by a subscription, @existing/bai//ibm-zen-operator.v6.1.3 and @existing/bai//ibm-zen-operator.v6.1.1-89 provide ZenService (zen.cpd.ibm.com/v1)","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (82 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: subscription ibm-zen-operator exists, @existing/bai//ibm-zen-operator.v6.1.1-89 and @existing/bai//ibm-zen-operator.v6.1.3 provide ZenExtension (zen.cpd.ibm.com/v1), clusterserviceversion ibm-zen-operator.v6.1.1-89 exists and is not referenced by a subscription, subscription ibm-zen-operator requires @existing/bai//ibm-zen-operator.v6.1.3","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (81 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: subscription cloud-native-postgresql exists, clusterserviceversion cloud-native-postgresql.v1.22.7 exists and is not referenced by a subscription, @existing/bai//cloud-native-postgresql.v1.22.9 and @existing/bai//cloud-native-postgresql.v1.22.7 provide ScheduledBackup (postgresql.k8s.enterprisedb.io/v1), subscription cloud-native-postgresql requires @existing/bai//cloud-native-postgresql.v1.22.9","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (80 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: subscription cloud-native-postgresql requires @existing/bai//cloud-native-postgresql.v1.22.9, clusterserviceversion cloud-native-postgresql.v1.22.7 exists and is not referenced by a subscription, @existing/bai//cloud-native-postgresql.v1.22.7 and @existing/bai//cloud-native-postgresql.v1.22.9 provide Cluster (postgresql.k8s.enterprisedb.io/v1), subscription cloud-native-postgresql exists","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (79 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: subscription ibm-zen-operator exists, @existing/bai//ibm-zen-operator.v6.1.3 and @existing/bai//ibm-zen-operator.v6.1.1-89 provide ZenExtension (zen.cpd.ibm.com/v1), clusterserviceversion ibm-zen-operator.v6.1.1-89 exists and is not referenced by a subscription, subscription ibm-zen-operator requires @existing/bai//ibm-zen-operator.v6.1.3","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (78 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: subscription ibm-zen-operator exists, @existing/bai//ibm-zen-operator.v6.1.3 and @existing/bai//ibm-zen-operator.v6.1.1-89 provide ZenExtension (zen.cpd.ibm.com/v1), clusterserviceversion ibm-zen-operator.v6.1.1-89 exists and is not referenced by a subscription, subscription ibm-zen-operator requires @existing/bai//ibm-zen-operator.v6.1.3","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (77 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: subscription ibm-zen-operator exists, @existing/bai//ibm-zen-operator.v6.1.3 and @existing/bai//ibm-zen-operator.v6.1.1-89 provide ZenExtension (zen.cpd.ibm.com/v1), clusterserviceversion ibm-zen-operator.v6.1.1-89 exists and is not referenced by a subscription, subscription ibm-zen-operator requires @existing/bai//ibm-zen-operator.v6.1.3","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (76 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: @existing/bai//ibm-zen-operator.v6.1.3 and @existing/bai//ibm-zen-operator.v6.1.1-89 provide ZenExtension (zen.cpd.ibm.com/v1), subscription ibm-zen-operator requires @existing/bai//ibm-zen-operator.v6.1.3, subscription ibm-zen-operator exists, clusterserviceversion ibm-zen-operator.v6.1.1-89 exists and is not referenced by a subscription","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (75 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: subscription ibm-zen-operator requires @existing/bai//ibm-zen-operator.v6.1.3, @existing/bai//ibm-zen-operator.v6.1.1-89 and @existing/bai//ibm-zen-operator.v6.1.3 originate from package ibm-zen-operator, clusterserviceversion ibm-zen-operator.v6.1.1-89 exists and is not referenced by a subscription, subscription ibm-zen-operator exists","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (74 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: subscription cloud-native-postgresql requires @existing/bai//cloud-native-postgresql.v1.22.9, clusterserviceversion cloud-native-postgresql.v1.22.7 exists and is not referenced by a subscription, @existing/bai//cloud-native-postgresql.v1.22.9 and @existing/bai//cloud-native-postgresql.v1.22.7 provide ScheduledBackup (postgresql.k8s.enterprisedb.io/v1), subscription cloud-native-postgresql exists","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (73 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: clusterserviceversion cloud-native-postgresql.v1.22.7 exists and is not referenced by a subscription, @existing/bai//cloud-native-postgresql.v1.22.9 and @existing/bai//cloud-native-postgresql.v1.22.7 provide Cluster (postgresql.k8s.enterprisedb.io/v1), subscription cloud-native-postgresql exists, subscription cloud-native-postgresql requires @existing/bai//cloud-native-postgresql.v1.22.9","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (72 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: clusterserviceversion cloud-native-postgresql.v1.22.7 exists and is not referenced by a subscription, @existing/bai//cloud-native-postgresql.v1.22.9 and @existing/bai//cloud-native-postgresql.v1.22.7 provide Cluster (postgresql.k8s.enterprisedb.io/v1), subscription cloud-native-postgresql exists, subscription cloud-native-postgresql requires @existing/bai//cloud-native-postgresql.v1.22.9","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (71 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: clusterserviceversion cloud-native-postgresql.v1.22.7 exists and is not referenced by a subscription, subscription cloud-native-postgresql exists, subscription cloud-native-postgresql requires @existing/bai//cloud-native-postgresql.v1.22.9, @existing/bai//cloud-native-postgresql.v1.22.9 and @existing/bai//cloud-native-postgresql.v1.22.7 provide Cluster (postgresql.k8s.enterprisedb.io/v1)","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (70 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: subscription cloud-native-postgresql exists, @existing/bai//cloud-native-postgresql.v1.22.7 and @existing/bai//cloud-native-postgresql.v1.22.9 provide Pooler (postgresql.k8s.enterprisedb.io/v1), clusterserviceversion cloud-native-postgresql.v1.22.7 exists and is not referenced by a subscription, subscription cloud-native-postgresql requires @existing/bai//cloud-native-postgresql.v1.22.9","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (69 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: @existing/bai//cloud-native-postgresql.v1.22.7 and @existing/bai//cloud-native-postgresql.v1.22.9 provide Pooler (postgresql.k8s.enterprisedb.io/v1), clusterserviceversion cloud-native-postgresql.v1.22.7 exists and is not referenced by a subscription, subscription cloud-native-postgresql exists, subscription cloud-native-postgresql requires @existing/bai//cloud-native-postgresql.v1.22.9","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (68 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: subscription ibm-zen-operator requires @existing/bai//ibm-zen-operator.v6.1.3, clusterserviceversion ibm-zen-operator.v6.1.1-89 exists and is not referenced by a subscription, @existing/bai//ibm-zen-operator.v6.1.3 and @existing/bai//ibm-zen-operator.v6.1.1-89 originate from package ibm-zen-operator, subscription ibm-zen-operator exists","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (67 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: subscription ibm-zen-operator exists, @existing/bai//ibm-zen-operator.v6.1.1-89 and @existing/bai//ibm-zen-operator.v6.1.3 provide ZenExtension (zen.cpd.ibm.com/v1), clusterserviceversion ibm-zen-operator.v6.1.1-89 exists and is not referenced by a subscription, subscription ibm-zen-operator requires @existing/bai//ibm-zen-operator.v6.1.3","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (66 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: subscription ibm-zen-operator exists, @existing/bai//ibm-zen-operator.v6.1.3 and @existing/bai//ibm-zen-operator.v6.1.1-89 provide ZenExtension (zen.cpd.ibm.com/v1), clusterserviceversion ibm-zen-operator.v6.1.1-89 exists and is not referenced by a subscription, subscription ibm-zen-operator requires @existing/bai//ibm-zen-operator.v6.1.3","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (65 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: subscription ibm-zen-operator requires @existing/bai//ibm-zen-operator.v6.1.3, clusterserviceversion ibm-zen-operator.v6.1.1-89 exists and is not referenced by a subscription, @existing/bai//ibm-zen-operator.v6.1.1-89 and @existing/bai//ibm-zen-operator.v6.1.3 originate from package ibm-zen-operator, subscription ibm-zen-operator exists","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (64 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: subscription cloud-native-postgresql requires @existing/bai//cloud-native-postgresql.v1.22.9, subscription cloud-native-postgresql exists, @existing/bai//cloud-native-postgresql.v1.22.9 and @existing/bai//cloud-native-postgresql.v1.22.7 provide Backup (postgresql.k8s.enterprisedb.io/v1), clusterserviceversion cloud-native-postgresql.v1.22.7 exists and is not referenced by a subscription","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (63 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: subscription ibm-zen-operator requires @existing/bai//ibm-zen-operator.v6.1.3, subscription ibm-zen-operator exists, clusterserviceversion ibm-zen-operator.v6.1.1-89 exists and is not referenced by a subscription, @existing/bai//ibm-zen-operator.v6.1.3 and @existing/bai//ibm-zen-operator.v6.1.1-89 originate from package ibm-zen-operator","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (62 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: subscription cloud-native-postgresql exists, @existing/bai//cloud-native-postgresql.v1.22.9 and @existing/bai//cloud-native-postgresql.v1.22.7 provide Pooler (postgresql.k8s.enterprisedb.io/v1), clusterserviceversion cloud-native-postgresql.v1.22.7 exists and is not referenced by a subscription, subscription cloud-native-postgresql requires @existing/bai//cloud-native-postgresql.v1.22.9","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (61 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: subscription cloud-native-postgresql exists, subscription cloud-native-postgresql requires @existing/bai//cloud-native-postgresql.v1.22.9, @existing/bai//cloud-native-postgresql.v1.22.7 and @existing/bai//cloud-native-postgresql.v1.22.9 provide Pooler (postgresql.k8s.enterprisedb.io/v1), clusterserviceversion cloud-native-postgresql.v1.22.7 exists and is not referenced by a subscription","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (60 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: subscription cloud-native-postgresql exists, @existing/bai//cloud-native-postgresql.v1.22.9 and @existing/bai//cloud-native-postgresql.v1.22.7 provide ScheduledBackup (postgresql.k8s.enterprisedb.io/v1), clusterserviceversion cloud-native-postgresql.v1.22.7 exists and is not referenced by a subscription, subscription cloud-native-postgresql requires @existing/bai//cloud-native-postgresql.v1.22.9","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (59 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: subscription ibm-zen-operator exists, clusterserviceversion ibm-zen-operator.v6.1.1-89 exists and is not referenced by a subscription, @existing/bai//ibm-zen-operator.v6.1.3 and @existing/bai//ibm-zen-operator.v6.1.1-89 originate from package ibm-zen-operator, subscription ibm-zen-operator requires @existing/bai//ibm-zen-operator.v6.1.3","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (58 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: subscription ibm-zen-operator exists, @existing/bai//ibm-zen-operator.v6.1.3 and @existing/bai//ibm-zen-operator.v6.1.1-89 provide ZenExtension (zen.cpd.ibm.com/v1), clusterserviceversion ibm-zen-operator.v6.1.1-89 exists and is not referenced by a subscription, subscription ibm-zen-operator requires @existing/bai//ibm-zen-operator.v6.1.3","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (57 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: subscription cloud-native-postgresql exists, clusterserviceversion cloud-native-postgresql.v1.22.7 exists and is not referenced by a subscription, @existing/bai//cloud-native-postgresql.v1.22.7 and @existing/bai//cloud-native-postgresql.v1.22.9 provide ScheduledBackup (postgresql.k8s.enterprisedb.io/v1), subscription cloud-native-postgresql requires @existing/bai//cloud-native-postgresql.v1.22.9","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (56 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: subscription ibm-zen-operator exists, clusterserviceversion ibm-zen-operator.v6.1.1-89 exists and is not referenced by a subscription, @existing/bai//ibm-zen-operator.v6.1.3 and @existing/bai//ibm-zen-operator.v6.1.1-89 originate from package ibm-zen-operator, subscription ibm-zen-operator requires @existing/bai//ibm-zen-operator.v6.1.3","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (55 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: subscription cloud-native-postgresql requires @existing/bai//cloud-native-postgresql.v1.22.9, subscription cloud-native-postgresql exists, @existing/bai//cloud-native-postgresql.v1.22.7 and @existing/bai//cloud-native-postgresql.v1.22.9 provide Backup (postgresql.k8s.enterprisedb.io/v1), clusterserviceversion cloud-native-postgresql.v1.22.7 exists and is not referenced by a subscription","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (54 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: clusterserviceversion cloud-native-postgresql.v1.22.7 exists and is not referenced by a subscription, subscription cloud-native-postgresql requires @existing/bai//cloud-native-postgresql.v1.22.9, subscription cloud-native-postgresql exists, @existing/bai//cloud-native-postgresql.v1.22.9 and @existing/bai//cloud-native-postgresql.v1.22.7 originate from package cloud-native-postgresql","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (53 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: @existing/bai//ibm-zen-operator.v6.1.1-89 and @existing/bai//ibm-zen-operator.v6.1.3 originate from package ibm-zen-operator, clusterserviceversion ibm-zen-operator.v6.1.1-89 exists and is not referenced by a subscription, subscription ibm-zen-operator requires @existing/bai//ibm-zen-operator.v6.1.3, subscription ibm-zen-operator exists","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (52 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: subscription cloud-native-postgresql exists, subscription cloud-native-postgresql requires @existing/bai//cloud-native-postgresql.v1.22.9, @existing/bai//cloud-native-postgresql.v1.22.9 and @existing/bai//cloud-native-postgresql.v1.22.7 provide ScheduledBackup (postgresql.k8s.enterprisedb.io/v1), clusterserviceversion cloud-native-postgresql.v1.22.7 exists and is not referenced by a subscription","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (51 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: subscription ibm-zen-operator requires @existing/bai//ibm-zen-operator.v6.1.3, subscription ibm-zen-operator exists, @existing/bai//ibm-zen-operator.v6.1.3 and @existing/bai//ibm-zen-operator.v6.1.1-89 provide ZenExtension (zen.cpd.ibm.com/v1), clusterserviceversion ibm-zen-operator.v6.1.1-89 exists and is not referenced by a subscription","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (50 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: subscription ibm-zen-operator requires @existing/bai//ibm-zen-operator.v6.1.3, @existing/bai//ibm-zen-operator.v6.1.1-89 and @existing/bai//ibm-zen-operator.v6.1.3 originate from package ibm-zen-operator, clusterserviceversion ibm-zen-operator.v6.1.1-89 exists and is not referenced by a subscription, subscription ibm-zen-operator exists","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (49 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: subscription ibm-zen-operator requires @existing/bai//ibm-zen-operator.v6.1.3, @existing/bai//ibm-zen-operator.v6.1.3 and @existing/bai//ibm-zen-operator.v6.1.1-89 provide ZenService (zen.cpd.ibm.com/v1), clusterserviceversion ibm-zen-operator.v6.1.1-89 exists and is not referenced by a subscription, subscription ibm-zen-operator exists","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (48 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: subscription cloud-native-postgresql requires @existing/bai//cloud-native-postgresql.v1.22.9, clusterserviceversion cloud-native-postgresql.v1.22.7 exists and is not referenced by a subscription, @existing/bai//cloud-native-postgresql.v1.22.9 and @existing/bai//cloud-native-postgresql.v1.22.7 provide ScheduledBackup (postgresql.k8s.enterprisedb.io/v1), subscription cloud-native-postgresql exists","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (47 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: @existing/bai//ibm-zen-operator.v6.1.1-89 and @existing/bai//ibm-zen-operator.v6.1.3 provide ZenExtension (zen.cpd.ibm.com/v1), subscription ibm-zen-operator requires @existing/bai//ibm-zen-operator.v6.1.3, subscription ibm-zen-operator exists, clusterserviceversion ibm-zen-operator.v6.1.1-89 exists and is not referenced by a subscription","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (46 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: @existing/bai//ibm-zen-operator.v6.1.3 and @existing/bai//ibm-zen-operator.v6.1.1-89 provide ZenService (zen.cpd.ibm.com/v1), subscription ibm-zen-operator exists, subscription ibm-zen-operator requires @existing/bai//ibm-zen-operator.v6.1.3, clusterserviceversion ibm-zen-operator.v6.1.1-89 exists and is not referenced by a subscription","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (45 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: subscription ibm-zen-operator requires @existing/bai//ibm-zen-operator.v6.1.3, clusterserviceversion ibm-zen-operator.v6.1.1-89 exists and is not referenced by a subscription, @existing/bai//ibm-zen-operator.v6.1.3 and @existing/bai//ibm-zen-operator.v6.1.1-89 provide ZenExtension (zen.cpd.ibm.com/v1), subscription ibm-zen-operator exists","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (44 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: subscription cloud-native-postgresql requires @existing/bai//cloud-native-postgresql.v1.22.9, @existing/bai//cloud-native-postgresql.v1.22.7 and @existing/bai//cloud-native-postgresql.v1.22.9 provide Pooler (postgresql.k8s.enterprisedb.io/v1), clusterserviceversion cloud-native-postgresql.v1.22.7 exists and is not referenced by a subscription, subscription cloud-native-postgresql exists","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (43 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: @existing/bai//ibm-zen-operator.v6.1.3 and @existing/bai//ibm-zen-operator.v6.1.1-89 originate from package ibm-zen-operator, subscription ibm-zen-operator requires @existing/bai//ibm-zen-operator.v6.1.3, subscription ibm-zen-operator exists, clusterserviceversion ibm-zen-operator.v6.1.1-89 exists and is not referenced by a subscription","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (42 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: subscription cloud-native-postgresql requires @existing/bai//cloud-native-postgresql.v1.22.9, clusterserviceversion cloud-native-postgresql.v1.22.7 exists and is not referenced by a subscription, @existing/bai//cloud-native-postgresql.v1.22.7 and @existing/bai//cloud-native-postgresql.v1.22.9 provide Pooler (postgresql.k8s.enterprisedb.io/v1), subscription cloud-native-postgresql exists","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (41 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: clusterserviceversion cloud-native-postgresql.v1.22.7 exists and is not referenced by a subscription, subscription cloud-native-postgresql exists, subscription cloud-native-postgresql requires @existing/bai//cloud-native-postgresql.v1.22.9, @existing/bai//cloud-native-postgresql.v1.22.9 and @existing/bai//cloud-native-postgresql.v1.22.7 originate from package cloud-native-postgresql","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (40 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: subscription cloud-native-postgresql exists, clusterserviceversion cloud-native-postgresql.v1.22.7 exists and is not referenced by a subscription, @existing/bai//cloud-native-postgresql.v1.22.9 and @existing/bai//cloud-native-postgresql.v1.22.7 provide Backup (postgresql.k8s.enterprisedb.io/v1), subscription cloud-native-postgresql requires @existing/bai//cloud-native-postgresql.v1.22.9","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (39 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: clusterserviceversion ibm-zen-operator.v6.1.1-89 exists and is not referenced by a subscription, subscription ibm-zen-operator requires @existing/bai//ibm-zen-operator.v6.1.3, subscription ibm-zen-operator exists, @existing/bai//ibm-zen-operator.v6.1.1-89 and @existing/bai//ibm-zen-operator.v6.1.3 provide ZenExtension (zen.cpd.ibm.com/v1)","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (38 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: @existing/bai//cloud-native-postgresql.v1.22.7 and @existing/bai//cloud-native-postgresql.v1.22.9 provide ScheduledBackup (postgresql.k8s.enterprisedb.io/v1), subscription cloud-native-postgresql exists, subscription cloud-native-postgresql requires @existing/bai//cloud-native-postgresql.v1.22.9, clusterserviceversion cloud-native-postgresql.v1.22.7 exists and is not referenced by a subscription","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (37 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: clusterserviceversion cloud-native-postgresql.v1.22.7 exists and is not referenced by a subscription, subscription cloud-native-postgresql requires @existing/bai//cloud-native-postgresql.v1.22.9, subscription cloud-native-postgresql exists, @existing/bai//cloud-native-postgresql.v1.22.7 and @existing/bai//cloud-native-postgresql.v1.22.9 provide Backup (postgresql.k8s.enterprisedb.io/v1)","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (36 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: @existing/bai//cloud-native-postgresql.v1.22.7 and @existing/bai//cloud-native-postgresql.v1.22.9 provide ScheduledBackup (postgresql.k8s.enterprisedb.io/v1), subscription cloud-native-postgresql exists, subscription cloud-native-postgresql requires @existing/bai//cloud-native-postgresql.v1.22.9, clusterserviceversion cloud-native-postgresql.v1.22.7 exists and is not referenced by a subscription","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (35 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: subscription ibm-zen-operator requires @existing/bai//ibm-zen-operator.v6.1.3, clusterserviceversion ibm-zen-operator.v6.1.1-89 exists and is not referenced by a subscription, @existing/bai//ibm-zen-operator.v6.1.3 and @existing/bai//ibm-zen-operator.v6.1.1-89 provide ZenExtension (zen.cpd.ibm.com/v1), subscription ibm-zen-operator exists","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (34 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: @existing/bai//ibm-zen-operator.v6.1.1-89 and @existing/bai//ibm-zen-operator.v6.1.3 provide ZenExtension (zen.cpd.ibm.com/v1), clusterserviceversion ibm-zen-operator.v6.1.1-89 exists and is not referenced by a subscription, subscription ibm-zen-operator requires @existing/bai//ibm-zen-operator.v6.1.3, subscription ibm-zen-operator exists","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (33 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: subscription ibm-zen-operator exists, subscription ibm-zen-operator requires @existing/bai//ibm-zen-operator.v6.1.3, @existing/bai//ibm-zen-operator.v6.1.1-89 and @existing/bai//ibm-zen-operator.v6.1.3 originate from package ibm-zen-operator, clusterserviceversion ibm-zen-operator.v6.1.1-89 exists and is not referenced by a subscription","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (32 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: subscription ibm-zen-operator exists, subscription ibm-zen-operator requires @existing/bai//ibm-zen-operator.v6.1.3, @existing/bai//ibm-zen-operator.v6.1.1-89 and @existing/bai//ibm-zen-operator.v6.1.3 originate from package ibm-zen-operator, clusterserviceversion ibm-zen-operator.v6.1.1-89 exists and is not referenced by a subscription","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (31 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: subscription ibm-zen-operator exists, subscription ibm-zen-operator requires @existing/bai//ibm-zen-operator.v6.1.3, @existing/bai//ibm-zen-operator.v6.1.1-89 and @existing/bai//ibm-zen-operator.v6.1.3 originate from package ibm-zen-operator, clusterserviceversion ibm-zen-operator.v6.1.1-89 exists and is not referenced by a subscription","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (30 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: subscription ibm-zen-operator exists, subscription ibm-zen-operator requires @existing/bai//ibm-zen-operator.v6.1.3, clusterserviceversion ibm-zen-operator.v6.1.1-89 exists and is not referenced by a subscription, @existing/bai//ibm-zen-operator.v6.1.1-89 and @existing/bai//ibm-zen-operator.v6.1.3 originate from package ibm-zen-operator","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (29 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: @existing/bai//ibm-zen-operator.v6.1.1-89 and @existing/bai//ibm-zen-operator.v6.1.3 provide ZenService (zen.cpd.ibm.com/v1), subscription ibm-zen-operator requires @existing/bai//ibm-zen-operator.v6.1.3, subscription ibm-zen-operator exists, clusterserviceversion ibm-zen-operator.v6.1.1-89 exists and is not referenced by a subscription","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (28 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: subscription cloud-native-postgresql exists, @existing/bai//cloud-native-postgresql.v1.22.9 and @existing/bai//cloud-native-postgresql.v1.22.7 provide Cluster (postgresql.k8s.enterprisedb.io/v1), clusterserviceversion cloud-native-postgresql.v1.22.7 exists and is not referenced by a subscription, subscription cloud-native-postgresql requires @existing/bai//cloud-native-postgresql.v1.22.9","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (27 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: @existing/bai//cloud-native-postgresql.v1.22.9 and @existing/bai//cloud-native-postgresql.v1.22.7 originate from package cloud-native-postgresql, subscription cloud-native-postgresql requires @existing/bai//cloud-native-postgresql.v1.22.9, subscription cloud-native-postgresql exists, clusterserviceversion cloud-native-postgresql.v1.22.7 exists and is not referenced by a subscription","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (26 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: @existing/bai//cloud-native-postgresql.v1.22.9 and @existing/bai//cloud-native-postgresql.v1.22.7 provide Pooler (postgresql.k8s.enterprisedb.io/v1), clusterserviceversion cloud-native-postgresql.v1.22.7 exists and is not referenced by a subscription, subscription cloud-native-postgresql requires @existing/bai//cloud-native-postgresql.v1.22.9, subscription cloud-native-postgresql exists","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (25 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: @existing/bai//ibm-zen-operator.v6.1.3 and @existing/bai//ibm-zen-operator.v6.1.1-89 provide ZenExtension (zen.cpd.ibm.com/v1), subscription ibm-zen-operator requires @existing/bai//ibm-zen-operator.v6.1.3, subscription ibm-zen-operator exists, clusterserviceversion ibm-zen-operator.v6.1.1-89 exists and is not referenced by a subscription","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (24 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: @existing/bai//cloud-native-postgresql.v1.22.9 and @existing/bai//cloud-native-postgresql.v1.22.7 originate from package cloud-native-postgresql, subscription cloud-native-postgresql exists, subscription cloud-native-postgresql requires @existing/bai//cloud-native-postgresql.v1.22.9, clusterserviceversion cloud-native-postgresql.v1.22.7 exists and is not referenced by a subscription","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (23 left)
+[33m[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bai='' -n bai -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-05-22T18:34:31Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"message":"constraints not satisfiable: subscription ibm-zen-operator requires @existing/bai//ibm-zen-operator.v6.1.3, @existing/bai//ibm-zen-operator.v6.1.1-89 and @existing/bai//ibm-zen-operator.v6.1.3 provide ZenExtension (zen.cpd.ibm.com/v1), clusterserviceversion ibm-zen-operator.v6.1.1-89 exists and is not referenced by a subscription, subscription ibm-zen-operator exists","reason":"ConstraintsNotSatisfiable","status":"True","type":"ResolutionFailed"}]
+[0m
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (22 left)

@@ -11,6 +11,25 @@
 #
 ###############################################################################
 
+# Based on if it is a separation of duties based deployment or not, some of the upgrade file paths will change
+# Called during upgradeDeployment and UpgradeOperatorStatus
+function set_upgrade_file_paths(){
+    local namespace=$1
+    UPGRADE_DEPLOYMENT_FOLDER=${CUR_DIR}/bai-upgrade/project/$namespace
+    UPGRADE_DEPLOYMENT_PROPERTY_FILE=${UPGRADE_DEPLOYMENT_FOLDER}/bai_upgrade.property
+
+    UPGRADE_DEPLOYMENT_CR=${UPGRADE_DEPLOYMENT_FOLDER}/custom_resource
+    UPGRADE_DEPLOYMENT_CR_BAK=${UPGRADE_DEPLOYMENT_CR}/backup
+
+    UPGRADE_DEPLOYMENT_BAI_CR=${UPGRADE_DEPLOYMENT_CR}/insightsengine.yaml
+    UPGRADE_DEPLOYMENT_BAI_CR_TMP=${UPGRADE_DEPLOYMENT_CR}/.insightsengine_tmp.yaml
+    UPGRADE_DEPLOYMENT_BAI_CR_BAK=${UPGRADE_DEPLOYMENT_CR_BAK}/insightsengine_cr_backup.yaml
+
+    UPGRADE_CS_ZEN_FILE=${UPGRADE_DEPLOYMENT_CR}/.cs_zen_parameter.yaml
+    UPGRADE_DEPLOYMENT_BAI_TMP=${UPGRADE_DEPLOYMENT_CR}/.bai_tmp.yaml
+
+    UPGRADE_BAI_SHARED_INFO_CM_FILE=${UPGRADE_DEPLOYMENT_CR}/ibm_bai_shared_info.yaml
+}
 
 #Determine if it's an Ifix to ifix upgrade or a n-1 upgrade using CSV
 # Format of CSV x.y.z where x is major version, y is minor version and z is ifix version
@@ -19,10 +38,10 @@
 # - 24.0.1-IF001 version will 24.1.1 in the CSV
 # - 25.0.0-GA version will have 25.0.0 in the CSV 
 # The rules are:
-# 1. n-1 upgrade: Use the desired major version such as 24 from the CP4BA_CSV_VERSION in the common.sh  to compare with the current install version
+# 1. n-1 upgrade: Use the desired major version such as 24 from the BAI_CSV_VERSION in the common.sh  to compare with the current install version
 #   - If x version of the current CSV is equal to the desired major version, then it's a n-1 upgrade.  For example, if the current version is 24.0.0-IF003 (24.0.3) and the desired version is 24.0.1 (24.1.0), then it's a n-1 upgrade
 #   - If x version of the current CSV is equal to the desired major version (x+1), then it's the n-1 upgrade. For example, if the current version is 24.x and the desired version is 25.x, then it's a n-1 upgrade
-# 2. Ifix to Ifix upgrade: Use the desired major version such as 24 from the CP4BA_CSV_VERSION in the common.sh  to compare with the current install version
+# 2. Ifix to Ifix upgrade: Use the desired major version such as 24 from the BAI_CSV_VERSION in the common.sh  to compare with the current install version
 #   - If x.y version of the current CSV is equal to x.y of the desired major version, then it's an Ifix to Ifix upgrade. For example, if the current version is 24.0.0-IF003 (24.0.3) and the desired version is 24.0.0-IF004 (24.0.4), then it's an Ifix to Ifix upgrade
 # The function will set the is_ifix_to_ifix_upgrade flag to 1 if it's an Ifix to Ifix upgrade and 0 if it's a n-1 upgrade
 function determine_type_of_upgrade() {
@@ -47,58 +66,103 @@ function determine_type_of_upgrade() {
 # It will fail if the operator version is not less than the minimum supported upgrade version.
 # This function takes 3 arguments:
 # 1. current_csv_version: The csv of the version that needs to be checked such as "24.0.0", "24.0.4", "240.1"
-# 2. failed_upgrade_message: The message that will be displayed if the version is not supported
+# 3. The current cpfs csv version so that it can be used to compare against the cpfs csv version in the common.sh defined as CS_OPERATOR_VERSION.
+# 4. The function will return true if the version is supported and false if it is not supported
 function check_bai_minimum_version(){
+    local existing_bai_csv_version=$1
+    local existing_cpfs_csv_version=$2
+    local cpfs_csv_version=${CS_OPERATOR_VERSION//v/}
+    local versions_string="${MINIMUM_SUPPORTED_UPGRADE_VERSIONS[*]}"
+    local valid_bai_version=false
+    local valid_cpfs_version=false
+    valid_version=false
 
-    local current_version=$1
-    local failed_upgrade_message=$2
+    # Check for BAI S version  by comparing the existing bai csv version with the minimum supported upgrade versions defined in the array
+    info "Checking existing IBM Business Automation Insights Standalone version $existing_bai_csv_version against the minimum supported upgrade version(s) ($versions_string) for this BAI Standalone release version."
+    info "Checking the existing CPFS version $existing_cpfs_csv_version against the $cpfs_csv_version being used for this BAI Standalone release version."
+    for abs_min in "${MINIMUM_SUPPORTED_UPGRADE_VERSIONS[@]}"; do
+        # Extract major.minor from both versions
+        local abs_major_minor="${abs_min%.*}"
+        local curr_major_minor="${existing_bai_csv_version%.*}"
+   
+        if [[ "$curr_major_minor" == "$abs_major_minor" ]]; then
+            # Print the versions, sort 2 number using version sort which understands the versioning scheme(24.1.0 is after 24.1.2), take the first/smallest one
+            # and compare it with the absolute minimum version. If the smallest version is abs_min, then the current version is equal or greater than the abs_min
+            if [[ "$(printf '%s\n' "$abs_min" "$existing_bai_csv_version" | sort -V | head -n1)" = "$abs_min"  && "$_allow_direct_upgrade" != 1 ]]; then  
+                valid_bai_version=true
 
-    for version in "${MINIMUM_SUPPORTED_UPGRADE_VERSIONS[@]}"; do
-        if [[ "$current_version" == "${BAI_CSV_VERSION//v/}" ]]; then
-            info "The current IBM Business Automation Insights Operator is already ${BAI_CSV_VERSION//v/}"
-            valid_version=true
-            break
+            else
+                fail "The current IBM Business Automation Insights Standalone (BAI-S) version you are upgrading from is $existing_bai_csv_version and it does not meet the minimum requirement. Please upgrade the BAI Standalone deployment to "$abs_min" or higher before upgrading to "$BAI_CSV_VERSION"."
+                valid_bai_version=false
+                break
+            fi
+
         fi
-        if [[ (! "$(printf '%s\n' "$version" "$current_version" | sort -V | head -n1)" = "$version") ]]; then
-            info "Found IBM Business Automation Insights Operator is \"$current_version\" version."
-            fail "$failed_upgrade_message"
-            valid_version=false
-            exit 1
+    done
+
+    # Check for CPFS version by comparing existing_cpfs_csv_version with the cpfs_csv_version which is CS_OPERATOR_VERSION without the `v` prefix
+    # If the existing_cpfs_csv_version is less than or equal the cpfs_csv_version, then it's a valid version
+    # If the existing_cpfs_csv_version is greater than the cpfs_csv_version, then it's not a valid version
+    if [[ "$valid_bai_version" == true ]]; then
+        # Compare versions using sort -V
+        if [[ "$(printf '%s\n' "$existing_cpfs_csv_version" "$cpfs_csv_version" | sort -V | head -n1)" = "$existing_cpfs_csv_version"  ]]; then
+            valid_cpfs_version=true
         else
-            info "Found IBM Business Automation Insights Operator is \"$current_version\" version."
-            valid_version=true
-            break
-        fi
+            valid_cpfs_version=false
+            fail "The current IBM Cloud Pak foundational services (CPfs) version you are upgrading from is $existing_cpfs_csv_version and it is newer than the CPfs version ("$cpfs_csv_version") you are upgrading to.  If you wish to upgrade to the BAI Standalone release stream $BAI_RELEASE_BASE you must check for newer $BAI_RELEASE_BASE IFIX versions that contain CPFS $existing_cpfs_csv_version or newer. You may have to wait until a new $BAI_RELEASE_BASE IFIX version is released before you can upgrade."
 
-    done 
+        fi
+    fi
+
+    if [[ ("$valid_bai_version" == true && "$valid_cpfs_version" == true) || ("$_allow_direct_upgrade" == 1) ]]; then
+        export valid_version=true
+        success "The IBM Cloud Pak for Business Automation version "$existing_bai_csv_version" with Cloud Pak foundational services version "$existing_cpfs_csv_version" is supported for upgrade to "$BAI_CSV_VERSION"."
+    else
+        export valid_version=false
+        fail "The IBM Cloud Pak for Business Automation version "$existing_bai_csv_version" with Cloud Pak foundational services version "$existing_cpfs_csv_version" is NOT supported for upgrade to "$BAI_CSV_VERSION"."
+        exit 1
+    fi
 }
+
 
 # function for checking bai standalone operator version
 function check_bai_operator_version(){
     local project_name=$1
     local maxRetry=5
     info "Checking the version of IBM Business Automation Insights Operator"
-    bai_operator_csv_name=$(kubectl get csv -n $project_name --no-headers --ignore-not-found | grep "IBM Business Automation Insights" | awk '{print $1}')
-    bai_operator_csv_version=$(kubectl get csv $bai_operator_csv_name -n $project_name --no-headers --ignore-not-found -o 'jsonpath={.spec.version}')
+    bai_operator_csv_name=$(${CLI_CMD} get csv -n $project_name --no-headers --ignore-not-found | grep "IBM Business Automation Insights" | awk '{print $1}')
     if [[ -z $bai_operator_csv_name ]]; then
         fail "No IBM Business Automation Insights Operator found in \"$project_name\" project."
         warning "Input correct project name for BAI Standalone."
         exit 1
     fi
+    cpfs_operator_csv_name_target_ns=$(${CLI_CMD} get csv -n $project_name --no-headers --ignore-not-found | grep "IBM Cloud Pak foundational services" | awk '{print $1}')
+    if [[ -z $cpfs_operator_csv_name_target_ns ]]; then
+        fail "No IBM Cloud Pak foundational services CSV found in \"$project_name\" project."
+        warning "Input correct project name for BAI Standalone."
+        exit 1
+    fi
+    info "Checking the IBM Foundational Services Operator CSV version"
     for ((retry=0;retry<=${maxRetry};retry++)); do
         valid_version=false  #this is flag to check if the BAI S operator is a valid version
-        if [[ (! -z $cp4a_operator_csv_name_target_ns) ]]; then
+        if [[ (! -z $bai_operator_csv_name) ]]; then
             success "Found IBM Business Automation Insights Operator deployed in the project \"$project_name\"."
             ALL_NAMESPACE_FLAG="No"
             TEMP_OPERATOR_PROJECT_NAME=$project_name
+            # We will only use the current csv versions for bai and cpfs operators to perform any pre upgrade version checks.
+            # https://jsw.ibm.com/browse/DBACLD-180433
+            bai_operator_csv_version=$(${CLI_CMD} get csv $bai_operator_csv_name -n $project_name --no-headers --ignore-not-found -o 'jsonpath={.spec.version}')
+            cpfs_operator_csv_version=$(${CLI_CMD} get csv $cpfs_operator_csv_name_target_ns -n $project_name --no-headers --ignore-not-found -o 'jsonpath={.spec.version}')
+            success "IBM Foundational Services Operator version is $cpfs_operator_csv_version"
         fi
-
+        
+        
         if [[ ! -z $BAI_ORIGINAL_CSV_VERSION ]]; then
             BAI_ORIGINAL_CSV_VERSION=$(sed -e 's/^"//' -e 's/"$//' <<<"$BAI_ORIGINAL_CSV_VERSION")
             bai_operator_csv_version=$BAI_ORIGINAL_CSV_VERSION
         fi
         # DBACLD-165816: Calling check_bai_minimum_version function to check the minimum supported version
-        check_bai_minimum_version "$bai_operator_csv_version" "Upgrade to BAI Standalone v24.0.0 or a later iFix first before upgrading to BAI Standalone $BAI_CSV_VERSION"
+        check_bai_minimum_version "$bai_operator_csv_version" "$cpfs_operator_csv_version"
 
         determine_type_of_upgrade "$bai_operator_csv_version"
         if [[ "$valid_version" == true ]]; then
@@ -117,94 +181,7 @@ function check_bai_operator_version(){
     done
 }
 
-#function to check if the deployment has seperate operators and operands
-function check_bai_separate_operand(){
-    local project=$1
-    # Check whether the BAI is separation of operators and operands.
-    # operators_namespace: openshift-operators
-    # services_namespace: ibm-common-services
-
-    # operators_namespace: ibm-common-services
-    # services_namespace: ibm-common-services
-
-    # operators_namespace: cp4a-ns
-    # services_namespace: cp4a-ns
-
-    if ${CLI_CMD} get configMap ibm-cp4ba-common-config -n $project >/dev/null 2>&1; then
-        success "Found \"ibm-cp4ba-common-config\" configMap in the project \"$project\"."
-    else
-        status=$?
-        echo $status
-        warning "Not found \"ibm-cp4ba-common-config\" configMap in the project \"$project\"."
-        while [[ $BAI_SERVICES_NS == "" ]];
-        do
-            printf "\n"
-            echo -e "\x1B[1mWhere (namespace) did you deploy BAI Standalone operands (i.e., runtime pods)? \x1B[0m"
-            read -p "Enter the name for an existing project (namespace): " BAI_SERVICES_NS
-            if [ -z "$BAI_SERVICES_NS" ]; then
-                echo -e "\x1B[1;31mEnter a valid project name, project name can not be blank\x1B[0m"
-            elif [[ "$BAI_SERVICES_NS" == openshift* ]]; then
-                echo -e "\x1B[1;31mEnter a valid project name, project name should not be 'openshift' or start with 'openshift' \x1B[0m"
-                BAI_SERVICES_NS=""
-            elif [[ "$BAI_SERVICES_NS" == kube* ]]; then
-                echo -e "\x1B[1;31mEnter a valid project name, project name should not be 'kube' or start with 'kube' \x1B[0m"
-                BAI_SERVICES_NS=""
-            else
-                isProjExists=`${CLI_CMD} get project $BAI_SERVICES_NS --ignore-not-found | wc -l`  >/dev/null 2>&1
-
-                if [ "$isProjExists" -ne 2 ] ; then
-                    echo -e "\x1B[1;31mInvalid project name, enter a existing project name ...\x1B[0m"
-                    BAI_SERVICES_NS=""
-                else
-                    echo -e "\x1B[1mUsing project ${BAI_SERVICES_NS}...\x1B[0m"
-                    if ${CLI_CMD} get configMap ibm-cp4ba-common-config -n $BAI_SERVICES_NS >/dev/null 2>&1; then
-                        success "Found \"ibm-cp4ba-common-config\" configMap in the project \"$BAI_SERVICES_NS\"."
-                    else
-                        warning "Not found \"ibm-cp4ba-common-config\" configMap in the project \"$BAI_SERVICES_NS\"."
-                        BAI_SERVICES_NS=""
-                        if [[ ($SCRIPT_MODE == "" && $RUNTIME_MODE == "") || ($SCRIPT_MODE == "dev" && $RUNTIME_MODE == "") || ($SCRIPT_MODE == "review" && $RUNTIME_MODE == "") || ($SCRIPT_MODE == "baw-dev" && $RUNTIME_MODE == "") ]]; then
-                            fail "You NEED to create \"ibm-cp4ba-common-config\" configMap first in the project (namespace) where you want to deploy CP4BA operands (i.e., runtime pods)."
-                            exit 1
-                        fi
-                    fi
-                fi
-            fi
-        done
-    fi
-    tmp_namespace_val=""
-    if [[ $BAI_SERVICES_NS != "" ]]; then
-        tmp_namespace_val=$BAI_SERVICES_NS
-    else
-        tmp_namespace_val=$project
-    fi
-    bai_services_namespace=$(${CLI_CMD} get configMap ibm-cp4ba-common-config -n $tmp_namespace_val --no-headers --ignore-not-found -o jsonpath='{.data.services_namespace}')
-    bai_operators_namespace=$(${CLI_CMD} get configMap ibm-cp4ba-common-config -n $tmp_namespace_val --no-headers --ignore-not-found -o jsonpath='{.data.operators_namespace}')
-    if [[ (! -z $BAI_SERVICES_NS) ]]; then
-        if [[ $bai_services_namespace != $BAI_SERVICES_NS ]]; then
-            fail "Your input value for BAI Standalone operands (i.e., runtime pods) is NOT equal to the value of \"services_namespace\" in \"ibm-cp4ba-common-config\" configMap under the project \"$BAI_SERVICES_NS\"."
-            exit 1
-        fi
-    fi
-    if [[ (! -z $bai_services_namespace) && (! -z $bai_operators_namespace) ]]; then
-        # The IF condition below checks for separation of duties scenario (note: all-ns and shared CPfs are not considered separation of duties):
-        #  - ($bai_services_namespace != $bai_operators_namespace) -> confirms that operator and services ns are different
-        #  - ($bai_operators_namespace != "openshift-operators") -> confirms that scenario is NOT all-ns
-        #  - ($bai_operators_namespace != "ibm-common-services") -> confirms that scenario is NOT shared/cluster-scoped CPfs scenario
-        if [[ ($bai_services_namespace != $bai_operators_namespace) && ($bai_operators_namespace != "openshift-operators" && $bai_operators_namespace != "ibm-common-services") ]]; then
-            info "This BAI Standalone deployment has separate operators and operands"
-            SEPARATE_OPERAND_FLAG="Yes"
-            BAI_SERVICES_NS=$bai_services_namespace
-        else
-            SEPARATE_OPERAND_FLAG="No"
-            BAI_SERVICES_NS=$TARGET_PROJECT_NAME
-        fi
-    else
-        warning "Not found \"operator_namespace\\services_namespace\" in \"ibm-cp4ba-common-config\" configMap under the project \"$tmp_namespace_val\""
-        fail "You need to set correct value(s) in \"ibm-cp4ba-common-config\" configMap for BAI Standalone seperation of operators and operand under the project \"$tmp_namespace_val\""
-        exit 1
-    fi
-}
-
+# Function to check the operator status and if they are ready for next steps of the upgrade
 function check_operator_status(){
     local maxRetry=30
     local project_name=$1
@@ -302,7 +279,7 @@ function check_operator_status(){
     fi
 
 
-    # Check CP4BA operator upgrade status
+    # Check BAI Standalone operator upgrade status
     if [[ "$check_mode" == "full" ]]; then
         local maxRetry=20
         echo "****************************************************************************"
@@ -341,7 +318,7 @@ function check_operator_status(){
         echo "****************************************************************************"
     fi
 
-    # Check CP4BA Foundation operator upgrade status
+    # Check BAI Standalone Foundation operator upgrade status
     echo "****************************************************************************"
     info "Checking for BAI Foundation operator pod initialization"
     for ((retry=0;retry<=${maxRetry};retry++)); do
@@ -429,22 +406,22 @@ function check_bai_deployment_status(){
     fi
     
     if [[ ( ! -z "${bai_cr_name}" ) ]]; then
-        convert_olm_cr "${UPGRADE_STATUS_FILE}"
-        if [[ $olm_cr_flag == "No" ]]; then
-            #this variable is being used to check what the version of CP4BA was used before upgrade and is used later in a check if some alert message is to be printed
-            # initial_app_version=`cat $UPGRADE_DEPLOYMENT_insightsengine_CR_BAK | ${YQ_CMD} r - spec.appVersion`
-            existing_pattern_list=""
-            existing_opt_component_list=""
-            EXISTING_PATTERN_ARR=()
-            EXISTING_OPT_COMPONENT_ARR=()
-            existing_pattern_list=`cat $UPGRADE_STATUS_FILE | ${YQ_CMD} r - spec.shared_configuration.sc_deployment_patterns`
-            existing_opt_component_list=`cat $UPGRADE_STATUS_FILE | ${YQ_CMD} r - spec.shared_configuration.sc_optional_components`
-
-            OIFS=$IFS
-            IFS=',' read -r -a EXISTING_PATTERN_ARR <<< "$existing_pattern_list"
-            IFS=',' read -r -a EXISTING_OPT_COMPONENT_ARR <<< "$existing_opt_component_list"
-            IFS=$OIFS
-        fi
+        #convert_olm_cr "${UPGRADE_STATUS_FILE}"
+        #if [[ $olm_cr_flag == "No" ]]; then
+        #    #this variable is being used to check what the version of CP4BA was used before upgrade and is used later in a check if some alert message is to be printed
+        #    # initial_app_version=`cat $UPGRADE_DEPLOYMENT_insightsengine_CR_BAK | ${YQ_CMD} r - spec.appVersion`
+        #    existing_pattern_list=""
+        #    existing_opt_component_list=""
+        #    EXISTING_PATTERN_ARR=()
+        #    EXISTING_OPT_COMPONENT_ARR=()
+        #    existing_pattern_list=`cat $UPGRADE_STATUS_FILE | ${YQ_CMD} r - spec.shared_configuration.sc_deployment_patterns`
+        #    existing_opt_component_list=`cat $UPGRADE_STATUS_FILE | ${YQ_CMD} r - spec.shared_configuration.sc_optional_components`
+        #
+        #    OIFS=$IFS
+        #    IFS=',' read -r -a EXISTING_PATTERN_ARR <<< "$existing_pattern_list"
+        #    IFS=',' read -r -a EXISTING_OPT_COMPONENT_ARR <<< "$existing_opt_component_list"
+        #    IFS=$OIFS
+        #fi
 
         #################### BAA AE Multiple instance #######################
         AE_ENGINE_DEPLOYMENT=`cat $UPGRADE_STATUS_FILE | ${YQ_CMD} r - spec.application_engine_configuration`
@@ -501,7 +478,6 @@ function show_bai_upgrade_status() {
     printf '%s %s\n' "$(date)" "[refresh interval: 30s]"
     echo -en "[Press Ctrl+C to exit] \t\t"
     check_bai_deployment_status "${BAI_SERVICES_NS}"
-
     printf "\n"
     step_num=1
     echo "${YELLOW_TEXT}[NEXT ACTION]${RESET_TEXT}:"
@@ -509,6 +485,50 @@ function show_bai_upgrade_status() {
     echo "${YELLOW_TEXT}  * After the status of upgrade for Zen Service components showing as ${RESET_TEXT}${GREEN_TEXT}\"Completed\"${RESET_TEXT}${YELLOW_TEXT}, the BAI deployment upgrade can be monitored by monitoring the logs of the ibm-insights-engine-operator.${RESET_TEXT}"
     echo "  - ${YELLOW_TEXT} Retrieve the the logs of of the Insights Engine operator pod by exiting the script and running \"kubectl logs $(kubectl get pod -n $project_name|grep ibm-bai-insights-engine-operator|awk '{print $1}') \"${RESET_TEXT}"
     echo "  - ${YELLOW_TEXT} AFTER UPGRADING the IBM Business Automations Insights (BAI) DEPLOYMENT SUCCESSFULLY, YOU NEED TO REMOVE${RESET_TEXT} ${RED_TEXT}\"recovery_path\"${RESET_TEXT} ${YELLOW_TEXT}FROM THE CUSTOM RESOURCE FILE UNDER${RESET_TEXT} ${RED_TEXT}\"the bai_configuration section\"${RESET_TEXT} ${YELLOW_TEXT}MANUALLY IF IT EXISTS.${RESET_TEXT}"
-    echo "  - ${YELLOW_TEXT}[ATTENTION]: ${RESET_TEXT}${YELLOW_TEXT}DON'T SET ${RESET_TEXT}${RED_TEXT}\"shared_configuration.sc_egress_configuration.sc_restricted_internet_access\"${RESET_TEXT}${YELLOW_TEXT} TO ${RESET_TEXT}${RED_TEXT}\"true\"${RESET_TEXT}${YELLOW_TEXT} UNTIL AFTER YOU'VE COMPLETED THE BAI UPGRADE TO $BAI_RELEASE_BASE.${RESET_TEXT} ${GREEN_TEXT}(UNLESS YOU ALREADY HAD THIS SET TO \"true\" IN THE pre upgrade BAI VERSION)${RESET_TEXT}"
     
+}
+
+# Function that retrieves the pre upgrade csv version and assigns it to the variable bai_original_csv_ver_for_upgrade_script
+# Function looks into the ibm-bai-shared-info to retrieve this detail
+function get_preupgrade_csv_version(){
+    local namespace=$1
+    ibm_bai_shared_info_cm=$(${CLI_CMD} get configmap ibm-bai-shared-info --no-headers --ignore-not-found -n $namespace)
+    if [[ ! -z $ibm_bai_shared_info_cm ]]; then
+        tmp_csv_val=$(${CLI_CMD} get configmap ibm-bai-shared-info -n $namespace -o jsonpath='{.data.bai_original_csv_ver_for_upgrade_script}')
+        if [[ ! -z $tmp_csv_val ]]; then
+            bai_original_csv_ver_for_upgrade_script=$tmp_csv_val
+        else
+            fail "Configmap ibm-bai-shared-info created incorrectly, run upgradeOperator mode to fix this issue."
+            exit
+        fi
+    else
+        fail "Failed to find configMap ibm-bai-shared-info deployed in the project \"$namespace\"."
+        exit
+    fi
+}
+
+
+#Function to create the bai shared info Configmap
+# Function called during upgradeOperator mode
+function create_ibm_bai_shared_info_cm_yaml(){
+    mkdir -p ${UPGRADE_DEPLOYMENT_CR}
+cat << EOF > ${UPGRADE_BAI_SHARED_INFO_CM_FILE}
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: ibm-bai-shared-info
+  namespace: <bai_namespace>
+  labels:
+    app.kubernetes.io/managed-by: Operator
+    app.kubernetes.io/name: ibm-bai-shared-info
+    app.kubernetes.io/version: <cr_version>
+    release: <cr_version>
+  ownerReferences:
+    - apiVersion: bai.ibm.com/v1
+      kind: InsightsEngine
+      name: <cr_metaname>
+      uid: <cr_uid>
+data:
+  bai_operator_of_last_reconcile: <csv_version>
+EOF
 }

@@ -29,6 +29,7 @@ SILVER_STORAGE_CLASS=${PARENT_DIR}/descriptors/cp4a-silver-storage-class.yaml
 GOLD_STORAGE_CLASS=${PARENT_DIR}/descriptors/cp4a-gold-storage-class.yaml
 LOG_FILE=${CUR_DIR}/prepare_install.log
 PLATFORM_SELECTED=""
+OTHER_PLATFROM_TYPE=""
 PLATFORM_VERSION=""
 PROJ_NAME=""
 PROJ_NAME_ALL_NAMESPACE="openshift-operators"
@@ -67,7 +68,7 @@ mkdir -p $TEMP_FOLDER >/dev/null 2>&1
 function prompt_wfps_license(){
     clear
     echo -e "\x1B[1;31mIMPORTANT: Review the IBM Process Flow license information here: \n\x1B[0m"
-    echo -e "\x1B[1;31mhttps://www14.software.ibm.com/cgi-bin/weblap/lap.pl?li_formnum=L-PSZC-SHQFWS\n\x1B[0m"
+    echo -e "\x1B[1;31mhttps://www.ibm.com/support/customer/csol/terms/?id=L-ACQV-MS7LQZ&lc=en\n\x1B[0m"
 
     printf "\n"
     while true; do
@@ -129,6 +130,7 @@ OLM_SUBSCRIPTION_TMP=${TEMP_FOLDER}/.subscription.yaml
 
 echo '' > $LOG_FILE
 
+# Function to validate the CLI based on platform type
 function validate_cli(){
     if [ -z $BAI_AUTO_PLATFORM ]; then
     clear
@@ -143,7 +145,7 @@ function validate_cli(){
     if  [[ $PLATFORM_SELECTED == "OCP" || $PLATFORM_SELECTED == "ROKS" ]]; then
         which oc &>/dev/null
         [[ $? -ne 0 ]] && \
-            echo "Unable to locate an OpenShift CLI. You must install it to run this script." && \
+            echo "Unable to locate the OpenShift CLI. You must install it to run this script." && \
             exit 1
     fi
     if  [[ $PLATFORM_SELECTED == "other" ]]; then
@@ -276,6 +278,7 @@ function install_cert_license_operator(){
 
 }
 
+# Function that asks the customer if they wish to deploy IBM BAI Standalone with a private or a global catalog
 function select_private_catalog(){
     printf "\n"
     echo "${YELLOW_TEXT}[NOTES] You can install the IBM Business Automation Insights deployment as either a private catalog (namespace scope) or the global catalog namespace (GCN). The private option uses the same target namespace of the IBM Business Automation Insights deployment, the GCN uses the openshift-marketplace namespace.${RESET_TEXT}"
@@ -310,64 +313,9 @@ function select_private_catalog(){
     if [ -z "$ans" ]; then
         PRIVATE_CATALOG="Yes"
     fi
-
-
-    # if [[ $PRIVATE_CATALOG == "Yes" ]]; then
-    #     while [[ $project_name == "" ]];
-    #     do
-    #         if [ -z "$BAI_AUTO_NAMESPACE" ]; then
-    #             echo
-    #             echo -e "\x1B[1mWhere do you want to deploy $BAI_FULL_NAME?\x1B[0m"
-    #             read -p "Enter the name for a new project or an existing project (namespace): " project_name
-    #         else
-    #             if [[ "$BAI_AUTO_NAMESPACE" == openshift* ]]; then
-    #                 echo -e "\x1B[1;31mEnter a valid project name, project name should not be 'openshift' or start with 'openshift' \x1B[0m"
-    #                 exit 1
-    #             elif [[ "$BAI_AUTO_NAMESPACE" == kube* ]]; then
-    #                 echo -e "\x1B[1;31mEnter a valid project name, project name should not be 'kube' or start with 'kube' \x1B[0m"
-    #                 exit 1
-    #             fi
-    #             project_name=$BAI_AUTO_NAMESPACE
-    #         fi
-    #         if [ -z "$project_name" ]; then
-    #             echo -e "\x1B[1;31mEnter a valid project name, project name can not be blank\x1B[0m"
-    #         elif [[ "$project_name" == openshift* ]]; then
-    #             echo -e "\x1B[1;31mEnter a valid project name, project name should not be 'openshift' or start with 'openshift' \x1B[0m"
-    #             project_name=""
-    #         elif [[ "$project_name" == kube* ]]; then
-    #             echo -e "\x1B[1;31mEnter a valid project name, project name should not be 'kube' or start with 'kube' \x1B[0m"
-    #             project_name=""
-    #         else
-    #             verify_existing_csv
-              
-    #             create_project $project_name
-    #             if [[ ! ("$RUNTIME_MODE" == "baw" || $RUNTIME_MODE == "baw-dev" || "$RUNTIME_MODE" == "process-flow" || $RUNTIME_MODE == "process-flow-dev") ]]; then
-    #                ${CLI_CMD} create namespace ibm-cert-manager > /dev/null 2>&1
-    #                ${CLI_CMD} create namespace ibm-licensing > /dev/null 2>&1
-    #             fi
-               
-    #         fi
-    #     done
-
-        
-    #     sed "s/REPLACE_CATALOG_SOURCE_NAMESPACE/$CATALOG_NAMESPACE/g" ${OLM_CATALOG} > ${OLM_CATALOG_TMP}
-    #     # replace all other catalogs with <BAI NS> namespaces 
-    #     ${SED_COMMAND} "s|namespace: .*|namespace: $PROJ_NAME|g" ${OLM_CATALOG_TMP}
-    #     # replace openshift-marketplace for ibm-cert-manager-catalog with ibm-cert-manager
-    #     ${SED_COMMAND} "/name: ibm-cert-manager-catalog/{n;s/namespace: .*/namespace: ibm-cert-manager/;}" ${OLM_CATALOG_TMP}
-    #     # replace openshift-marketplace for ibm-licensing-catalog with ibm-licensing
-    #     ${SED_COMMAND} "/name: ibm-licensing-catalog/{n;s/namespace: .*/namespace: ibm-licensing/;}" ${OLM_CATALOG_TMP}
-
-    #     # ${CLI_CMD} apply -f $OLM_CATALOG_TMP
-    #     # if [ $? -eq 0 ]; then
-    #     #     echo "IBM Operator Catalog source updated!"
-    #     # else
-    #     #     echo "Generic Operator catalog source update failed"
-    #     #     exit 1
-    #     # fi
-    # fi
 }
 
+# Function to ask the customer if they wish to use a seperation of duties option for the installation of BAI Standalone operators
 function select_separate_operator(){
     printf "\n"
     echo "${YELLOW_TEXT}[NOTES] IBM Business Automation Insights (BAI) deployment supports separation of operators and operands, the script can deploy BAI operator and BAI runtime pods in different projects.${RESET_TEXT}"
@@ -398,7 +346,11 @@ function select_separate_operator(){
     MULTIPLE_DEPLOYMENT="No"
 }
 
+# Function to select the project namespace to deploy the operators
+# The function also checks to make sure the project name is valid and not some of the namespaces used by the platform
+# The Function calls create_project function to create the namespace if required
 function select_project(){
+    
     while [[ $project_name == "" ]];
     do
         if [ -z "$BAI_AUTO_NAMESPACE" ]; then
@@ -416,7 +368,7 @@ function select_project(){
             project_name=$BAI_AUTO_NAMESPACE
         fi
         if [ -z "$project_name" ]; then
-            echo -e "\x1B[1;31mEnter a valid project name. The project name can not be blank.\x1B[0m"
+            echo -e "\x1B[1;31mEnter a valid project name. The project name cannot be blank.\x1B[0m"
         elif [[ "$project_name" == openshift* ]]; then
             echo -e "\x1B[1;31mEnter a valid project name. The project name should not be 'openshift' or start with 'openshift'. \x1B[0m"
             project_name=""
@@ -465,7 +417,7 @@ function set_separate_operator_project(){
             project_name_operator=$BAI_AUTO_OPERATOR_NAMESPACE
         fi
         if [ -z "$project_name_operator" ]; then
-            echo -e "\x1B[1;31mEnter a valid project name. The project name cannot be blank.\x1B[0m"
+            echo -e "\x1B[1;31mEnter a valid project name. The project name can not be blank.\x1B[0m"
         elif [[ "$project_name_operator" == openshift* ]]; then
             echo -e "\x1B[1;31mEnter a valid project name. The project name should not be 'openshift' or start with 'openshift'. \x1B[0m"
             project_name_operator=""
@@ -535,9 +487,15 @@ function set_separate_cpfs_service_project(){
     done
 }
 
+# Function to create the ibm-cp4ba-common-config configMap which consists of the operators and services namespaces for the deployment
 function create_common_service_configmap(){
     local project_name_operator=$1
     local project_name_cs_service=$2
+    # Adding network type and network cidr value to the common service configmap 
+    # This was introduced because of the RBAC changes we made in 25.0.0
+    # https://jsw.ibm.com/browse/DBACLD-173602
+    local network_type_value=$3
+    local network_cidr_value=$4
     info "Creating ibm-cp4ba-common-config configMap for this IBM Business Automation Insights deployment in the project \"$project_name_cs_service\""
     mkdir -p $TEMP_FOLDER >/dev/null 2>&1
 
@@ -552,6 +510,8 @@ metadata:
 data:
   operators_namespace: "$project_name_operator"
   services_namespace: "$project_name_cs_service"
+  network_type: "$network_type_value"
+  network_cidr: "$network_cidr_value"
 EOF
     ${CLI_CMD} delete -f ${TEMP_FOLDER}/ibm-cp4ba-common-config-configmap.yaml >/dev/null 2>&1
     ${CLI_CMD} apply -f ${TEMP_FOLDER}/ibm-cp4ba-common-config-configmap.yaml >/dev/null 2>&1
@@ -826,7 +786,7 @@ function validate_cncf_olm(){
     printf "\n"
 
     while true; do
-        printf "\x1B[1mWould you like to deploy the Operator Lifecycle Manager (OLM) in the namespace \"${CNCF_OLM_NAMESPACE}\"? (Yes/No, default: No) \x1B[0m"
+        printf "\x1B[1mWould you like to deploy the Operator Lifecycle Manager (OLM) in namespace \"${CNCF_OLM_NAMESPACE}\"? (Yes/No, default: No) \x1B[0m"
         if [ -z "$AUTO_INSTALL_OLM" ]; then
             read -rp "" ans
             case "$ans" in
@@ -882,6 +842,7 @@ function validate_cncf_olm(){
     fi
 }
 
+# Create a namespace if the project entered is not a namespace found on the
 function create_project() {
 
     local project_name=$1
@@ -925,7 +886,7 @@ function create_project() {
                 echo -e "\x1B[1mUsing namespace ${project_name}...\x1B[0m"
             fi
         else
-            echo -e "\x1B[1mName space \"${project_name}\" already exists! Continue...\x1B[0m"
+            echo -e "\x1B[1mNamespace \"${project_name}\" already exists! Continue...\x1B[0m"
         fi
     fi
     PROJ_NAME=${project_name}
@@ -933,7 +894,7 @@ function create_project() {
 
 function verify_existing_csv(){
 
-    ${CLI_CMD} get csv --all-namespaces|grep ibm-bai-insights-engine-operator.v >/dev/null 2>&1
+    #${CLI_CMD} get csv --all-namespaces|grep ibm-bai-insights-engine-operator.v >/dev/null 2>&1
     exist_csv_project_array=($(${CLI_CMD} get csv --all-namespaces|grep ibm-bai-insights-engine-operator.v|awk '{print $1}'))
     returnValue=$?
 
@@ -942,41 +903,32 @@ function verify_existing_csv(){
         echo -e "\x1B[1mThe $BAI_FULL_NAME Operator (Pod, CSV, Subscription) not found in cluster\x1B[0m\nContinue....\n"
 
     else
-        if [[ !(" ${exist_csv_project_array[@]} " =~ "${project_name}") && !(" ${exist_csv_project_array[@]} " =~ "${PROJ_NAME_ALL_NAMESPACE}") && "${ALL_NAMESPACE}" == "No" ]] ; then
-            printf "\n"
-            echo -e "\x1B[1;31mFound the existing $BAI_FULL_NAME Operator (Pod, CSV, Subscription) in different project \"${exist_csv_project_array[*]}\"! \x1B[0m\n"
+        #if [[ !(" ${exist_csv_project_array[@]} " =~ "${project_name}") && !(" ${exist_csv_project_array[@]} " =~ "${PROJ_NAME_ALL_NAMESPACE}") && "${ALL_NAMESPACE}" == "No" ]] ; then
+        printf "\n"
+        echo -e "\x1B[1;31mFound the existing $BAI_FULL_NAME Operator (Pod, CSV, Subscription) in different project \"${exist_csv_project_array[*]}\"! \x1B[0m\n"
 
-            if [ -z "$BAI_AUTO_NAMESPACE" ]; then
-                while true; do
-                    printf "\x1B[1mDo you want to deploy another $BAI_FULL_NAME Operator in new project \"${project_name}\"? (Yes/No, default: No) \x1B[0m"
-                    read -rp "" ans
-                    case "$ans" in
-                    "y"|"Y"|"yes"|"Yes"|"YES")
-                        echo -e "Continue....\n"
-                        break
-                        ;;
-                    "n"|"N"|"no"|"No"|"NO"|"")
-                        echo -e "Exit....\n"
-                        exit 1
-                        ;;
-                    *)
-                        echo -e "Answer must be \"Yes\" or \"No\"\n"
-                        ;;
-                    esac
-                done
-            else
-                printf "\x1B[1mWould you like to deploy another $BAI_FULL_NAME Operator in new project \"${project_name}\"? (Yes/No, default: No) Yes\n\x1B[0m"
-            fi
-        elif [[ (" ${exist_csv_project_array[@]} " =~ "${PROJ_NAME_ALL_NAMESPACE}") && "${ALL_NAMESPACE}" == "No" ]] ; then
-            printf "\n"
-            echo -e "\x1B[1;31mFound the existing $BAI_FULL_NAME Operator in \"${PROJ_NAME_ALL_NAMESPACE}\", it already supports All Namespaces! \x1B[0m\nExit..."
-            exit 1
-        elif [[ !(" ${exist_csv_project_array[@]} " =~ "${PROJ_NAME_ALL_NAMESPACE}") && "${ALL_NAMESPACE}" == "Yes" ]] ; then
-            printf "\n"
-            echo -e "\x1B[1;31mFound the existing $BAI_FULL_NAME Operator (Pod, CSV, Subscription) in different project \"${exist_csv_project_array[*]}\"! \x1B[0m"
-            echo -e "\x1B[1;31mSwitching to 'All Namespaces' is not supported. \x1B[0m\n"
-            exit 1
+        if [ -z "$BAI_AUTO_NAMESPACE" ]; then
+            while true; do
+                printf "\x1B[1mWould you like to deploy another $BAI_FULL_NAME Operator in new project \"${project_name}\"? (Yes/No, default: No) \x1B[0m"
+                read -rp "" ans
+                case "$ans" in
+                "y"|"Y"|"yes"|"Yes"|"YES")
+                    echo -e "Continue....\n"
+                    break
+                    ;;
+                "n"|"N"|"no"|"No"|"NO"|"")
+                    echo -e "Exit....\n"
+                    exit 1
+                    ;;
+                *)
+                    echo -e "Answer must be \"Yes\" or \"No\"\n"
+                    ;;
+                esac
+            done
+        else
+            printf "\x1B[1mWould you like to deploy another $BAI_FULL_NAME Operator in new project \"${project_name}\"? (Yes/No, default: No) Yes\n\x1B[0m"
         fi
+        
     fi
 
 }
@@ -1067,7 +1019,7 @@ function prepare_install() {
 }
 
 
-function apply_cp4a_operator(){
+function apply_bai_operator(){
     ${COPY_CMD} -rf ${OPERATOR_FILE} ${OPERATOR_FILE_TMP}
 
     printf "\n"
@@ -1122,6 +1074,7 @@ function apply_cp4a_operator(){
     printf "\n"
 }
 
+# Function to install the BAI Standalone Operators
 function prepare_olm_install() {
     printf "\n"
     echo -e "\x1B[1mWaiting for the $BAI_FULL_NAME operator to be ready. This might take a few minutes... \x1B[0m"
@@ -1139,13 +1092,13 @@ function prepare_olm_install() {
     fi
     local temp_project_name=$project_name
     if [[ ( "$RUNTIME_MODE" == "process-flow" || $RUNTIME_MODE == "process-flow-dev" ) && "$PLATFORM_SELECTED" == "other" ]]; then
-      CATALOG_NAMESPACE=$WFPS_CNCF_CATALOG_NAMESPACE
-      # create docker pull secret under catalog source namespaces
-      isNsExists=`${CLI_CMD} get secret "catalog-pull-secret" -n "$CATALOG_NAMESPACE" | wc -l`  >/dev/null 2>&1
-      if [[ isNsExists -eq 2 ]]; then
-        ${CLI_CMD} delete secret "catalog-pull-secret" -n "$CATALOG_NAMESPACE" >/dev/null 2>&1
-      fi
-      ${CLI_CMD} create secret docker-registry "catalog-pull-secret" --docker-server=$DOCKER_REG_SERVER --docker-username=$DOCKER_REG_USER --docker-password=$DOCKER_REG_KEY --docker-email=ecmtest@ibm.com -n $CATALOG_NAMESPACE
+        CATALOG_NAMESPACE=$WFPS_CNCF_CATALOG_NAMESPACE
+        # create docker pull secret under catalog source namespaces
+        isNsExists=`${CLI_CMD} get secret "catalog-pull-secret" -n "$CATALOG_NAMESPACE" | wc -l`  >/dev/null 2>&1
+        if [[ isNsExists -eq 2 ]]; then
+            ${CLI_CMD} delete secret "catalog-pull-secret" -n "$CATALOG_NAMESPACE" >/dev/null 2>&1
+        fi
+        ${CLI_CMD} create secret docker-registry "catalog-pull-secret" --docker-server=$DOCKER_REG_SERVER --docker-username=$DOCKER_REG_USER --docker-password=$DOCKER_REG_KEY --docker-email=ecmtest@ibm.com -n $CATALOG_NAMESPACE
     fi
 
     if ${CLI_CMD} get catalogsource -n $CATALOG_NAMESPACE | grep "ibm-bai-operator-catalog"; then
@@ -1156,10 +1109,10 @@ function prepare_olm_install() {
         fi
         ${CLI_CMD} apply -f $OLM_CATALOG_TMP
         if [ $? -eq 0 ]; then
-          echo "IBM Operator Catalog source updated!"
+            echo "IBM Operator Catalog source updated!"
         else
-          echo "Generic Operator catalog source update failed"
-          exit 1
+            echo "Generic Operator catalog source update failed"
+            exit 1
         fi
     else
         if [[ $PRIVATE_CATALOG == "No" ]]; then
@@ -1167,46 +1120,46 @@ function prepare_olm_install() {
         fi
         ${CLI_CMD} apply -f $OLM_CATALOG_TMP
         if [ $? -eq 0 ]; then
-          echo "IBM Operator Catalog source created!"
+            echo "IBM Operator Catalog source created!"
         else
-          echo "Generic Operator catalog source creation failed"
-          exit 1
+            echo "Generic Operator catalog source creation failed"
+            exit 1
         fi
     fi
 
     info "Waiting for $BAI_FULL_NAME Operator Catalog pod initialization"
     for ((retry=0;retry<=${maxRetry};retry++)); do
-      podCount=$(${CLI_CMD} get pod -n $CATALOG_NAMESPACE --no-headers | grep "ibm-bai-operator-catalog" | grep "Running" | wc -l)
-      if [[ $podCount -eq 0 ]]; then
-        if [[ $retry -eq ${maxRetry} ]]; then
-          echo "Timeout Waiting for $BAI_FULL_NAME Operator Catalog pod to start"
-          echo -e "\x1B[1mCheck the status of Pod by issue cmd: \x1B[0m"
-          echo "oc describe pod $(oc get pod -n $CATALOG_NAMESPACE|grep "ibm-bai-operator-catalog"|awk '{print $1}') -n $CATALOG_NAMESPACE"
-          exit 1
+        podCount=$(${CLI_CMD} get pod -n $CATALOG_NAMESPACE --no-headers | grep "ibm-bai-operator-catalog" | grep "Running" | wc -l)
+        if [[ $podCount -eq 0 ]]; then
+            if [[ $retry -eq ${maxRetry} ]]; then
+                echo "Timeout Waiting for $BAI_FULL_NAME Operator Catalog pod to start"
+                echo -e "\x1B[1mCheck the status of Pod by issue cmd: \x1B[0m"
+                echo "oc describe pod $(oc get pod -n $CATALOG_NAMESPACE|grep "ibm-bai-operator-catalog"|awk '{print $1}') -n $CATALOG_NAMESPACE"
+                exit 1
+            else
+                sleep 30
+                echo -n "..."
+                continue
+            fi
         else
-          sleep 30
-          echo -n "..."
-          continue
+            info "$BAI_FULL_NAME Operator Catalog is running..."
+            ${CLI_CMD} get pod -n $CATALOG_NAMESPACE --no-headers | grep ibm-bai-operator-catalog
+            break
         fi
-      else
-        info "$BAI_FULL_NAME Operator Catalog is running..."
-        ${CLI_CMD} get pod -n $CATALOG_NAMESPACE --no-headers | grep ibm-bai-operator-catalog
-        break
-      fi
     done
 
     if [[ $(${CLI_CMD} get og -n "${temp_project_name}" -o=go-template --template='{{len .items}}' ) -gt 0 ]]; then
         echo "Found operator group"
         ${CLI_CMD} get og -n "${temp_project_name}"
     else
-      sed "s/REPLACE_NAMESPACE/$temp_project_name/g" ${OLM_OPT_GROUP} > ${OLM_OPT_GROUP_TMP}
-      ${CLI_CMD} apply -f ${OLM_OPT_GROUP_TMP}
-      if [ $? -eq 0 ]
-         then
-         echo "$BAI_FULL_NAME Operator Group Created!"
-       else
-         echo "$BAI_FULL_NAME Operator Operator Group creation failed"
-       fi
+        sed "s/REPLACE_NAMESPACE/$temp_project_name/g" ${OLM_OPT_GROUP} > ${OLM_OPT_GROUP_TMP}
+        ${CLI_CMD} apply -f ${OLM_OPT_GROUP_TMP}
+        if [ $? -eq 0 ]
+            then
+            echo "$BAI_FULL_NAME Operator Group Created!"
+        else
+            echo "$BAI_FULL_NAME Operator Operator Group creation failed"
+        fi
     fi
 
     sed "s/REPLACE_NAMESPACE/$temp_project_name/g" ${OLM_SUBSCRIPTION} > ${OLM_SUBSCRIPTION_TMP}
@@ -1231,81 +1184,81 @@ function prepare_olm_install() {
    info "Waiting for $BAI_FULL_NAME operator pod initialization"
    for ((retry=0;retry<=${maxRetry};retry++)); do
       
-      if [[ ($RUNTIME_MODE != "baw") && ($RUNTIME_MODE != "baw-dev") ]]; then
-        #checking if other dependencies are present in the deployment and are going to be installed
-        #If they are present we check if they are running and continue to use the below logic to wait for all these pods to be ready before proceeding
+        if [[ ($RUNTIME_MODE != "baw") && ($RUNTIME_MODE != "baw-dev") ]]; then
+            #checking if other dependencies are present in the deployment and are going to be installed
+            #If they are present we check if they are running and continue to use the below logic to wait for all these pods to be ready before proceeding
 
-        #checking if ibm-insights-engine-operator is present and if so checking if the pod is running
-        ibmInsightsEnginePodPresent=$(${CLI_CMD} get pod -n "$temp_project_name" --no-headers --ignore-not-found | grep ibm-bai-insights-engine-operator | wc -l)
-        if [[ $ibmInsightsEnginePodPresent -eq 1 ]]; then
-            ibmInsightsEnginePodCount=$(oc get pod -n "$temp_project_name" -o 'custom-columns=NAME:.metadata.name,PHASE:.status.phase,READY:.status.containerStatuses[0].ready,DELETED:.metadata.deletionTimestamp' --no-headers --ignore-not-found | grep ibm-bai-insights-engine-operator | grep 'Running' | grep 'true' | grep '<none>' | head -1 | awk '{print $1}' | wc -l)
-        else
-            ibmInsightsEnginePodCount=0
+            #checking if ibm-insights-engine-operator is present and if so checking if the pod is running
+            ibmInsightsEnginePodPresent=$(${CLI_CMD} get pod -n "$temp_project_name" --no-headers --ignore-not-found | grep ibm-bai-insights-engine-operator | wc -l)
+            if [[ $ibmInsightsEnginePodPresent -eq 1 ]]; then
+                ibmInsightsEnginePodCount=$(oc get pod -n "$temp_project_name" -o 'custom-columns=NAME:.metadata.name,PHASE:.status.phase,READY:.status.containerStatuses[0].ready,DELETED:.metadata.deletionTimestamp' --no-headers --ignore-not-found | grep ibm-bai-insights-engine-operator | grep 'Running' | grep 'true' | grep '<none>' | head -1 | awk '{print $1}' | wc -l)
+            else
+                ibmInsightsEnginePodCount=0
+            fi
+
+            #checking if ibm-bai-operator is present and if so checking if the pod is running
+            ibmBAIFoundationOperatorPodPresent=$(${CLI_CMD} get pod -n "$temp_project_name" --no-headers --ignore-not-found | grep ibm-bai-foundation-operator | wc -l)
+            if [[ $ibmBAIFoundationOperatorPodPresent -eq 1 ]]; then
+                ibmBAIFoundationOperatorPodCount=$(oc get pod -n "$temp_project_name" -o 'custom-columns=NAME:.metadata.name,PHASE:.status.phase,READY:.status.containerStatuses[0].ready,DELETED:.metadata.deletionTimestamp' --no-headers --ignore-not-found | grep ibm-bai-foundation-operator | grep 'Running' | grep 'true' | grep '<none>' | head -1 | awk '{print $1}' | wc -l)
+            else
+                ibmBAIFoundationOperatorPodCount=0
+            fi
+
+            #checking if ibm-common-service-operator is present and if so checking if the pod is running
+            ibmCommonServicesPodPresent=$(${CLI_CMD} get pod -n "$temp_project_name" --no-headers --ignore-not-found | grep ibm-common-service-operator | wc -l)
+            if [[ $ibmCommonServicesPodPresent -eq 1 ]]; then
+                ibmCommonServicesPodCount=$(oc get pod -n "$temp_project_name" -o 'custom-columns=NAME:.metadata.name,PHASE:.status.phase,READY:.status.containerStatuses[0].ready,DELETED:.metadata.deletionTimestamp' --no-headers --ignore-not-found | grep ibm-common-service-operator | grep 'Running' | grep 'true' | grep '<none>' | head -1 | awk '{print $1}' | wc -l)
+            else
+                ibmCommonServicesPodCount=0
+            fi
+
+            #checking if operand-deployment-lifecycle-manager is present and if so checking if the pod is running
+            operandLifeCyclePodPresent=$(${CLI_CMD} get pod -n "$temp_project_name" --no-headers --ignore-not-found | grep operand-deployment-lifecycle-manager | wc -l)
+            if [[ $operandLifeCyclePodPresent -eq 1 ]]; then
+                operandLifeCyclePodCount=$(oc get pod -n "$temp_project_name" -o 'custom-columns=NAME:.metadata.name,PHASE:.status.phase,READY:.status.containerStatuses[0].ready,DELETED:.metadata.deletionTimestamp' --no-headers --ignore-not-found | grep operand-deployment-lifecycle-manager | grep 'Running' | grep 'true' | grep '<none>' | head -1 | awk '{print $1}' | wc -l)
+            else    
+                operandLifeCyclePodCount=0
+            fi    
+            podList=($ibmInsightsEnginePodCount $ibmBAIFoundationOperatorPodCount $ibmCommonServicesPodCount $operandLifeCyclePodCount)   
         fi
 
-        #checking if ibm-bai-operator is present and if so checking if the pod is running
-        ibmBAIFoundationOperatorPodPresent=$(${CLI_CMD} get pod -n "$temp_project_name" --no-headers --ignore-not-found | grep ibm-bai-foundation-operator | wc -l)
-        if [[ $ibmBAIFoundationOperatorPodPresent -eq 1 ]]; then
-            ibmBAIFoundationOperatorPodCount=$(oc get pod -n "$temp_project_name" -o 'custom-columns=NAME:.metadata.name,PHASE:.status.phase,READY:.status.containerStatuses[0].ready,DELETED:.metadata.deletionTimestamp' --no-headers --ignore-not-found | grep ibm-bai-foundation-operator | grep 'Running' | grep 'true' | grep '<none>' | head -1 | awk '{print $1}' | wc -l)
+        #if any of the podCounts are zero then that means all pods are not ready and we need to wait for them to get ready
+        if echo "${podList[@]}" | grep -qw 0; then
+            if [[ $retry -eq ${maxRetry} ]]; then
+                echo "Timeout Waiting for $BAI_FULL_NAMEE operator to start"
+                echo -e "\x1B[1mCheck the status of Pod by issue cmd:\x1B[0m"
+                if [[ ($RUNTIME_MODE == "process-flow-dev") || ($RUNTIME_MODE == "process-flow") ]]; then
+                    echo "oc describe pod $(oc get pod -n $temp_project_name|grep ibm-wfps-operator-controller-manager|awk '{print $1}') -n $temp_project_name"
+                    printf "\n"
+                    echo -e "\x1B[1mCheck the status of ReplicaSet by issue cmd:\x1B[0m"
+                    echo "oc describe rs $(oc get rs -n $temp_project_name|grep ibm-wfps-operator-controller-manager|awk '{print $1}') -n $temp_project_name"
+                else
+                    echo "oc describe pod $(oc get pod -n $temp_project_name|grep ibm-bai-insights-engine-operator|awk '{print $1}') -n $temp_project_name"
+                    echo "oc describe pod $(oc get pod -n $temp_project_name|grep ibm-bai-foundation-operator|awk '{print $1}') -n $temp_project_name"
+
+                    printf "\n"
+                    echo -e "\x1B[1mCheck the status of ReplicaSet by issue cmd:\x1B[0m"
+                    echo "oc describe rs $(oc get rs -n $temp_project_name|grep ibm-bai-insights-engine-operator|awk '{print $1}') -n $temp_project_name"
+                    echo "oc describe rs $(oc get rs -n $temp_project_name|grep ibm-bai-foundation-operator|awk '{print $1}') -n $temp_project_name"
+
+                fi
+
+            #   printf "\n"
+            #   echo -e "\x1B[1mPlease check the status of PVC by issue cmd:\x1B[0m"
+            #   echo "oc describe pvc $(oc get pvc -n $temp_project_name|grep operator-shared-pvc|awk '{print $1}') -n $temp_project_name"
+            #   echo "oc describe pvc $(oc get pvc -n $temp_project_name|grep cp4a-shared-log-pvc|awk '{print $1}') -n $temp_project_name"
+                exit 1
+            else
+                sleep 30
+                echo -n "..."
+                continue
+            fi
         else
-            ibmBAIFoundationOperatorPodCount=0
-        fi
-
-        #checking if ibm-common-service-operator is present and if so checking if the pod is running
-        ibmCommonServicesPodPresent=$(${CLI_CMD} get pod -n "$temp_project_name" --no-headers --ignore-not-found | grep ibm-common-service-operator | wc -l)
-        if [[ $ibmCommonServicesPodPresent -eq 1 ]]; then
-            ibmCommonServicesPodCount=$(oc get pod -n "$temp_project_name" -o 'custom-columns=NAME:.metadata.name,PHASE:.status.phase,READY:.status.containerStatuses[0].ready,DELETED:.metadata.deletionTimestamp' --no-headers --ignore-not-found | grep ibm-common-service-operator | grep 'Running' | grep 'true' | grep '<none>' | head -1 | awk '{print $1}' | wc -l)
-        else
-            ibmCommonServicesPodCount=0
-        fi
-
-        #checking if operand-deployment-lifecycle-manager is present and if so checking if the pod is running
-        operandLifeCyclePodPresent=$(${CLI_CMD} get pod -n "$temp_project_name" --no-headers --ignore-not-found | grep operand-deployment-lifecycle-manager | wc -l)
-        if [[ $operandLifeCyclePodPresent -eq 1 ]]; then
-            operandLifeCyclePodCount=$(oc get pod -n "$temp_project_name" -o 'custom-columns=NAME:.metadata.name,PHASE:.status.phase,READY:.status.containerStatuses[0].ready,DELETED:.metadata.deletionTimestamp' --no-headers --ignore-not-found | grep operand-deployment-lifecycle-manager | grep 'Running' | grep 'true' | grep '<none>' | head -1 | awk '{print $1}' | wc -l)
-        else    
-            operandLifeCyclePodCount=0
-        fi    
-        podList=($ibmInsightsEnginePodCount $ibmBAIFoundationOperatorPodCount $ibmCommonServicesPodCount $operandLifeCyclePodCount)   
-      fi
-
-      #if any of the podCounts are zero then that means all pods are not ready and we need to wait for them to get ready
-      if echo "${podList[@]}" | grep -qw 0; then
-        if [[ $retry -eq ${maxRetry} ]]; then
-          echo "Timeout Waiting for $BAI_FULL_NAMEE operator to start"
-          echo -e "\x1B[1mCheck the status of Pod by issue cmd:\x1B[0m"
-          if [[ ($RUNTIME_MODE == "process-flow-dev") || ($RUNTIME_MODE == "process-flow") ]]; then
-            echo "oc describe pod $(oc get pod -n $temp_project_name|grep ibm-wfps-operator-controller-manager|awk '{print $1}') -n $temp_project_name"
             printf "\n"
-            echo -e "\x1B[1mCheck the status of ReplicaSet by issue cmd:\x1B[0m"
-            echo "oc describe rs $(oc get rs -n $temp_project_name|grep ibm-wfps-operator-controller-manager|awk '{print $1}') -n $temp_project_name"
-          else
-            echo "oc describe pod $(oc get pod -n $temp_project_name|grep ibm-bai-insights-engine-operator|awk '{print $1}') -n $temp_project_name"
-            echo "oc describe pod $(oc get pod -n $temp_project_name|grep ibm-bai-foundation-operator|awk '{print $1}') -n $temp_project_name"
-
-            printf "\n"
-            echo -e "\x1B[1mCheck the status of ReplicaSet by issue cmd:\x1B[0m"
-            echo "oc describe rs $(oc get rs -n $temp_project_name|grep ibm-bai-insights-engine-operator|awk '{print $1}') -n $temp_project_name"
-            echo "oc describe rs $(oc get rs -n $temp_project_name|grep ibm-bai-foundation-operator|awk '{print $1}') -n $temp_project_name"
-
-          fi
-
-        #   printf "\n"
-        #   echo -e "\x1B[1mPlease check the status of PVC by issue cmd:\x1B[0m"
-        #   echo "oc describe pvc $(oc get pvc -n $temp_project_name|grep operator-shared-pvc|awk '{print $1}') -n $temp_project_name"
-        #   echo "oc describe pvc $(oc get pvc -n $temp_project_name|grep cp4a-shared-log-pvc|awk '{print $1}') -n $temp_project_name"
-          exit 1
-        else
-          sleep 30
-          echo -n "..."
-          continue
+            echo "$BAI_FULL_NAME operator is running..."
+            ${CLI_CMD} get pod -n "$temp_project_name" -l=name=ibm-bai-insights-engine-operator -o 'custom-columns=NAME:.metadata.name,PHASE:.status.phase,READY:.status.containerStatuses[0].ready,DELETED:.metadata.deletionTimestamp' --no-headers | grep 'Running' | grep 'true' | grep '<none>' | head -1 | awk '{print $1}'
+            break
         fi
-      else
-        printf "\n"
-        echo "$BAI_FULL_NAME operator is running..."
-        ${CLI_CMD} get pod -n "$temp_project_name" -l=name=ibm-bai-insights-engine-operator -o 'custom-columns=NAME:.metadata.name,PHASE:.status.phase,READY:.status.containerStatuses[0].ready,DELETED:.metadata.deletionTimestamp' --no-headers | grep 'Running' | grep 'true' | grep '<none>' | head -1 | awk '{print $1}'
-        break
-      fi
     done
 
     echo
@@ -1383,33 +1336,6 @@ function check_existing_sc(){
     fi
 }
 
-function validate_docker_podman_cli(){
-    if [[ $PLATFORM_VERSION == "3.11" || "$machine" == "Mac" ]];then
-        which podman &>/dev/null
-        if [[ $? -ne 0 ]]; then
-            PODMAN_FOUND="No"
-
-            which docker &>/dev/null
-            [[ $? -ne 0 ]] && \
-                DOCKER_FOUND="No"
-            if [[ $DOCKER_FOUND == "No" && $PODMAN_FOUND == "No" ]]; then
-                echo -e "\x1B[1;31mUnable to locate docker and podman, Install either of them first.\x1B[0m" && \
-                exit 1
-            fi
-        fi
-    elif [[ $PLATFORM_VERSION == "4.4OrLater" ]]
-    then
-        which podman &>/dev/null
-        [[ $? -ne 0 ]] && \
-            echo -e "\x1B[1;31mUnable to locate podman, Install it first.\x1B[0m" && \
-            exit 1
-    else
-        which docker &>/dev/null
-        [[ $? -ne 0 ]] && \
-            echo -e "\x1B[1;31mUnable to locate docker, Install it first.\x1B[0m" && \
-            exit 1
-    fi
-}
 
 # Function to display the airgap mode prerequisites and also give the user an option to continue or rerun the script
 function display_airgap_prerequisites(){
@@ -1417,8 +1343,14 @@ function display_airgap_prerequisites(){
     echo "${YELLOW_TEXT}ATTENTION:${RESET_TEXT}"
     printf "\x1B[1;31mMake sure that you have completed the following checklist items before proceeding with the offline/airgap cluster setup mode\n\x1B[0m"
     printf "\x1B[1;31m1) Mirroring of Images to the Private Registry \n\x1B[0m"
-    printf "\x1B[1;31m2) Update Global Pull Secret to include login credentials to the Private Registry images have been mirrored into \n\x1B[0m"
-    printf "\x1B[1;31m3) Creation of appropriate Image Content Source Policy that reflects the Private Registry \n\x1B[0m"
+    #Function that handles the platform type rancher or tanzu
+    if [[ "$PLATFORM_SELECTED" == "other" ]]; then
+        printf "\x1B[1;31m2) The platform specific steps to set up registry mirroring have been completed. \n\x1B[0m"
+    else
+        printf "\x1B[1;31m2) Update Global Pull Secret to include login credentials to the Private Registry images have been mirrored into \n\x1B[0m"
+        printf "\x1B[1;31m3) Creation of appropriate Image Content Source Policy that reflects the Private Registry \n\x1B[0m"
+    fi
+    
     printf "\n"
     printf "\x1B[1;31mFollow the instructions to complete the above steps if required \n\x1B[0m"
     printf "\n"
@@ -1448,24 +1380,9 @@ function display_airgap_prerequisites(){
 }
 
 
-
+# Function that asks for the entitlement key and verifies it
+# For dev mode it verifies against cp.stg.icr.io
 function get_entitlement_registry(){
-
-    # docker_image_exists() {
-    # local image_full_name="$1"; shift
-    # local wait_time="${1:-5}"
-    # local search_term='Pulling|Copying|is up to date|already exists|not found|unable to pull image|no pull access'
-    # if [[ $OCP_VERSION == "3.11" ]];then
-    #     local result=$((timeout --preserve-status "$wait_time" docker 2>&1 pull "$image_full_name" &) | grep -v 'Pulling repository' | egrep -o "$search_term")
-
-    # elif [[ $OCP_VERSION == "4.4OrLater" ]]
-    # then
-    #     local result=$((timeout --preserve-status "$wait_time" podman 2>&1 pull "$image_full_name" &) | grep -v 'Pulling repository' | egrep -o "$search_term")
-
-    # fi
-    # test "$result" || { echo "Timed out too soon. Try using a wait_time greater than $wait_time..."; return 1 ;}
-    # echo $result | grep -vq 'not found'
-    # }
 
     # For Entitlement Registry key
     entitlement_key=""
@@ -1661,8 +1578,11 @@ function create_secret_entitlement_registry(){
     if [[ $SEPARATE_OPERATOR == "No" || -z $SEPARATE_OPERATOR ]]; then
         printf "\x1B[1mCreating docker-registry secret for Entitlement Registry key in project $project_name...\n\x1B[0m"
         ${CLI_CMD} delete secret "$DOCKER_RES_SECRET_NAME" -n "${project_name}" >/dev/null 2>&1
-
-        CREATE_SECRET_CMD="${CLI_CMD} create secret docker-registry $DOCKER_RES_SECRET_NAME --docker-server=$DOCKER_REG_SERVER --docker-username=$DOCKER_REG_USER --docker-password=$DOCKER_REG_KEY --docker-email=ecmtest@ibm.com -n $project_name"
+        if [[ "$(echo "$CNCF_DEV" | tr '[:upper:]' '[:lower:]')" == "yes" && ("$PLATFORM_SELECTED" == "other") ]]; then
+            CREATE_SECRET_CMD="${CLI_CMD} create secret docker-registry ibm-staging-entitlement-key --docker-server=$DOCKER_REG_SERVER --docker-username=$DOCKER_REG_USER --docker-password=$DOCKER_REG_KEY --docker-email=ecmtest@ibm.com -n $project_name"   
+        else
+            CREATE_SECRET_CMD="${CLI_CMD} create secret docker-registry $DOCKER_RES_SECRET_NAME --docker-server=$DOCKER_REG_SERVER --docker-username=$DOCKER_REG_USER --docker-password=$DOCKER_REG_KEY --docker-email=ecmtest@ibm.com -n $project_name"
+        fi
         if $CREATE_SECRET_CMD ; then
             echo -e "\x1B[1mDone\x1B[0m"
         else
@@ -1799,32 +1719,21 @@ function select_platform(){
     if [ -z "$BAI_AUTO_PLATFORM" ]; then
         COLUMNS=12
         echo -e "\x1B[1mSelect the cloud platform to deploy: \x1B[0m"
-
-        otherOption="Other ( Certified Kubernetes Cloud Platform / CNCF)"
-        if [[ $RUNTIME_MODE == "process-flow-dev" || $RUNTIME_MODE == "process-flow" ]]; then
-          otherOption="Other ( EKS )"
-          options=("Openshift Container Platform (OCP) - Private Cloud" "$otherOption")
-          PS3='Enter a valid option [1 to 2]: '
-        else
-        #   options=("RedHat OpenShift Kubernetes Service (ROKS) - Public Cloud" "Openshift Container Platform (OCP) - Private Cloud" "$otherOption")
-        #   PS3='Enter a valid option [1 to 3]: '
-          options=("RedHat OpenShift Kubernetes Service (ROKS) - Public Cloud" "Openshift Container Platform (OCP) - Private Cloud")
-          PS3='Enter a valid option [1 to 2]: '
-        fi
+        
+        
 
         # For airgap deployment only ROKS and OCP is supported
-        if [[ $AIRGAP_INSTALL == "Yes" ]]; then
-            options=("RedHat OpenShift Kubernetes Service (ROKS) - Public Cloud" "Openshift Container Platform (OCP) - Private Cloud")
-            PS3='Enter a valid option [1 to 2]: '
-        fi
+        #if [[ $AIRGAP_INSTALL == "Yes" ]]; then
+        #    options=("RedHat OpenShift Kubernetes Service (ROKS) - Public Cloud" "Openshift Container Platform (OCP) - Private Cloud")
+        #    PS3='Enter a valid option [1 to 2]: '
+        #else
+        #Adding support for the other type of platform
+        # DBACLD-168151
+        otherOption="Other - Cloud Native Computing Foundation ( CNCF )"
+        options=("RedHat OpenShift Kubernetes Service (ROKS) - Public Cloud" "Openshift Container Platform (OCP) - Private Cloud" "$otherOption")
+        PS3='Enter a valid option [1 to 3]: '
+        #fi
 
-        # if [[ "${SCRIPT_MODE}" == "OLM" ]]; then
-        #     options=("RedHat OpenShift Kubernetes Service (ROKS) - Public Cloud" "Openshift Container Platform (OCP) - Private Cloud")
-        #     PS3='Enter a valid option [1 to 2]: '
-        # else
-        #     options=("RedHat OpenShift Kubernetes Service (ROKS) - Public Cloud" "Openshift Container Platform (OCP) - Private Cloud" "Other ( Certified Kubernetes Cloud Platform / CNCF)")
-        #     PS3='Enter a valid option [1 to 3]: '
-        # fi
         select opt in "${options[@]}"
         do
             case $opt in
@@ -1836,6 +1745,8 @@ function select_platform(){
                     PLATFORM_SELECTED="OCP"
                     break
                     ;;
+                #Adding support for the other type of platform
+                # DBACLD-168151
                 "$otherOption")
                     PLATFORM_SELECTED="other"
                     break
@@ -1847,6 +1758,8 @@ function select_platform(){
         PLATFORM_SELECTED=$BAI_AUTO_PLATFORM
         echo -e "\x1B[1mWhat type of cloud platform is selected?\x1B[0m $BAI_AUTO_PLATFORM"
     fi
+
+    
     if [[ "$PLATFORM_SELECTED" == "OCP" || "$PLATFORM_SELECTED" == "ROKS" ]]; then
         SCRIPT_MODE="OLM"
         CLI_CMD=oc
@@ -1862,7 +1775,6 @@ function select_deployment_type(){
     printf "\n"
     DEPLOYMENT_TYPE="production"
     info "${YELLOW_TEXT}IBM Business Automation Insights only supports production deployment.${RESET_TEXT}"
-    # read -rsn1 -p"Press Enter/Return to continue ...";echo
 
 }
 
@@ -1914,7 +1826,7 @@ function select_user(){
             returnValue=$?
             if [ "$returnValue" == 1 ]; then
                 echo -e "\x1B[1;31mNo found user \"${BAI_AUTO_CLUSTER_USER}\"!\n\x1B[0m"
-                echo -e "\x1B[33;5mATTENTION: \x1B[0m\x1B[1mWhen you run bai-deployment.sh script, Use the cluster admin user.\n\x1B[0m"
+                echo -e "\x1B[33;5mATTENTION: \x1B[0m\x1B[1mWhen running the bai-deployment.sh script, Use the cluster admin user.\n\x1B[0m"
                 sleep 5
             else
                 user_name=$BAI_AUTO_CLUSTER_USER
@@ -1940,7 +1852,7 @@ function check_storage_class() {
         # echo "Applying no_root_squash for demo DB2 deployment on ROKS using CLI"
         # oc get no -l node-role.kubernetes.io/worker --no-headers -o name | xargs -I {} --  oc debug {} -- chroot /host sh -c 'grep "^Domain = slnfsv4.coms" /etc/idmapd.conf || ( sed -i "s/.*Domain =.*/Domain = slnfsv4.com/g" /etc/idmapd.conf; nfsidmap -c; rpc.idmapd )' >> ${LOG_FILE}
        printf "\n"
-       echo -e "\x1B[1mUse available storage classes.\x1B[0m"
+       echo -e "\x1B[1mUse the available storage classes.\x1B[0m"
     fi
     display_storage_classes_existing
 }
@@ -2506,6 +2418,78 @@ function verify_silence_install(){
 
 }
 
+# Function to retrieve domain name from the customer so that the cpp-configmap can be created
+# DBACLD-168151
+function retrieve_domain_name(){
+    local attempts=0
+    local max_attempts=3
+    OTHER_PLATFORM_TYPE_DOMAIN=""
+
+    while [ $attempts -lt $max_attempts ]; do
+        printf "\x1B[1mProvide the domain name for your cluster (This is the ingress that must be created and provided as a prerequisite for the deployment): \x1B[0m"
+        read -rp "" OTHER_PLATFORM_TYPE_DOMAIN
+        
+        if [[ -z "$OTHER_PLATFORM_TYPE_DOMAIN" ]]; then
+            warning "It is mandatory to provide a domain name for any deployment on Cloud Native Computing Foundation Platform( CNCF )."
+        else
+            if ping -c 1 -W 2 "$OTHER_PLATFORM_TYPE_DOMAIN" >/dev/null 2>&1; then
+                success "The Domain '$OTHER_PLATFORM_TYPE_DOMAIN' is reachable."
+            else
+                warning "The domain '$OTHER_PLATFORM_TYPE_DOMAIN' does not seem reachable. Please make sure this is a valid domain. You may still proceed with the deployment if this is expected."
+            fi
+            return 0
+        fi
+    
+        ((attempts++))
+    done
+    if [[ -z "$OTHER_PLATFORM_TYPE_DOMAIN" ]]; then
+        error "Maximum number of retries exceeded for entering a valid Domain name.The script will exit now...."
+        exit
+    fi
+
+}
+
+
+# Function that does the cluster setup for TANZU or Rancher
+# DBACLD-168151
+function setup_other_type_platform()
+{
+    if [[ $AIRGAP_INSTALL == "Yes" ]]; then
+        display_airgap_prerequisites
+    fi
+    source $BAI_CNCF_FOLDER/bai-utils.sh
+    source $BAI_CNCF_FOLDER/bai-install-prereqs.sh
+    check_cncf_rancher_prereqs  # function definition in bai-install-prereqs
+    select_project
+    SEPARATE_OPERATOR="No"
+    if [[ $AIRGAP_INSTALL == "No" ]]; then
+        get_entitlement_registry
+        create_secret_entitlement_registry
+    fi
+    retrieve_domain_name
+    create_common_service_configmap $project_name $project_name
+
+    # This function call is used to install catalog sources and the cert manager and ibm-licensing services
+    if [[ $CNCF_DEV == "Yes" ]]; then
+        bai_cncf_rancher_prereq_install "ibm-licensing" "$project_name" true
+    else
+        bai_cncf_rancher_prereq_install "ibm-licensing" "$project_name" false
+    fi
+    
+    source $BAI_CNCF_FOLDER/bai-install.sh
+    # This function call is used to install the BAI operators
+    if [[ $CNCF_DEV == "Yes" ]]; then
+        bai_cncf_rancher_install "$project_name" "$OTHER_PLATFORM_TYPE_DOMAIN" true
+    else
+        bai_cncf_rancher_install "$project_name" "$OTHER_PLATFORM_TYPE_DOMAIN" false
+    fi
+    success " IBM Business Automation Insights Standalone Operators have been installed! "
+    exit
+
+
+}
+
+
 ################################################
 #### Begin - Main step for install operator ####
 ################################################
@@ -2515,16 +2499,25 @@ trap cleanup_log EXIT
 if [[ $1 == "dev" || $1 == "baw-dev" ]]
 then
     CS_INSTALL="YES"
+    CNCF_DEV="Yes"
 
 else
     CS_INSTALL="NO"
+    CNCF_DEV="No"
 
 fi
 
 clear
 info "Setting up the cluster for IBM Business Automation Insights"
+
+verify_silence_install
 check_airgap_mode
 select_platform
+
+#Function that handles the platform type rancher or tanzu
+if [[ "$PLATFORM_SELECTED" == "other" ]]; then
+    setup_other_type_platform
+fi
 
 # Check cluster login
 check_cluster_login
@@ -2539,29 +2532,34 @@ fi
 
 if [[ $SEPARATE_OPERATOR == "No" ]]; then
     select_project
-    create_common_service_configmap $project_name $project_name
+    # Function that retrieves the networktype and network cidr range
+    # https://jsw.ibm.com/browse/DBACLD-173602
+    retrieve_network_details "fresh_install"
+    create_common_service_configmap $project_name $project_name $network_type $network_cidr
 else
     set_separate_operator_project
     set_separate_cpfs_service_project
     if [[ $MULTIPLE_DEPLOYMENT = "Yes" ]]; then
         set_separate_bai_service_project
     fi
-    create_common_service_configmap $project_name_operator $project_name_cs_service
+    # Function that retrieves the networktype and network cidr range
+    # https://jsw.ibm.com/browse/DBACLD-173602
+    retrieve_network_details "fresh_install"
+    create_common_service_configmap $project_name_operator $project_name_cs_service $network_type $network_cidr
 fi
 
 if [[ "$RUNTIME_MODE" == "process-flow" || $RUNTIME_MODE == "process-flow-dev" ]]; then
     prompt_wfps_license
 fi
-verify_silence_install
 
 validate_cli
 if [[ $PLATFORM_SELECTED == "OCP" || $PLATFORM_SELECTED == "ROKS" ]]; then
     check_platform_version
 fi
 
-if [[ $PLATFORM_SELECTED == "OCP" || $PLATFORM_SELECTED == "ROKS" ]]; then
-    ALL_NAMESPACE="No"
-fi
+# All namespaces type deployment is not supported for BAI S
+ALL_NAMESPACE="No"
+
 collect_input
 # create_project
 # bind_scc
@@ -2587,7 +2585,7 @@ if [[ $SCRIPT_MODE == "OLM" ]];then
         fi
         # allocate_operator_pvc_olm_or_cncf
         if [[ $PLATFORM_SELECTED == "other" && ( "$RUNTIME_MODE" == "process-flow" || $RUNTIME_MODE == "process-flow-dev" ) ]]; then
-        validate_cncf_olm
+            validate_cncf_olm
 
             get_domain_name
 
@@ -2657,7 +2655,7 @@ else
         install_cert_license_operator
     fi
     prepare_install
-    apply_cp4a_operator
+    apply_bai_operator
 fi
 
 # create_scc

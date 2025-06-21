@@ -1,0 +1,236 @@
+# Start to validate the parameters passed into script... 
+[✔] oc command available
+[✔] /Users/varunsriram/Documents/Work/CloudPak/CodeRepos/cert-kubernetes-bai/scripts/cpfs/yq/macos/yq command available
+[✔] oc command logged in as kube:admin
+[✔] Channel v4.12 is valid
+[INFO] ibm-common-service-operator subscription exists, it is upgrade scenario
+
+[✗] It is simple namespace topology
+
+[✔] Profile size is valid.
+# Validate CatalogSource for operator ibm-common-service-operator in bais namespace
+[✔] CatalogSource ibm-cs-install-catalog-v4-12-0 from bais CatalogSourceNamespace is available for ibm-common-service-operator in bais namespace
+
+# Checking whether Namespace bais exist...
+[✔] Namespace bais already exists. Skip creating
+
+# Checking whether Namespace bais exist...
+[✔] Namespace bais already exists. Skip creating
+
+# Checking whether OperatorGroup in bais exist...
+[✔] OperatorGroup already exists in bais. Skip creating
+
+#  Checking whether Cert Manager exist...
+#  Smoke test for Cert Manager existence...
+[DEBUG] Creating Issuer test-issuer in namespace bais .
+[INFO] Creating following issuer:
+
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: test-issuer
+  namespace: bais
+spec:
+  selfSigned: {}
+
+issuer.cert-manager.io/test-issuer created
+[DEBUG] Creating Certificate test-certificate in namespace bais .
+[INFO] Creating following certificate:
+
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: test-certificate
+  namespace: bais
+spec:
+  commonName: test-certificate
+  issuerRef:
+    kind: Issuer
+    name: test-issuer
+  secretName: test-certificate-secret
+
+certificate.cert-manager.io/test-certificate created
+[INFO] Waiting for Issuer test-issuer in namespace bais to be Ready
+[✔] Issuer test-issuer in namespace bais is Ready
+
+[INFO] Waiting for Certificate test-certificate in namespace bais to be Ready
+[✔] Certificate test-certificate in namespace bais is Ready
+
+[INFO] Deleting test-issuer Issuer ...
+issuer.cert-manager.io "test-issuer" deleted
+
+[INFO] Deleting test-certificate Certificate ...
+certificate.cert-manager.io "test-certificate" deleted
+
+[INFO] Deleting 10237secret_name Secret ...
+secret "test-certificate-secret" deleted
+
+#  Checking IBMLicensing...
+[✗] NamespaceScope Configuration is not needed for simple or all namespaces topology, skip NamespaceScope setup
+
+# Installing IBM Foundational services operator into operator namespace bais...
+# Checking if CommonService CRD exists in the cluster...
+[INFO] CommonService CRD exist
+
+# Configuring CommonService CR in bais...
+[INFO] Configuring CommonService CR common-service in bais
+
+apiVersion: operator.ibm.com/v3
+kind: CommonService
+metadata:
+  annotations:
+    version: "-1"
+  labels:
+    app.kubernetes.io/component: Operator
+    app.kubernetes.io/instance: bai
+    app.kubernetes.io/managed-by: Operator
+    app.kubernetes.io/name: bai-cp4ba
+    app.kubernetes.io/version: 24.0.1
+    foundationservices.cloudpak.ibm.com: commonservice
+    release: 24.0.1
+  name: common-service
+  namespace: bais
+spec:
+  license:
+    accept: true
+  operatorNamespace: bais
+  servicesNamespace: bais
+  size: small
+  storageClass: csi-cephfs
+status:
+  bedrockOperators:
+    - installPlanName: install-zw4pv
+      name: ibm-iam-operator
+      operatorStatus: Succeeded
+      subscriptionStatus: Succeeded
+      version: v4.10.0
+    - installPlanName: install-psnfd
+      name: ibm-zen-operator
+      operatorStatus: Succeeded
+      subscriptionStatus: Succeeded
+      version: v6.1.2
+    - installPlanName: install-xjs7z
+      name: ibm-events-operator
+      operatorStatus: Succeeded
+      subscriptionStatus: Succeeded
+      version: v5.0.1
+    - installPlanName: install-n7w9v
+      name: cloud-native-postgresql
+      operatorStatus: Succeeded
+      subscriptionStatus: Succeeded
+      version: v1.22.7
+    - installPlanName: install-zpznt
+      name: ibm-bts-operator
+      operatorStatus: Succeeded
+      subscriptionStatus: Succeeded
+      version: v3.35.1
+    - installPlanName: install-8lrw2
+      name: ibm-elasticsearch-operator
+      operatorStatus: Succeeded
+      subscriptionStatus: Succeeded
+      version: v1.1.2470
+    - installPlanName: install-psnfd
+      name: ibm-opencontent-flink
+      operatorStatus: Succeeded
+      subscriptionStatus: Succeeded
+      version: v2.0.8
+  conditions:
+    - lastTransitionTime: "2025-04-01T23:34:36Z"
+      lastUpdateTime: "2025-04-01T23:34:36Z"
+      message: reconciling CommonService CR.
+      reason: StartReconciling
+      status: "False"
+      type: Reconciling
+    - lastTransitionTime: "2025-04-01T23:42:52Z"
+      lastUpdateTime: "2025-04-01T23:42:52Z"
+      message: 'initializing/updating: waiting for OperandRegistry and OperandConfig to become ready.'
+      reason: UpdatingResources
+      status: "False"
+      type: Pending
+    - lastTransitionTime: "2025-04-01T23:43:14Z"
+      lastUpdateTime: "2025-04-01T23:43:14Z"
+      message: configuring CommonService CR.
+      reason: Configuring
+      status: "False"
+      type: Reconciling
+    - lastTransitionTime: "2025-04-01T23:43:14Z"
+      lastUpdateTime: "2025-04-01T23:43:14Z"
+      message: CommonService CR is ready.
+      reason: ReconcileSucceeded
+      status: "True"
+      type: Ready
+  configStatus:
+    catalogName: ibm-cs-install-catalog-v4-11-0
+    catalogNamespace: bais
+    configurable: true
+    operatorDeployed: true
+    operatorNamespace: bais
+    servicesDeployed: true
+    servicesNamespace: bais
+    topologyConfigurableCRs:
+      - apiVersion: operator.ibm.com/v3
+        kind: CommonService
+        namespace: bais
+        objectName: common-service
+  overallStatus: Succeeded
+  phase: Succeeded
+
+pod/ibm-common-service-operator-86cb69cb8b-lc8hj condition met
+[DEBUG] ibm-common-service-operator pod is ready
+
+Warning: resource commonservices/common-service is missing the kubectl.kubernetes.io/last-applied-configuration annotation which is required by oc apply. oc apply should only be used on resources created declaratively by either oc create --save-config or oc apply. The missing annotation will be patched automatically.
+commonservice.operator.ibm.com/common-service configured
+[✔] Successfully patched CommonService CR in bais
+# Checking whether IBM Common Service operator exist...
+[INFO] There is an ibm-common-service-operator Subscription already
+
+# Updating ibm-common-service-operator-v4.11-ibm-cs-install-catalog-v4-11-0-bais in namesapce bais...
+[INFO] v4.11 is less than v4.12
+[INFO] catalogsource ibm-cs-install-catalog-v4-11-0 is different from ibm-cs-install-catalog-v4-12-0
+[INFO] ibm-common-service-operator is ready for updating the subscription.
+subscription.operators.coreos.com/ibm-common-service-operator-v4.11-ibm-cs-install-catalog-v4-11-0-bais configured
+[✔] Successfully patched subscription ibm-common-service-operator in bais
+[INFO] Waiting for operator ibm-common-service-operator to be upgraded
+[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bais='' -n bais -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-04-01T23:34:25Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"lastTransitionTime":"2025-04-02T00:10:24Z","reason":"ReferencedInstallPlanNotFound","status":"True","type":"InstallPlanMissing"},{"reason":"UnpackingInProgress","status":"True","type":"BundleUnpacking"}]
+
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (120 left)
+[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bais='' -n bais -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-04-01T23:34:25Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"lastTransitionTime":"2025-04-02T00:10:24Z","reason":"ReferencedInstallPlanNotFound","status":"True","type":"InstallPlanMissing"},{"reason":"UnpackingInProgress","status":"True","type":"BundleUnpacking"}]
+
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (119 left)
+[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bais='' -n bais -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-04-01T23:34:25Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"lastTransitionTime":"2025-04-02T00:10:24Z","reason":"ReferencedInstallPlanNotFound","status":"True","type":"InstallPlanMissing"},{"reason":"UnpackingInProgress","status":"True","type":"BundleUnpacking"}]
+
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (118 left)
+[✔] Operator ibm-common-service-operator is upgraded to latest version in channel v4.12
+
+[INFO] Waiting for operator ibm-common-service-operator CSV in namespace bais to be bound to Subscription
+[✔] Operator ibm-common-service-operator CSV in namespace bais is bound to Subscription
+
+[INFO] Waiting for operator ibm-common-service-operator in namespace bais to become available
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator in namespace bais to become available (50 left)
+[✔] Operator ibm-common-service-operator in namespace bais is available
+
+# Accepting license for commonservice common-service in namespace bais...
+[✔] License accepted for commonservice common-service
+
+[INFO] Waiting for operator ibm-odlm CSV in namespace bais to be bound to Subscription
+[✔] Operator ibm-odlm CSV in namespace bais is bound to Subscription
+
+[INFO] Waiting for operator operand-deployment-lifecycle-manager in namespace bais to become available
+[✔] Operator operand-deployment-lifecycle-manager in namespace bais is available
+
+[INFO] Waiting for CommonService CR common-service in bais to be ready
+[INFO] RETRYING: Waiting for CommonService CR common-service in bais to be ready (150 left)
+[INFO] RETRYING: Waiting for CommonService CR common-service in bais to be ready (149 left)
+[INFO] RETRYING: Waiting for CommonService CR common-service in bais to be ready (148 left)
+[INFO] RETRYING: Waiting for CommonService CR common-service in bais to be ready (147 left)
+[INFO] RETRYING: Waiting for CommonService CR common-service in bais to be ready (146 left)
+[INFO] RETRYING: Waiting for CommonService CR common-service in bais to be ready (145 left)
+[INFO] RETRYING: Waiting for CommonService CR common-service in bais to be ready (144 left)
+[INFO] RETRYING: Waiting for CommonService CR common-service in bais to be ready (143 left)
+[INFO] RETRYING: Waiting for CommonService CR common-service in bais to be ready (142 left)
+[INFO] RETRYING: Waiting for CommonService CR common-service in bais to be ready (141 left)
+[✔] CommonService CR in bais is in Succeeded Phase
+

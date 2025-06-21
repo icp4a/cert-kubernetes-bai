@@ -25,7 +25,7 @@ function select_deployment_type(){
     then
         DEPLOYMENT_TYPE="production"
         echo -e "An enterprise deployment will be prepared for the OCP Catalog."
-        # read -rsn1 -p"Press Enter/Return to continue ...";echo
+        # prompt_press_any_key_to_continue
         # options=("Starter")
         # PS3='Enter a valid option [1 to 1]: '
         # select opt in "${options[@]}"

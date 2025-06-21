@@ -1,0 +1,233 @@
+# Start to validate the parameters passed into script... 
+[✔] oc command available
+[✔] /Users/varunsriram/Documents/Work/CloudPak/CodeRepos/cert-kubernetes-bai/scripts/cpfs/yq/macos/yq command available
+[✔] oc command logged in as kube:admin
+[✔] Channel v4.10 is valid
+[INFO] ibm-common-service-operator subscription exists, it is upgrade scenario
+
+[✗] It is simple namespace topology
+
+[✔] Profile size is valid.
+# Validate CatalogSource for operator ibm-common-service-operator in bais2401 namespace
+[✔] CatalogSource ibm-cs-install-catalog-v4-10-0 from bais2401 CatalogSourceNamespace is available for ibm-common-service-operator in bais2401 namespace
+
+# Checking whether Namespace bais2401 exist...
+[✔] Namespace bais2401 already exists. Skip creating
+
+# Checking whether Namespace bais2401 exist...
+[✔] Namespace bais2401 already exists. Skip creating
+
+# Checking whether OperatorGroup in bais2401 exist...
+[✔] OperatorGroup already exists in bais2401. Skip creating
+
+#  Checking whether Cert Manager exist...
+#  Smoke test for Cert Manager existence...
+[DEBUG] Creating Issuer test-issuer in namespace bais2401 .
+[INFO] Creating following issuer:
+
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: test-issuer
+  namespace: bais2401
+spec:
+  selfSigned: {}
+
+issuer.cert-manager.io/test-issuer created
+[DEBUG] Creating Certificate test-certificate in namespace bais2401 .
+[INFO] Creating following certificate:
+
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: test-certificate
+  namespace: bais2401
+spec:
+  commonName: test-certificate
+  issuerRef:
+    kind: Issuer
+    name: test-issuer
+  secretName: test-certificate-secret
+
+certificate.cert-manager.io/test-certificate created
+[INFO] Waiting for Issuer test-issuer in namespace bais2401 to be Ready
+[✔] Issuer test-issuer in namespace bais2401 is Ready
+
+[INFO] Waiting for Certificate test-certificate in namespace bais2401 to be Ready
+[✔] Certificate test-certificate in namespace bais2401 is Ready
+
+[INFO] Deleting test-issuer Issuer ...
+issuer.cert-manager.io "test-issuer" deleted
+
+[INFO] Deleting test-certificate Certificate ...
+certificate.cert-manager.io "test-certificate" deleted
+
+[INFO] Deleting 59482secret_name Secret ...
+secret "test-certificate-secret" deleted
+
+#  Checking IBMLicensing...
+[✗] NamespaceScope Configuration is not needed for simple or all namespaces topology, skip NamespaceScope setup
+
+# Installing IBM Foundational services operator into operator namespace bais2401...
+# Checking if CommonService CRD exists in the cluster...
+[INFO] CommonService CRD exist
+
+# Configuring CommonService CR in bais2401...
+[INFO] Configuring CommonService CR common-service in bais2401
+
+apiVersion: operator.ibm.com/v3
+kind: CommonService
+metadata:
+  annotations:
+    version: "-1"
+  labels:
+    app.kubernetes.io/component: Operator
+    app.kubernetes.io/instance: bai
+    app.kubernetes.io/managed-by: Operator
+    app.kubernetes.io/name: bai-cp4ba
+    app.kubernetes.io/version: 24.0.1
+    foundationservices.cloudpak.ibm.com: commonservice
+    release: 24.0.1
+  name: common-service
+  namespace: bais2401
+spec:
+  license:
+    accept: true
+  operatorNamespace: bais2401
+  servicesNamespace: bais2401
+  size: small
+  storageClass: csi-cephfs
+status:
+  bedrockOperators:
+    - installPlanName: install-n9425
+      name: ibm-iam-operator
+      operatorStatus: Succeeded
+      subscriptionStatus: Succeeded
+      version: v4.8.0
+    - installPlanName: install-j6s7h
+      name: ibm-events-operator
+      operatorStatus: Succeeded
+      subscriptionStatus: Succeeded
+      version: v5.0.1
+    - installPlanName: install-n9425
+      name: ibm-zen-operator
+      operatorStatus: Succeeded
+      subscriptionStatus: Succeeded
+      version: v6.0.4
+    - installPlanName: install-n478z
+      name: ibm-commonui-operator
+      operatorStatus: Succeeded
+      subscriptionStatus: Succeeded
+      version: v4.5.2
+    - installPlanName: install-c874m
+      name: ibm-bts-operator
+      operatorStatus: Succeeded
+      subscriptionStatus: Succeeded
+      version: v3.35.1
+    - installPlanName: install-667hk
+      name: ibm-elasticsearch-operator
+      operatorStatus: Succeeded
+      subscriptionStatus: Succeeded
+      version: v1.1.2470
+    - installPlanName: install-r5vf4
+      name: ibm-opencontent-flink
+      operatorStatus: Succeeded
+      subscriptionStatus: Succeeded
+      version: v2.0.4
+    - installPlanName: install-667hk
+      name: cloud-native-postgresql
+      operatorStatus: Succeeded
+      subscriptionStatus: Succeeded
+      version: v1.22.7
+  conditions:
+    - lastTransitionTime: "2025-02-10T19:05:52Z"
+      lastUpdateTime: "2025-02-10T19:05:52Z"
+      message: reconciling CommonService CR.
+      reason: StartReconciling
+      status: "False"
+      type: Reconciling
+    - lastTransitionTime: "2025-02-10T19:58:11Z"
+      lastUpdateTime: "2025-02-10T19:58:11Z"
+      message: 'initializing/updating: waiting for OperandRegistry and OperandConfig to become ready.'
+      reason: UpdatingResources
+      status: "False"
+      type: Pending
+    - lastTransitionTime: "2025-02-10T19:58:39Z"
+      lastUpdateTime: "2025-02-10T19:58:39Z"
+      message: configuring CommonService CR.
+      reason: Configuring
+      status: "False"
+      type: Reconciling
+    - lastTransitionTime: "2025-02-10T19:58:39Z"
+      lastUpdateTime: "2025-02-10T19:58:39Z"
+      message: CommonService CR is ready.
+      reason: ReconcileSucceeded
+      status: "True"
+      type: Ready
+  configStatus:
+    catalogName: ibm-cs-install-catalog-v4-9-0
+    catalogNamespace: bais2401
+    configurable: true
+    operatorDeployed: true
+    operatorNamespace: bais2401
+    servicesDeployed: true
+    servicesNamespace: bais2401
+    topologyConfigurableCRs:
+      - apiVersion: operator.ibm.com/v3
+        kind: CommonService
+        namespace: bais2401
+        objectName: common-service
+  overallStatus: Succeeded
+  phase: Succeeded
+
+pod/ibm-common-service-operator-65666847ff-c2rbx condition met
+[DEBUG] ibm-common-service-operator pod is ready
+
+Warning: resource commonservices/common-service is missing the kubectl.kubernetes.io/last-applied-configuration annotation which is required by oc apply. oc apply should only be used on resources created declaratively by either oc create --save-config or oc apply. The missing annotation will be patched automatically.
+commonservice.operator.ibm.com/common-service configured
+[✔] Successfully patched CommonService CR in bais2401
+# Checking whether IBM Common Service operator exist...
+[INFO] There is an ibm-common-service-operator Subscription already
+
+# Updating ibm-common-service-operator-v4.9-ibm-cs-install-catalog-v4-9-0-bais2401 in namesapce bais2401...
+[INFO] v4.9 is less than v4.10
+[INFO] catalogsource ibm-cs-install-catalog-v4-9-0 is different from ibm-cs-install-catalog-v4-10-0
+[INFO] ibm-common-service-operator is ready for updating the subscription.
+subscription.operators.coreos.com/ibm-common-service-operator-v4.9-ibm-cs-install-catalog-v4-9-0-bais2401 configured
+[✔] Successfully patched subscription ibm-common-service-operator in bais2401
+[INFO] Waiting for operator ibm-common-service-operator to be upgraded
+[DEBUG] oc get subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator.bais2401='' -n bais2401 -o jsonpath='{.items[*].status.conditions}' -> 
+[{"lastTransitionTime":"2025-02-10T21:29:16Z","message":"all available catalogsources are healthy","reason":"AllCatalogSourcesHealthy","status":"False","type":"CatalogSourcesUnhealthy"},{"reason":"UnpackingInProgress","status":"True","type":"BundleUnpacking"},{"lastTransitionTime":"2025-02-10T21:32:57Z","reason":"Installing","status":"True","type":"InstallPlanPending"}]
+
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator to be upgraded (120 left)
+[✔] Operator ibm-common-service-operator is upgraded to latest version in channel v4.10
+
+[INFO] Waiting for operator ibm-common-service-operator CSV in namespace bais2401 to be bound to Subscription
+[✔] Operator ibm-common-service-operator CSV in namespace bais2401 is bound to Subscription
+
+[INFO] Waiting for operator ibm-common-service-operator in namespace bais2401 to become available
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator in namespace bais2401 to become available (50 left)
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator in namespace bais2401 to become available (49 left)
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator in namespace bais2401 to become available (48 left)
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator in namespace bais2401 to become available (47 left)
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator in namespace bais2401 to become available (46 left)
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator in namespace bais2401 to become available (45 left)
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator in namespace bais2401 to become available (44 left)
+[INFO] RETRYING: Waiting for operator ibm-common-service-operator in namespace bais2401 to become available (43 left)
+[✔] Operator ibm-common-service-operator in namespace bais2401 is available
+
+# Accepting license for commonservice common-service in namespace bais2401...
+[✔] License accepted for commonservice common-service
+
+[INFO] Waiting for operator ibm-odlm CSV in namespace bais2401 to be bound to Subscription
+[✔] Operator ibm-odlm CSV in namespace bais2401 is bound to Subscription
+
+[INFO] Waiting for operator operand-deployment-lifecycle-manager in namespace bais2401 to become available
+[✔] Operator operand-deployment-lifecycle-manager in namespace bais2401 is available
+
+[INFO] Waiting for CommonService CR common-service in bais2401 to be ready
+[INFO] RETRYING: Waiting for CommonService CR common-service in bais2401 to be ready (100 left)
+[INFO] RETRYING: Waiting for CommonService CR common-service in bais2401 to be ready (99 left)
+[INFO] RETRYING: Waiting for CommonService CR common-service in bais2401 to be ready (98 left)
+[✔] CommonService CR in bais2401 is in Succeeded Phase
+
