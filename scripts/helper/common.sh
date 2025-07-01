@@ -63,31 +63,31 @@ LDAP_SECRET_FILE=${SECRET_FILE_FOLDER}/ldap-bind-secret.yaml
 # Release/Patch version for CP4BA
 # BAI_RELEASE_BASE is for fetch content/foundation operator pod, only need to change for major release.
 BAI_RELEASE_BASE="24.0.1"
-BAI_PATCH_VERSION="IF002"
+BAI_PATCH_VERSION="IF004"
 # BAI_CSV_VERSION is for checking CP4BA operator upgrade status, need to update for each IFIX
-BAI_CSV_VERSION="v24.1.2"
+BAI_CSV_VERSION="v24.1.4"
 # BAI_CHANNEL_VERSION is for switch CP4BA operator upgrade status, need to update for major release
 BAI_CHANNEL_VERSION="v24.1"
 # CS_OPERATOR_VERSION is for checking CPFS operator upgrade status, need to update for each IFIX
-CS_OPERATOR_VERSION="v4.11.0"
+CS_OPERATOR_VERSION="v4.12.0"
 # CS_CHANNEL_VERSION is for for CPFS script -c option, need to update for each IFIX
-CS_CHANNEL_VERSION="v4.11"
+CS_CHANNEL_VERSION="v4.12"
 # CERT_LICENSE_OPERATOR_VERSION is for checking IBM cert-manager/licensing operator upgrade status, need to update for each IFIX
-CERT_LICENSE_OPERATOR_VERSION="v4.2.12"
+CERT_LICENSE_OPERATOR_VERSION="v4.2.13"
 # CERT_LICENSE_CHANNEL_VERSION is for for IBM cert-manager/licensing script -c option, need to update for each IFIX
 CERT_LICENSE_CHANNEL_VERSION="v4.2"
 # CS_CATALOG_VERSION is for CPFS script -s option, need to update for each IFIX
-CS_CATALOG_VERSION="ibm-cs-install-catalog-v4-11-0"
+CS_CATALOG_VERSION="ibm-cs-install-catalog-v4-12-0"
 # ZEN_OPERATOR_VERSION is for checking ZenService operator upgrade status, need to update for each IFIX
-ZEN_OPERATOR_VERSION="v6.1.1"
+ZEN_OPERATOR_VERSION="v6.1.3"
 # BTS_CHANNEL_VERSION is for for BTS, need to update for each IFIX
 BTS_CHANNEL_VERSION="v3.35"
-# BTS_CATALOG_VERSION is for BTS 3.35.2.
-BTS_CATALOG_VERSION="bts-operator-v3-35-2"
+# BTS_CATALOG_VERSION is for BTS 3.35.4.
+BTS_CATALOG_VERSION="ibm-bts-operator-catalog-v3-35"
 # REQUIREDVER_BTS is for checking bts operator upgrade status before run removal_iaf.sh, need to update for each IFIX
-REQUIREDVER_BTS="3.35.2"
+REQUIREDVER_BTS="3.35.4"
 # REQUIREDVER_POSTGRESQL is for checking postgresql operator upgrade status before run removal_iaf.sh, need to update for each IFIX
-REQUIREDVER_POSTGRESQL="1.22.7"
+REQUIREDVER_POSTGRESQL="1.25.1"
 # EVENTS_OPERATOR_VERSION is for checking IBM Events operator upgrade status, need to update for each IFIX
 EVENTS_OPERATOR_VERSION="v5.0.1"
 # List of BAI versions that are supported for upgrade to $BAI_CSV_VERSION
@@ -481,6 +481,97 @@ function check_cluster_login() {
     fi
 }
 
+## <https://jsw.ibm.com/browse/DBACLD-176036> - Moved function from helper/upgrade/upgrade_check_status.sh to helper/common.sh
+#############################
+# Check separation of duties
+#############################
+function check_bai_separate_operand(){
+    local project=$1
+    # Check whether the BAI is separation of operators and operands.
+    # operators_namespace: openshift-operators
+    # services_namespace: ibm-common-services
+
+    # operators_namespace: ibm-common-services
+    # services_namespace: ibm-common-services
+
+    # operators_namespace: cp4a-ns
+    # services_namespace: cp4a-ns
+
+    if ${CLI_CMD} get configMap ibm-cp4ba-common-config -n $project >/dev/null 2>&1; then
+        success "Found \"ibm-cp4ba-common-config\" configMap in the project \"$project\"."
+    else
+        status=$?
+        echo $status
+        warning "Not found \"ibm-cp4ba-common-config\" configMap in the project \"$project\"."
+        while [[ $BAI_SERVICES_NS == "" ]];
+        do
+            printf "\n"
+            echo -e "\x1B[1mWhere (namespace) did you deploy BAI Standalone operands (i.e., runtime pods)? \x1B[0m"
+            read -p "Enter the name for an existing project (namespace): " BAI_SERVICES_NS
+            if [ -z "$BAI_SERVICES_NS" ]; then
+                echo -e "\x1B[1;31mEnter a valid project name, project name can not be blank\x1B[0m"
+            elif [[ "$BAI_SERVICES_NS" == openshift* ]]; then
+                echo -e "\x1B[1;31mEnter a valid project name, project name should not be 'openshift' or start with 'openshift' \x1B[0m"
+                BAI_SERVICES_NS=""
+            elif [[ "$BAI_SERVICES_NS" == kube* ]]; then
+                echo -e "\x1B[1;31mEnter a valid project name, project name should not be 'kube' or start with 'kube' \x1B[0m"
+                BAI_SERVICES_NS=""
+            else
+                isProjExists=`${CLI_CMD} get project $BAI_SERVICES_NS --ignore-not-found | wc -l`  >/dev/null 2>&1
+
+                if [ "$isProjExists" -ne 2 ] ; then
+                    echo -e "\x1B[1;31mInvalid project name, enter a existing project name ...\x1B[0m"
+                    BAI_SERVICES_NS=""
+                else
+                    echo -e "\x1B[1mUsing project ${BAI_SERVICES_NS}...\x1B[0m"
+                    if ${CLI_CMD} get configMap ibm-cp4ba-common-config -n $BAI_SERVICES_NS >/dev/null 2>&1; then
+                        success "Found \"ibm-cp4ba-common-config\" configMap in the project \"$BAI_SERVICES_NS\"."
+                    else
+                        warning "Not found \"ibm-cp4ba-common-config\" configMap in the project \"$BAI_SERVICES_NS\"."
+                        BAI_SERVICES_NS=""
+                        if [[ ($SCRIPT_MODE == "" && $RUNTIME_MODE == "") || ($SCRIPT_MODE == "dev" && $RUNTIME_MODE == "") || ($SCRIPT_MODE == "review" && $RUNTIME_MODE == "") || ($SCRIPT_MODE == "baw-dev" && $RUNTIME_MODE == "") ]]; then
+                            fail "You NEED to create \"ibm-cp4ba-common-config\" configMap first in the project (namespace) where you want to deploy CP4BA operands (i.e., runtime pods)."
+                            exit 1
+                        fi
+                    fi
+                fi
+            fi
+        done
+    fi
+    tmp_namespace_val=""
+    if [[ $BAI_SERVICES_NS != "" ]]; then
+        tmp_namespace_val=$BAI_SERVICES_NS
+    else
+        tmp_namespace_val=$project
+    fi
+    bai_services_namespace=$(${CLI_CMD} get configMap ibm-cp4ba-common-config -n $tmp_namespace_val --no-headers --ignore-not-found -o jsonpath='{.data.services_namespace}')
+    bai_operators_namespace=$(${CLI_CMD} get configMap ibm-cp4ba-common-config -n $tmp_namespace_val --no-headers --ignore-not-found -o jsonpath='{.data.operators_namespace}')
+    if [[ (! -z $BAI_SERVICES_NS) ]]; then
+        if [[ $bai_services_namespace != $BAI_SERVICES_NS ]]; then
+            fail "Your input value for BAI Standalone operands (i.e., runtime pods) is NOT equal to the value of \"services_namespace\" in \"ibm-cp4ba-common-config\" configMap under the project \"$BAI_SERVICES_NS\"."
+            exit 1
+        fi
+    fi
+    if [[ (! -z $bai_services_namespace) && (! -z $bai_operators_namespace) ]]; then
+        # The IF condition below checks for separation of duties scenario (note: all-ns and shared CPfs are not considered separation of duties):
+        #  - ($bai_services_namespace != $bai_operators_namespace) -> confirms that operator and services ns are different
+        #  - ($bai_operators_namespace != "openshift-operators") -> confirms that scenario is NOT all-ns
+        #  - ($bai_operators_namespace != "ibm-common-services") -> confirms that scenario is NOT shared/cluster-scoped CPfs scenario
+        if [[ ($bai_services_namespace != $bai_operators_namespace) && ($bai_operators_namespace != "openshift-operators" && $bai_operators_namespace != "ibm-common-services") ]]; then
+            info "This BAI Standalone deployment has separate operators and operands"
+            SEPARATE_OPERAND_FLAG="Yes"
+            BAI_SERVICES_NS=$bai_services_namespace
+        else
+            SEPARATE_OPERAND_FLAG="No"
+            BAI_SERVICES_NS=$TARGET_PROJECT_NAME
+        fi
+    else
+        warning "Not found \"operator_namespace\\services_namespace\" in \"ibm-cp4ba-common-config\" configMap under the project \"$tmp_namespace_val\""
+        fail "You need to set correct value(s) in \"ibm-cp4ba-common-config\" configMap for BAI Standalone seperation of operators and operand under the project \"$tmp_namespace_val\""
+        exit 1
+    fi
+}
+
 set_global_env_vars
 
 function save_log(){
@@ -599,7 +690,7 @@ function update_secret_template_passwords(){
         if [[ "$machine_lower" == "linux" ]]; then
             temp_val=$(echo -n "$password_value" | base64 -w 0 )
         else
-            temp_val=$(echo "$password_value" | base64 )
+            temp_val=$(printf '%s' "$password_value" | base64 )
         fi
     fi
     if ${YQ_CMD} r "$secret_file" "stringData.$secret_template_field" >/dev/null 2>&1; then

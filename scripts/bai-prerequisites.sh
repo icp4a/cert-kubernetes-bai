@@ -888,13 +888,8 @@ function create_property_file(){
                 echo "${TDS_LDAP_PROPERTY[i]}=\"\"" >> ${LDAP_PROPERTY_FILE}
                 echo "" >> ${LDAP_PROPERTY_FILE}
             done
-        else
-            ${SED_COMMAND} "s|LDAP_TYPE=\"\"|LDAP_TYPE=\"Custom\"|g" ${LDAP_PROPERTY_FILE}
-            for i in "${!CUSTOM_LDAP_PROPERTY[@]}"; do
-                echo "${COMMENTS_CUSTOM_LDAP_PROPERTY[i]}" >> ${LDAP_PROPERTY_FILE}
-                echo "${CUSTOM_LDAP_PROPERTY[i]}=\"\"" >> ${LDAP_PROPERTY_FILE}
-                echo "" >> ${LDAP_PROPERTY_FILE}
-            done
+        # https://jsw.ibm.com/browse/DBACLD-178129 (Remove Custom LDAP type option which was not removed in BAI S scripts)
+        # Removed the else part here
         fi
         # Set default value
         ${SED_COMMAND} "s|LDAP_SSL_ENABLED=\"\"|LDAP_SSL_ENABLED=\"True\"|g" ${LDAP_PROPERTY_FILE}
@@ -922,15 +917,8 @@ function create_property_file(){
             ${SED_COMMAND} "s|LDAP_GROUP_MEMBER_ID_MAP=\"\"|LDAP_GROUP_MEMBER_ID_MAP=\"groupofnames:member\"|g" ${LDAP_PROPERTY_FILE}
             ${SED_COMMAND} "s|LC_USER_FILTER=\"\"|LC_USER_FILTER=\"(\&(cn=%v)(objectclass=person))\"|g" ${LDAP_PROPERTY_FILE}
             ${SED_COMMAND} "s|LC_GROUP_FILTER=\"\"|LC_GROUP_FILTER=\"(\&(cn=%v)(\|(objectclass=groupofnames)(objectclass=groupofuniquenames)(objectclass=groupofurls)))\"|g" ${LDAP_PROPERTY_FILE}
-        else
-            ${SED_COMMAND} "s|LDAP_USER_NAME_ATTRIBUTE=\"\"|LDAP_USER_NAME_ATTRIBUTE=\"<Required>\"|g" ${LDAP_PROPERTY_FILE}
-            ${SED_COMMAND} "s|LDAP_USER_DISPLAY_NAME_ATTR=\"\"|LDAP_USER_DISPLAY_NAME_ATTR=\"<Required>\"|g" ${LDAP_PROPERTY_FILE}
-            ${SED_COMMAND} "s|LDAP_GROUP_NAME_ATTRIBUTE=\"\"|LDAP_GROUP_NAME_ATTRIBUTE=\"<Required>\"|g" ${LDAP_PROPERTY_FILE}
-            ${SED_COMMAND} "s|LDAP_GROUP_DISPLAY_NAME_ATTR=\"\"|LDAP_GROUP_DISPLAY_NAME_ATTR=\"<Required>\"|g" ${LDAP_PROPERTY_FILE}
-            ${SED_COMMAND} "s|LDAP_GROUP_MEMBERSHIP_SEARCH_FILTER=\"\"|LDAP_GROUP_MEMBERSHIP_SEARCH_FILTER=\"<Required>\"|g" ${LDAP_PROPERTY_FILE}
-            ${SED_COMMAND} "s|LDAP_GROUP_MEMBER_ID_MAP=\"\"|LDAP_GROUP_MEMBER_ID_MAP=\"<Required>\"|g" ${LDAP_PROPERTY_FILE}
-            ${SED_COMMAND} "s|LC_USER_FILTER=\"\"|LC_USER_FILTER=\"(\&(objectClass=person)(cn=%v))\"|g" ${LDAP_PROPERTY_FILE}
-            ${SED_COMMAND} "s|LC_GROUP_FILTER=\"\"|LC_GROUP_FILTER=\"(\&(objectClass=group)(cn=%v))\"|g" ${LDAP_PROPERTY_FILE}
+        # https://jsw.ibm.com/browse/DBACLD-178129 (Remove Custom LDAP type option which was not removed in BAI S scripts)
+        #Removed the else part here
         fi
         success "Created the LDAP Server property file for BAI stand-alone\n"
     fi
@@ -1453,8 +1441,8 @@ function select_ldap_type(){
         printf "\n"
         COLUMNS=12
         echo -e "\x1B[1mWhat is the LDAP type that will be used for this deployment? \x1B[0m"
-        options=("Microsoft Active Directory" "IBM Tivoli Directory Server / Security Directory Server" "Custom")
-        PS3='Enter a valid option [1 to 3]: '
+        options=("Microsoft Active Directory" "IBM Tivoli Directory Server / Security Directory Server")
+        PS3='Enter a valid option [1 to 2]: '
         select opt in "${options[@]}"
         do
             case $opt in
@@ -1464,10 +1452,6 @@ function select_ldap_type(){
                     ;;
                 "IBM Tivoli"*)
                     LDAP_TYPE="TDS"
-                    break
-                    ;;
-                "Custom"*)
-                    LDAP_TYPE="Custom"
                     break
                     ;;
                 *) echo "invalid option $REPLY";;
@@ -1687,7 +1671,7 @@ function validate_secret_in_cluster(){
             secret_name_tmp=$(sed -e 's/^"//' -e 's/"$//' <<<"$secret_name_tmp")
             # need to check ibm-zen-metastore-edb-cm/im-datastore-edb-cm for Zen/IM and ibm-bts-config-extension external postgresql db support
             if [[ $secret_name_tmp != "ibm-zen-metastore-edb-cm" && $secret_name_tmp != "im-datastore-edb-cm" && $secret_name_tmp != "ibm-bts-config-extension" ]]; then
-                secret_exists=`kubectl get secret $secret_name_tmp --ignore-not-found | wc -l`  >/dev/null 2>&1
+                secret_exists=`kubectl get secret $secret_name_tmp -n $bai_services_namespace --ignore-not-found | wc -l`  >/dev/null 2>&1
                 if [ "$secret_exists" -ne 2 ] ; then
                     error "Secret \"$secret_name_tmp\" not found in Kubernetes cluster! Please create it before deploying BAI Standalone"
                     SECRET_CREATE_PASSED="false"
@@ -1695,7 +1679,7 @@ function validate_secret_in_cluster(){
                     success "Secret \"$secret_name_tmp\" found in Kubernetes cluster, PASSED!"              
                 fi
             else
-                secret_exists=`kubectl get configmap $secret_name_tmp --ignore-not-found | wc -l`  >/dev/null 2>&1
+                secret_exists=`kubectl get configmap $secret_name_tmp -n $bai_services_namespace --ignore-not-found | wc -l`  >/dev/null 2>&1
                 if [ "$secret_exists" -ne 2 ] ; then
                     error "ConfigMap \"$secret_name_tmp\" not found in Kubernetes cluster! Please create it before deploying BAI Standalone"
                     SECRET_CREATE_PASSED="false"
@@ -1730,7 +1714,7 @@ function validate_secret_in_cluster(){
             exit 1
         else
             secret_name_tmp=$(sed -e 's/^"//' -e 's/"$//' <<<"$secret_name_tmp")
-            secret_exists=`kubectl get secret $secret_name_tmp --ignore-not-found | wc -l`  >/dev/null 2>&1
+            secret_exists=`kubectl get secret $secret_name_tmp -n $bai_services_namespace --ignore-not-found | wc -l`  >/dev/null 2>&1
             if [ "$secret_exists" -ne 2 ] ; then
                 error "Secret \"$secret_name_tmp\" not found in Kubernetes cluster! Please create it before deploying BAI Standalone"
                 SECRET_CREATE_PASSED="false"
@@ -1793,8 +1777,8 @@ function validate_prerequisites(){
         tmp_ldapssl="$(prop_ldap_property_file LDAP_SSL_ENABLED)"
         tmp_user=$( ${CLI_CMD} get secret -l name=ldap-bind-secret -o yaml | ${YQ_CMD} r - items.[0].data.ldapUsername | base64 --decode )
         ## <https://jsw.ibm.com/browse/DBACLD-172803> - We are now asking user to use {xor} for special characters in password, so we need to use decode_xor_password to get the password decoded before validation.
-        bai_operator=$( ${CLI_CMD} get pods -l name=ibm-bai-insights-engine-operator --no-headers --ignore-not-found -n "$TARGET_PROJECT_NAME" | awk '{print $1}' )
-        tmp_userpwd=$( decode_xor_password "$( ${CLI_CMD} get secret -n "$TARGET_PROJECT_NAME" -l name=ldap-bind-secret -o yaml | ${YQ_CMD} r - items.[0].data.ldapPassword | base64 --decode )" "$TARGET_PROJECT_NAME" "$bai_operator" | sed  's/\$/\\$/g' )
+        bai_operator=$( ${CLI_CMD} get pods -l name=ibm-bai-insights-engine-operator --no-headers --ignore-not-found -n "$bai_operators_namespace" | awk '{print $1}' )
+        tmp_userpwd=$( decode_xor_password "$( ${CLI_CMD} get secret -n "$TARGET_PROJECT_NAME" -l name=ldap-bind-secret -o yaml | ${YQ_CMD} r - items.[0].data.ldapPassword | base64 --decode )" "$bai_operators_namespace" "$bai_operator" | sed  's/\$/\\$/g' )
         
         tmp_servername=$(sed -e 's/^"//' -e 's/"$//' <<<"$tmp_servername")
         tmp_serverport=$(sed -e 's/^"//' -e 's/"$//' <<<"$tmp_serverport")
@@ -2027,12 +2011,18 @@ source ${CUR_DIR}/helper/common.sh $TARGET_PROJECT_NAME
 clear
 
 if [[ $RUNTIME_MODE == "property" ]]; then
+    # Check separation of duties
+    check_bai_separate_operand $TARGET_PROJECT_NAME # Function Definition can be found in helper/upgrade/upgrade_check_status.sh
+
     prompt_license
     input_information
     create_property_file
     clean_up_temp_file
 fi
 if [[ $RUNTIME_MODE == "generate" ]]; then
+    # Check separation of duties
+    check_bai_separate_operand $TARGET_PROJECT_NAME # Function Definition can be found in helper/upgrade/upgrade_check_status.sh    
+
     # reload db type and OS number
     load_property_before_generate
     check_property_file
@@ -2050,6 +2040,9 @@ if [[ $RUNTIME_MODE == "validate" ]]; then
     echo  "*****************************************************"
     echo  "Validating the prerequisites before you install BAI stand-alone"
     echo  "*****************************************************"
+    # Check separation of duties
+    check_bai_separate_operand $TARGET_PROJECT_NAME # Function Definition can be found in helper/upgrade/upgrade_check_status.sh 
+
     validate_utility_tool_for_validation
     load_property_before_generate
     validate_prerequisites

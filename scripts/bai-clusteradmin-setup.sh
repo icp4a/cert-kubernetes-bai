@@ -64,6 +64,15 @@ BAI_FULL_NAME="IBM Business Automation Insights"
 
 mkdir -p $TEMP_FOLDER >/dev/null 2>&1
 
+## To fix the Error message in the bai-cp4a-clusteradmin.sh script for kubectl - https://jsw.ibm.com/browse/DBACLD-178076
+function check_kubectl_installed() {
+    if ! command -v kubectl >/dev/null 2>&1; then
+	printf "\n\n\n"
+        echo -e "\x1B[1;31mkubectl is required to run the script.\nPlease refer to the topic \"Preparing a client to connect to the cluster\" from IBM documentation:\nhttps://www.ibm.com/docs/en/cloud-paks/cp-biz-automation\x1B[0m"
+        exit 1
+    fi
+}
+
 function prompt_wfps_license(){
     clear
     echo -e "\x1B[1;31mIMPORTANT: Review the IBM Process Flow license information here: \n\x1B[0m"
@@ -152,9 +161,12 @@ function validate_cli(){
             echo "Unable to locate the Kubernetes CLI. You must install it to run this script." && \
             exit 1
     fi
+    check_kubectl_installed
 }
 
 function install_cert_license_operator(){
+    check_kubectl_installed
+
     info "Applying the latest $BAI_FULL_NAME Operator catalog source..."
     if [[ $PRIVATE_CATALOG == "No" ]]; then
         
@@ -1965,6 +1977,8 @@ function display_storage_classes_roks() {
 }
 
 function check_platform_version(){
+    check_kubectl_installed
+
     currentver=$(kubectl  get nodes | awk 'NR==2{print $5}')
     requiredver="v1.17.1"
     if [ "$(printf '%s\n' "$requiredver" "$currentver" | sort -V | head -n1)" = "$requiredver" ]; then
@@ -1972,8 +1986,8 @@ function check_platform_version(){
     else
         # PLATFORM_VERSION="3.11"
         PLATFORM_VERSION="4.4OrLater"
-        echo -e "\x1B[1;31mIMPORTANT: Only support OCp4.4 or Later, exit...\n\x1B[0m"
-        exit 1
+        #echo -e "\x1B[1;31mIMPORTANT: Only support OCp4.4 or Later, exit...\n\x1B[0m"
+        #exit 1
     fi
     # OpenShift 4.0-4.2, install Cloud Pak foundational services 3.3
     # OpenShift >= 4.3, install Cloud Pak foundational services 3.4

@@ -78,8 +78,8 @@ function check_bai_operator_version(){
     local project_name=$1
     local maxRetry=5
     info "Checking the version of IBM Business Automation Insights Operator"
-    bai_operator_csv_name=$(kubectl get csv -n $project_name --no-headers --ignore-not-found | grep "IBM Business Automation Insights" | awk '{print $1}')
-    bai_operator_csv_version=$(kubectl get csv $bai_operator_csv_name -n $project_name --no-headers --ignore-not-found -o 'jsonpath={.spec.version}')
+    bai_operator_csv_name=$(${CLI_CMD} get csv -n $project_name --no-headers --ignore-not-found | grep "IBM Business Automation Insights" | awk '{print $1}')
+    
     if [[ -z $bai_operator_csv_name ]]; then
         fail "No IBM Business Automation Insights Operator found in \"$project_name\" project."
         warning "Input correct project name for BAI Standalone."
@@ -87,11 +87,13 @@ function check_bai_operator_version(){
     fi
     for ((retry=0;retry<=${maxRetry};retry++)); do
         valid_version=false  #this is flag to check if the BAI S operator is a valid version
-        if [[ (! -z $cp4a_operator_csv_name_target_ns) ]]; then
+        if [[ (! -z $bai_operator_csv_name) ]]; then
             success "Found IBM Business Automation Insights Operator deployed in the project \"$project_name\"."
             ALL_NAMESPACE_FLAG="No"
             TEMP_OPERATOR_PROJECT_NAME=$project_name
+            bai_operator_csv_version=$(${CLI_CMD} get csv $bai_operator_csv_name -n $project_name --no-headers --ignore-not-found -o 'jsonpath={.spec.version}')
         fi
+        
 
         if [[ ! -z $BAI_ORIGINAL_CSV_VERSION ]]; then
             BAI_ORIGINAL_CSV_VERSION=$(sed -e 's/^"//' -e 's/"$//' <<<"$BAI_ORIGINAL_CSV_VERSION")
@@ -115,94 +117,6 @@ function check_bai_operator_version(){
             fi
         fi
     done
-}
-
-#function to check if the deployment has seperate operators and operands
-function check_bai_separate_operand(){
-    local project=$1
-    # Check whether the BAI is separation of operators and operands.
-    # operators_namespace: openshift-operators
-    # services_namespace: ibm-common-services
-
-    # operators_namespace: ibm-common-services
-    # services_namespace: ibm-common-services
-
-    # operators_namespace: cp4a-ns
-    # services_namespace: cp4a-ns
-
-    if ${CLI_CMD} get configMap ibm-cp4ba-common-config -n $project >/dev/null 2>&1; then
-        success "Found \"ibm-cp4ba-common-config\" configMap in the project \"$project\"."
-    else
-        status=$?
-        echo $status
-        warning "Not found \"ibm-cp4ba-common-config\" configMap in the project \"$project\"."
-        while [[ $BAI_SERVICES_NS == "" ]];
-        do
-            printf "\n"
-            echo -e "\x1B[1mWhere (namespace) did you deploy BAI Standalone operands (i.e., runtime pods)? \x1B[0m"
-            read -p "Enter the name for an existing project (namespace): " BAI_SERVICES_NS
-            if [ -z "$BAI_SERVICES_NS" ]; then
-                echo -e "\x1B[1;31mEnter a valid project name, project name can not be blank\x1B[0m"
-            elif [[ "$BAI_SERVICES_NS" == openshift* ]]; then
-                echo -e "\x1B[1;31mEnter a valid project name, project name should not be 'openshift' or start with 'openshift' \x1B[0m"
-                BAI_SERVICES_NS=""
-            elif [[ "$BAI_SERVICES_NS" == kube* ]]; then
-                echo -e "\x1B[1;31mEnter a valid project name, project name should not be 'kube' or start with 'kube' \x1B[0m"
-                BAI_SERVICES_NS=""
-            else
-                isProjExists=`${CLI_CMD} get project $BAI_SERVICES_NS --ignore-not-found | wc -l`  >/dev/null 2>&1
-
-                if [ "$isProjExists" -ne 2 ] ; then
-                    echo -e "\x1B[1;31mInvalid project name, enter a existing project name ...\x1B[0m"
-                    BAI_SERVICES_NS=""
-                else
-                    echo -e "\x1B[1mUsing project ${BAI_SERVICES_NS}...\x1B[0m"
-                    if ${CLI_CMD} get configMap ibm-cp4ba-common-config -n $BAI_SERVICES_NS >/dev/null 2>&1; then
-                        success "Found \"ibm-cp4ba-common-config\" configMap in the project \"$BAI_SERVICES_NS\"."
-                    else
-                        warning "Not found \"ibm-cp4ba-common-config\" configMap in the project \"$BAI_SERVICES_NS\"."
-                        BAI_SERVICES_NS=""
-                        if [[ ($SCRIPT_MODE == "" && $RUNTIME_MODE == "") || ($SCRIPT_MODE == "dev" && $RUNTIME_MODE == "") || ($SCRIPT_MODE == "review" && $RUNTIME_MODE == "") || ($SCRIPT_MODE == "baw-dev" && $RUNTIME_MODE == "") ]]; then
-                            fail "You NEED to create \"ibm-cp4ba-common-config\" configMap first in the project (namespace) where you want to deploy CP4BA operands (i.e., runtime pods)."
-                            exit 1
-                        fi
-                    fi
-                fi
-            fi
-        done
-    fi
-    tmp_namespace_val=""
-    if [[ $BAI_SERVICES_NS != "" ]]; then
-        tmp_namespace_val=$BAI_SERVICES_NS
-    else
-        tmp_namespace_val=$project
-    fi
-    bai_services_namespace=$(${CLI_CMD} get configMap ibm-cp4ba-common-config -n $tmp_namespace_val --no-headers --ignore-not-found -o jsonpath='{.data.services_namespace}')
-    bai_operators_namespace=$(${CLI_CMD} get configMap ibm-cp4ba-common-config -n $tmp_namespace_val --no-headers --ignore-not-found -o jsonpath='{.data.operators_namespace}')
-    if [[ (! -z $BAI_SERVICES_NS) ]]; then
-        if [[ $bai_services_namespace != $BAI_SERVICES_NS ]]; then
-            fail "Your input value for BAI Standalone operands (i.e., runtime pods) is NOT equal to the value of \"services_namespace\" in \"ibm-cp4ba-common-config\" configMap under the project \"$BAI_SERVICES_NS\"."
-            exit 1
-        fi
-    fi
-    if [[ (! -z $bai_services_namespace) && (! -z $bai_operators_namespace) ]]; then
-        # The IF condition below checks for separation of duties scenario (note: all-ns and shared CPfs are not considered separation of duties):
-        #  - ($bai_services_namespace != $bai_operators_namespace) -> confirms that operator and services ns are different
-        #  - ($bai_operators_namespace != "openshift-operators") -> confirms that scenario is NOT all-ns
-        #  - ($bai_operators_namespace != "ibm-common-services") -> confirms that scenario is NOT shared/cluster-scoped CPfs scenario
-        if [[ ($bai_services_namespace != $bai_operators_namespace) && ($bai_operators_namespace != "openshift-operators" && $bai_operators_namespace != "ibm-common-services") ]]; then
-            info "This BAI Standalone deployment has separate operators and operands"
-            SEPARATE_OPERAND_FLAG="Yes"
-            BAI_SERVICES_NS=$bai_services_namespace
-        else
-            SEPARATE_OPERAND_FLAG="No"
-            BAI_SERVICES_NS=$TARGET_PROJECT_NAME
-        fi
-    else
-        warning "Not found \"operator_namespace\\services_namespace\" in \"ibm-cp4ba-common-config\" configMap under the project \"$tmp_namespace_val\""
-        fail "You need to set correct value(s) in \"ibm-cp4ba-common-config\" configMap for BAI Standalone seperation of operators and operand under the project \"$tmp_namespace_val\""
-        exit 1
-    fi
 }
 
 function check_operator_status(){
