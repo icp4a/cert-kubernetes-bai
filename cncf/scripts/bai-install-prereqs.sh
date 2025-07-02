@@ -82,39 +82,85 @@ function check_cncf_rancher_prereqs() {
     info "Checking the prerequisites to install BAI Standalone Operators for platform type -> Other - Cloud Native Computing Foundation ( CNCF )..."
     #check_command kubectl
 
-    oc_version=$(kubectl get clusterversion version -o=jsonpath={.status.desired.version} 2>/dev/null)
+    is_openshift=false
+    oc_version=$($CLI_CMD get clusterversion version -o=jsonpath={.status.desired.version} 2>/dev/null)
     if [[ ! -z ${oc_version} ]]; then
-      info "Openshift version ${oc_version} detected."
-      is_openshift=true
+        info "Openshift version ${oc_version} detected."
+        is_openshift=true
     fi
 
     ## Check OLM
-    if ${is_openshift}; then
-      olm_namespace="openshift-marketplace"
-      info "OLM is installed by default on openshift clusters."
+    if [[ "$is_openshift" == true ]]; then
+        olm_namespace="openshift-marketplace"
+        info "OLM is installed by default on openshift clusters."
     else
-      olm_namespace=$(kubectl get deployment -A | grep olm-operator | awk '{print $1}')
-      if [[ -z "$olm_namespace" ]]; then
-        info "Cannot find OLM installation. Installing one"
-        curl -L "https://github.com/operator-framework/operator-lifecycle-manager/releases/download/${OLM_VERSION}/install.sh" -o install.sh 
-        chmod +x install.sh
-        ./install.sh "${OLM_VERSION}"
-        olm_install_success=$?
-        rm -f install.sh
-        olm_namespace="olm"
-          if [[ $olm_install_success -ne 0 ]]; then
-            error "Error installing OLM."
-            exit 1
-          fi
-      else
-        # Check if it is a supported version
-        OLM_VERSION=$(kubectl get csv packageserver -n $olm_namespace -o yaml -o jsonpath='{.spec.version}')
-        if (( $(bc <<< "${OLM_VERSION:2} < ${OLM_MINIMAL_VERSION:3}") )); then
-            error "Detected olm version v${OLM_VERSION} is less than supported minimal version ${OLM_MINIMAL_VERSION}. You can not install without upgrading OLM version in your cluster."
-            exit 1
+        olm_namespace=$($CLI_CMD get deployment -A | grep olm-operator | awk '{print $1}')
+        if [[ -z "$olm_namespace" ]]; then
+            
+            # Instead of installing OLM on our own, we should ask the customer first if they want the script to that or not.
+            # https://jsw.ibm.com/browse/DBACLD-183358
+            
+            info "Cannot find Operator Lifecycle Manager (OLM) installed on this Cluster. OLM is a prerequisite to installing IBM Business Automation Insights Standalone and the script can install OLM ${OLM_VERSION} for you."
+            echo
+            printf "\x1B[1m\nDo you want the script to install the prerequisite OLM ${OLM_VERSION} (Yes/No, default: No) \x1B[0m"
+            read -rp "" ans
+            # If the user provides no input, set the default to 'No'
+            if [ -z "$ans" ]; then
+                ans="No"
+            fi
+
+            ans=$(echo "${ans}" | tr '[:upper:]' '[:lower:]')
+
+            if [[ "$ans" == "yes" ]]; then
+
+                # The OLM install script and related files have been pulled and included in "cert-kubernetes-bai" repository so that it can be run even during an airgap based deployment.
+                # IF we are bumping up the OLM_VERSION we need to run a few commands to get the necessary files
+                # Install Script -> curl -L "https://github.com/operator-framework/operator-lifecycle-manager/releases/download/${OLM_VERSION}/install.sh" -o install.sh 
+                # olm.yaml -> https://github.com/operator-framework/operator-lifecycle-manager/releases/download/${OLM_VERSION}/olm.yaml
+                # crds.yaml -> https://github.com/operator-framework/operator-lifecycle-manager/releases/download/${OLM_VERSION}/crds.yaml
+                # the olm-install.sh script must be tweaked to retrieve the files from $BAI_CNCF_FOLDER/olm instead of the Git URLS that it will point to when it is downloaded
+                # https://jsw.ibm.com/browse/DBACLD-183358
+                ${BAI_CNCF_FOLDER}/olm/olm-install.sh "${OLM_VERSION}" "$BAI_CNCF_FOLDER/olm"
+                olm_install_success=$?
+                
+                
+                #curl -L "https://github.com/operator-framework/operator-lifecycle-manager/releases/download/${OLM_VERSION}/install.sh" -o install.sh 
+                #chmod +x install.sh
+                #./install.sh "${OLM_VERSION}"
+                #olm_install_success=$?
+                #rm -f install.sh
+                
+                olm_namespace="olm"
+                if [[ $olm_install_success -ne 0 ]]; then
+                    error "Error installing OLM."
+                    exit 1
+                fi
+            
+            # If customer does not want the script to install OLM they can do so on their own.
+            # https://jsw.ibm.com/browse/DBACLD-183358
+            else
+                info "The script will not install OLM is prerequisite to installing IBM Business Automation Insights Standalone and will exit now. ${OLM_VERSION}"
+                echo
+                echo "${YELLOW_TEXT}[NEXT ACTIONS]:${RESET_TEXT}"
+                step_num=1
+                # You can run ${GREEN_TEXT}\" .${BAI_CNCF_FOLDER}/olm/olm-install.sh "${OLM_VERSION}" \"${RESET_TEXT} to install OLM version ${OLM_VERSION}.
+                echo "  - STEP ${step_num} ${RED_TEXT}(Required)${RESET_TEXT}:  Refer to https://www.ibm.com/docs/en/bai/$BAI_RELEASE_BASE?topic=ibaicoiiolc-option-1-installing-business-automation-insights-catalog-operator-instances-by-using-cluster-admin-script-recommended for more information about the prerequisites required to install IBM Business Automation Insights Standalone."
+                printf "\n"
+                step_num=$((step_num + 1))
+                echo "  - STEP ${step_num} ${RED_TEXT}(Required)${RESET_TEXT}: You can run ${GREEN_TEXT}\"./bai-clusteradmin-setup.sh \"${RESET_TEXT} to install the IBM Business Automation Insights operators."
+                printf "\n"
+                step_num=$((step_num + 1))
+                exit 1
+            fi
+        else
+            # Check if it is a supported version
+            OLM_VERSION=$($CLI_CMD get csv packageserver -n $olm_namespace -o yaml -o jsonpath='{.spec.version}')
+            if (( $(bc <<< "${OLM_VERSION:2} < ${OLM_MINIMAL_VERSION:3}") )); then
+                error "Detected olm version v${OLM_VERSION} is less than supported minimal version ${OLM_MINIMAL_VERSION}. You can not install without upgrading OLM version in your cluster."
+                exit 1
+            fi
         fi
-      fi
-      success "OLM available under namespace ${olm_namespace}."
+        success "OLM available under namespace ${olm_namespace}."
     fi
 }
 
