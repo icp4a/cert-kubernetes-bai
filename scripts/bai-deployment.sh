@@ -16,6 +16,47 @@ PARENT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
 # Import common utilities and environment variables
 source ${CUR_DIR}/helper/common.sh
 
+
+function show_help() {
+    echo
+    echo "Usage:"
+    echo
+    echo " ${CUR_DIR}/bai-deployment.sh -m [modetype] -n <BAI_NAMESPACE>"
+    echo " ${CUR_DIR}/bai-deployment.sh -n <BAI_NAMESPACE>"
+    echo
+    echo "Options:"
+    echo
+    echo "  -h  Display help."
+    echo
+    echo "  -m  The valid mode types are: [upgradeOperator], [upgradeOperatorStatus], [upgradeDeployment], and [upgradeDeploymentStatus]."
+    echo
+    echo "  -n  Required: The target namespace of the BAI Standalone deployment. "
+    echo "                If BAI Standalone is deployed using separate namespaces for operators and operands/services and the script is being used for upgrade, the value is the namespace where the BAI Standalone operators are deployed"
+    echo "                If BAI Standalone is deployed using separate namespaces for operators and operands/services and the script is being used for generating a custom resource file, the value is the namespace where BAI Standalone operands/services are to be deployed."
+    echo
+    echo "  -i  Optional: Operator image name. By default, it is cp.icr.io/cp/cp4a/icp4a-operator:$BAI_RELEASE_BASE."
+    echo
+    echo "  -p  Optional: Pull secret to use to connect to the registry. By default, it is ibm-entitlement-key."
+    echo
+    echo "  --enable-private-catalog Optional: Set this flag to switch CatalogSource from global to namespace-scoped. Default is in the openshift-marketplace namespace."
+    echo
+    echo "Additional Information:"
+    echo
+    echo "  ${YELLOW_TEXT}* Running the script to create a custom resource file for a new BAI Standalone deployment:${RESET_TEXT}"
+    echo "      - STEP 1: Run the script with \"-n <BAI_NAMESPACE>\"."
+    echo "  ${YELLOW_TEXT}* Running the script to upgrade a BAI Standalone deployment from 23.0.2.X to $BAI_RELEASE_BASE GA/$BAI_RELEASE_BASE.X. You must run the modes in the following order:${RESET_TEXT}"
+    echo "      - STEP 1: Run the script in [upgradeOperator] mode to upgrade the BAI Standalone operator."
+    echo "      - STEP 2: Run the script in [upgradeOperatorStatus] mode to check that the upgrade of the BAI Standalone operator and its dependencies was successful."
+    echo "      - STEP 3: Run the script in [upgradeDeployment] mode to upgrade the BAI Standalone deployment."
+    echo "      - STEP 4: Run the script in [upgradeDeploymentStatus] mode to check that the upgrade of the BAI Standalone deployment was successful."
+    echo "  ${YELLOW_TEXT}* Running the script to upgrade a BAI Standalone deployment from $BAI_RELEASE_BASE GA/$BAI_RELEASE_BASE.X to $BAI_RELEASE_BASE.X. You must run the modes in the following order:${RESET_TEXT}"
+    echo "      - STEP 1: Run the script in [upgradeOperator] mode to upgrade the BAI Standalone operator."
+    echo "      - STEP 2: Run the script in [upgradeOperatorStatus] mode to check that the upgrade of the BAI Standalone operator and its dependencies was successful."
+    echo "      - STEP 3: Run the script in [upgradeDeploymentStatus] mode to check that the upgrade of the BAI Standalone deployment was successful."
+
+}
+
+
 function parse_arguments() {
     # process options
     while [[ "$@" != "" ]]; do
@@ -142,7 +183,8 @@ parse_arguments "$@"
 # Adding a check for requiring the -n parameter
 # DBACLD-161415
 if [[ -z "$TARGET_PROJECT_NAME" ]]; then
-    echo -e "\x1B[1;31mInput value for \"-n <BAI_NAMESPACE>\" option.\n\x1B[0m"
+    echo "\x1B[1;31m\"-n\" is a required argument.Input a namespace value for \"-n <BAI_NAMESPACE>\" argument.\n\x1B[0m"
+    show_help
     exit 1
 fi
 
@@ -1115,7 +1157,7 @@ function select_ldap_type(){
         printf "\n"
         COLUMNS=12
         echo -e "\x1B[1mWhat is the LDAP type that will be used for this deployment? \x1B[0m"
-        options=("Microsoft Active Directory" "IBM Tivoli Directory Server / Security Directory Server" "Custom")
+        options=("Microsoft Active Directory" "IBM Tivoli Directory Server / Security Directory Server")
         PS3='Enter a valid option [1 to 3]: '
         select opt in "${options[@]}"
         do
@@ -1126,10 +1168,6 @@ function select_ldap_type(){
                     ;;
                 "IBM Tivoli"*)
                     LDAP_TYPE="TDS"
-                    break
-                    ;;
-                "Custom"*)
-                    LDAP_TYPE="Custom"
                     break
                     ;;
                 *) echo "invalid option $REPLY";;
@@ -1162,8 +1200,6 @@ function set_ldap_type_foundation(){
             content_start="$(grep -n "ad:" ${BAI_PATTERN_FILE_TMP} | head -n 1 | cut -d: -f1)"
         elif [[ $LDAP_TYPE == "TDS" ]]; then
             content_start="$(grep -n "tds:" ${BAI_PATTERN_FILE_TMP} | head -n 1 | cut -d: -f1)"
-        else
-            content_start="$(grep -n "custom:" ${BAI_PATTERN_FILE_TMP} | head -n 1 | cut -d: -f1)"
         fi
         content_stop="$(tail -n +$content_start < ${BAI_PATTERN_FILE_TMP} | grep -n "lc_group_filter:" | head -n1 | cut -d: -f1)"
         content_stop=$(( $content_stop + $content_start - 1))
@@ -1401,10 +1437,6 @@ function sync_property_into_final_cr(){
             for i in "${!TDS_LDAP_CR_MAPPING[@]}"; do
                 ${YQ_CMD} w -i ${BAI_PATTERN_FILE_TMP} "${TDS_LDAP_CR_MAPPING[i]}" "\"$(prop_ldap_property_file ${TDS_LDAP_PROPERTY[i]})\""
             done
-        else
-            for i in "${!CUSTOM_LDAP_CR_MAPPING[@]}"; do
-                ${YQ_CMD} w -i ${BAI_PATTERN_FILE_TMP} "${CUSTOM_LDAP_CR_MAPPING[i]}" "\"$(prop_ldap_property_file ${CUSTOM_LDAP_PROPERTY[i]})\""
-            done
         fi
 
         # set lc_bind_secret
@@ -1545,8 +1577,6 @@ function apply_bai_final_cr(){
                 content_start="$(grep -n "# ad:" ${BAI_PATTERN_FILE_TMP} | head -n 1 | cut -d: -f1)"
             elif [[ $LDAP_TYPE == "TDS" ]]; then
                 content_start="$(grep -n "# tds:" ${BAI_PATTERN_FILE_TMP} | head -n 1 | cut -d: -f1)"
-            else
-                content_start="$(grep -n "# custom:" ${BAI_PATTERN_FILE_TMP} | head -n 1 | cut -d: -f1)"
             fi
             content_stop="$(tail -n +$content_start < ${BAI_PATTERN_FILE_TMP} | grep -n "lc_group_filter:" | head -n1 | cut -d: -f1)"
             content_stop=$(( $content_stop + $content_start - 1))
@@ -1847,30 +1877,7 @@ function cncf_install(){
   kubectl apply -f ${CUR_DIR}/../upgradeOperator.yaml --validate=false
 }
 
-function show_help() {
-    echo -e "\nUsage: ${CUR_DIR}/bai-deployment.sh -m [modetype] -n <BAI_NAMESPACE>\n"
-    echo -e "  OR"
-    echo -e " ${CUR_DIR}/bai-deployment.sh -n <BAI_NAMESPACE>"
-    echo "Options:"
-    echo "  -h  Display help."
-    echo "  -m  The valid mode types are: [upgradeOperator], [upgradeOperatorStatus], [upgradeDeployment], and [upgradeDeploymentStatus]."
-    echo "  -n  The target namespace of the BAI Standalone operator and deployment."
-    echo "  -i  Optional: Operator image name. By default, it is cp.icr.io/cp/cp4a/icp4a-operator:$BAI_RELEASE_BASE."
-    echo "  -p  Optional: Pull secret to use to connect to the registry. By default, it is ibm-entitlement-key."
-    echo "  --enable-private-catalog Optional: Set this flag to switch CatalogSource from global to namespace-scoped. Default is in the openshift-marketplace namespace."
-    echo "  ${YELLOW_TEXT}* Running the script to create a custom resource file for a new BAI Standalone deployment:${RESET_TEXT}"
-    echo "      - STEP 1: Run the script without any parameters."
-    echo "  ${YELLOW_TEXT}* Running the script to upgrade a BAI Standalone deployment from 23.0.2.X to $BAI_RELEASE_BASE GA/$BAI_RELEASE_BASE.X. You must run the modes in the following order:${RESET_TEXT}"
-    echo "      - STEP 1: Run the script in [upgradeOperator] mode to upgrade the BAI Standalone operator."
-    echo "      - STEP 2: Run the script in [upgradeOperatorStatus] mode to check that the upgrade of the BAI Standalone operator and its dependencies was successful."
-    echo "      - STEP 3: Run the script in [upgradeDeployment] mode to upgrade the BAI Standalone deployment."
-    echo "      - STEP 4: Run the script in [upgradeDeploymentStatus] mode to check that the upgrade of the BAI Standalone deployment was successful."
-    echo "  ${YELLOW_TEXT}* Running the script to upgrade a BAI Standalone deployment from $BAI_RELEASE_BASE GA/$BAI_RELEASE_BASE.X to $BAI_RELEASE_BASE.X. You must run the modes in the following order:${RESET_TEXT}"
-    echo "      - STEP 1: Run the script in [upgradeOperator] mode to upgrade the BAI Standalone operator."
-    echo "      - STEP 2: Run the script in [upgradeOperatorStatus] mode to check that the upgrade of the BAI Standalone operator and its dependencies was successful."
-    echo "      - STEP 3: Run the script in [upgradeDeploymentStatus] mode to check that the upgrade of the BAI Standalone deployment was successful."
 
-}
 
 
 ################################################
@@ -1880,6 +1887,14 @@ function show_help() {
 # For DBACLD-166508
 save_log "bai-script-logs/project/$TARGET_PROJECT_NAME" "bai-deployment-log"
 trap cleanup_log EXIT
+
+if [[ -n "${RUNTIME_MODE}" ]]; then
+    info "The bai-deployment script is currently being executed in the ${RUNTIME_MODE} mode"
+else
+    info "The bai-deployment script is currently running in a mode designed to generate the custom resource (CR) file required for a BAI Standalone deployment"
+    printf "\n"
+fi
+
 # Import upgrade upgrade_check_version.sh script
 source ${CUR_DIR}/helper/upgrade/upgrade_check_status.sh
 
@@ -2822,7 +2837,7 @@ fi
 if [ "$RUNTIME_MODE" == "upgradeOperatorStatus" ]; then
     project_name=$TARGET_PROJECT_NAME
     info "Checking if the BAI standalone operators upgrade is completed..."
-    check_bai_operator_version $TARGET_PROJECT_NAME
+    #check_bai_operator_version $TARGET_PROJECT_NAME
     check_bai_separate_operand $TARGET_PROJECT_NAME
     UPGRADE_DEPLOYMENT_FOLDER=${CUR_DIR}/bai-upgrade/project/$BAI_SERVICES_NS
     UPGRADE_DEPLOYMENT_CR=${UPGRADE_DEPLOYMENT_FOLDER}/custom_resource

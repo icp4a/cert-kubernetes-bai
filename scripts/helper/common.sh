@@ -64,13 +64,13 @@ LDAP_SECRET_FILE=${SECRET_FILE_FOLDER}/ldap-bind-secret.yaml
 # BAI_RELEASE_BASE is for fetch content/foundation operator pod, only need to change for major release.
 BAI_RELEASE_BASE="24.0.0"
 
-BAI_PATCH_VERSION="IF003"
+BAI_PATCH_VERSION="IF004"
 # BAI_CSV_VERSION is for checking BAI operator upgrade status, need to update for each IFIX
-BAI_CSV_VERSION="v24.0.3"
+BAI_CSV_VERSION="v24.0.4"
 # BAI_CHANNEL_VERSION is for switch BAI operator upgrade status, need to update for major release
 BAI_CHANNEL_VERSION="v24.0"
 # CS_OPERATOR_VERSION is for checking CPFS operator upgrade status, need to update for each IFIX
-CS_OPERATOR_VERSION="v4.6.11"
+CS_OPERATOR_VERSION="v4.6.16"
 # CS_CHANNEL_VERSION is for for CPFS script -c option, need to update for each IFIX
 CS_CHANNEL_VERSION="v4.6"
 # CERT_LICENSE_OPERATOR_VERSION is for checking IBM cert-manager/licensing operator upgrade status, need to update for each IFIX
@@ -78,17 +78,17 @@ CERT_LICENSE_OPERATOR_VERSION="v4.2.13"
 # CERT_LICENSE_CHANNEL_VERSION is for for IBM cert-manager/licensing script -c option, need to update for each IFIX
 CERT_LICENSE_CHANNEL_VERSION="v4.2"
 # CS_CATALOG_VERSION is for CPFS script -s option, need to update for each IFIX
-CS_CATALOG_VERSION="ibm-cs-install-catalog-v4-6-11"
+CS_CATALOG_VERSION="ibm-cs-install-catalog-v4-6-16"
 # ZEN_OPERATOR_VERSION is for checking ZenService operator upgrade status, need to update for each IFIX
-ZEN_OPERATOR_VERSION="v5.1.13"
+ZEN_OPERATOR_VERSION="v5.1.16"
 # BTS_CHANNEL_VERSION is for for BTS, need to update for each IFIX
 BTS_CHANNEL_VERSION="v3.35"
-# BTS_CATALOG_VERSION is for BTS 3.35.1.
-BTS_CATALOG_VERSION="bts-operator-v3-35-1"
+# BTS_CATALOG_VERSION is for BTS 3.35.4.
+BTS_CATALOG_VERSION="bts-operator-v3-35"
 # REQUIREDVER_BTS is for checking bts operator upgrade status before run removal_iaf.sh, need to update for each IFIX
-REQUIREDVER_BTS="3.35.1"
+REQUIREDVER_BTS="3.35.4"
 # REQUIREDVER_POSTGRESQL is for checking postgresql operator upgrade status before run removal_iaf.sh, need to update for each IFIX
-REQUIREDVER_POSTGRESQL="1.22.7"
+REQUIREDVER_POSTGRESQL="1.25.1"
 # EVENTS_OPERATOR_VERSION is for checking IBM Events operator upgrade status, need to update for each IFIX
 EVENTS_OPERATOR_VERSION="v5.0.1"
 # List of BAI versions that are supported for upgrade to $BAI_CSV_VERSION
@@ -114,6 +114,15 @@ COMMON_SERVICES_CM_DEDICATE_FILE_NAME_UPDATE="common-service-maps-update.yaml"
 COMMON_SERVICES_CM_DEDICATE_FILE_NAME="common-service-maps.yaml"
 COMMON_SERVICES_CM_DEDICATE_FILE="${PARENT_DIR}/descriptors/${COMMON_SERVICES_CM_DEDICATE_FILE_NAME}"
 COMMON_SERVICES_CM_DEDICATE_FILE_UPDATE="${PARENT_DIR}/descriptors/${COMMON_SERVICES_CM_DEDICATE_FILE_NAME_UPDATE}"
+
+# Becomes true if any SSL certificate validation fails (Used in the validate_ssl_certificates function and it's helper functions)
+SSL_CERT_ERROR_TAG=false
+
+# Becomes true if any required parameters are null or empty (Used in validate_property_file_required_fields)
+MISSING_REQUIRED_PARAMETERS=false
+
+# Global array to store all optional parameter keys
+OPTIONAL_PARAMETERS_LIST=()
 
 function prop_upgrade_property_file() {
     grep "^${1}=" ${UPGRADE_DEPLOYMENT_PROPERTY_FILE}|cut -d'=' -f2
@@ -481,6 +490,97 @@ function check_cluster_login() {
     fi
 }
 
+## <https://jsw.ibm.com/browse/DBACLD-176036> - Moved function from helper/upgrade/upgrade_check_status.sh to helper/common.sh
+#############################
+# Check separation of duties
+#############################
+function check_bai_separate_operand(){
+    local project=$1
+    # Check whether the BAI is separation of operators and operands.
+    # operators_namespace: openshift-operators
+    # services_namespace: ibm-common-services
+
+    # operators_namespace: ibm-common-services
+    # services_namespace: ibm-common-services
+
+    # operators_namespace: cp4a-ns
+    # services_namespace: cp4a-ns
+
+    if ${CLI_CMD} get configMap ibm-cp4ba-common-config -n $project >/dev/null 2>&1; then
+        success "Found \"ibm-cp4ba-common-config\" configMap in the project \"$project\"."
+    else
+        status=$?
+        echo $status
+        warning "Not found \"ibm-cp4ba-common-config\" configMap in the project \"$project\"."
+        while [[ $BAI_SERVICES_NS == "" ]];
+        do
+            printf "\n"
+            echo -e "\x1B[1mWhere (namespace) did you deploy BAI Standalone operands (i.e., runtime pods)? \x1B[0m"
+            read -p "Enter the name for an existing project (namespace): " BAI_SERVICES_NS
+            if [ -z "$BAI_SERVICES_NS" ]; then
+                echo -e "\x1B[1;31mEnter a valid project name, project name can not be blank\x1B[0m"
+            elif [[ "$BAI_SERVICES_NS" == openshift* ]]; then
+                echo -e "\x1B[1;31mEnter a valid project name, project name should not be 'openshift' or start with 'openshift' \x1B[0m"
+                BAI_SERVICES_NS=""
+            elif [[ "$BAI_SERVICES_NS" == kube* ]]; then
+                echo -e "\x1B[1;31mEnter a valid project name, project name should not be 'kube' or start with 'kube' \x1B[0m"
+                BAI_SERVICES_NS=""
+            else
+                isProjExists=`${CLI_CMD} get project $BAI_SERVICES_NS --ignore-not-found | wc -l`  >/dev/null 2>&1
+
+                if [ "$isProjExists" -ne 2 ] ; then
+                    echo -e "\x1B[1;31mInvalid project name, enter a existing project name ...\x1B[0m"
+                    BAI_SERVICES_NS=""
+                else
+                    echo -e "\x1B[1mUsing project ${BAI_SERVICES_NS}...\x1B[0m"
+                    if ${CLI_CMD} get configMap ibm-cp4ba-common-config -n $BAI_SERVICES_NS >/dev/null 2>&1; then
+                        success "Found \"ibm-cp4ba-common-config\" configMap in the project \"$BAI_SERVICES_NS\"."
+                    else
+                        warning "Not found \"ibm-cp4ba-common-config\" configMap in the project \"$BAI_SERVICES_NS\"."
+                        BAI_SERVICES_NS=""
+                        if [[ ($SCRIPT_MODE == "" && $RUNTIME_MODE == "") || ($SCRIPT_MODE == "dev" && $RUNTIME_MODE == "") || ($SCRIPT_MODE == "review" && $RUNTIME_MODE == "") || ($SCRIPT_MODE == "baw-dev" && $RUNTIME_MODE == "") ]]; then
+                            fail "You NEED to create \"ibm-cp4ba-common-config\" configMap first in the project (namespace) where you want to deploy CP4BA operands (i.e., runtime pods)."
+                            exit 1
+                        fi
+                    fi
+                fi
+            fi
+        done
+    fi
+    tmp_namespace_val=""
+    if [[ $BAI_SERVICES_NS != "" ]]; then
+        tmp_namespace_val=$BAI_SERVICES_NS
+    else
+        tmp_namespace_val=$project
+    fi
+    bai_services_namespace=$(${CLI_CMD} get configMap ibm-cp4ba-common-config -n $tmp_namespace_val --no-headers --ignore-not-found -o jsonpath='{.data.services_namespace}')
+    bai_operators_namespace=$(${CLI_CMD} get configMap ibm-cp4ba-common-config -n $tmp_namespace_val --no-headers --ignore-not-found -o jsonpath='{.data.operators_namespace}')
+    if [[ (! -z $BAI_SERVICES_NS) ]]; then
+        if [[ $bai_services_namespace != $BAI_SERVICES_NS ]]; then
+            fail "Your input value for BAI Standalone operands (i.e., runtime pods) is NOT equal to the value of \"services_namespace\" in \"ibm-cp4ba-common-config\" configMap under the project \"$BAI_SERVICES_NS\"."
+            exit 1
+        fi
+    fi
+    if [[ (! -z $bai_services_namespace) && (! -z $bai_operators_namespace) ]]; then
+        # The IF condition below checks for separation of duties scenario (note: all-ns and shared CPfs are not considered separation of duties):
+        #  - ($bai_services_namespace != $bai_operators_namespace) -> confirms that operator and services ns are different
+        #  - ($bai_operators_namespace != "openshift-operators") -> confirms that scenario is NOT all-ns
+        #  - ($bai_operators_namespace != "ibm-common-services") -> confirms that scenario is NOT shared/cluster-scoped CPfs scenario
+        if [[ ($bai_services_namespace != $bai_operators_namespace) && ($bai_operators_namespace != "openshift-operators" && $bai_operators_namespace != "ibm-common-services") ]]; then
+            info "This BAI Standalone deployment has separate operators and operands"
+            SEPARATE_OPERAND_FLAG="Yes"
+            BAI_SERVICES_NS=$bai_services_namespace
+        else
+            SEPARATE_OPERAND_FLAG="No"
+            BAI_SERVICES_NS=$TARGET_PROJECT_NAME
+        fi
+    else
+        warning "Not found \"operator_namespace\\services_namespace\" in \"ibm-cp4ba-common-config\" configMap under the project \"$tmp_namespace_val\""
+        fail "You need to set correct value(s) in \"ibm-cp4ba-common-config\" configMap for BAI Standalone seperation of operators and operand under the project \"$tmp_namespace_val\""
+        exit 1
+    fi
+}
+
 set_global_env_vars
 
 function save_log(){
@@ -599,7 +699,7 @@ function update_secret_template_passwords(){
         if [[ "$machine_lower" == "linux" ]]; then
             temp_val=$(echo -n "$password_value" | base64 -w 0 )
         else
-            temp_val=$(echo "$password_value" | base64 )
+            temp_val=$(printf '%s' "$password_value" | base64 )
         fi
     fi
     if ${YQ_CMD} r "$secret_file" "stringData.$secret_template_field" >/dev/null 2>&1; then
@@ -649,4 +749,269 @@ function check_valid_bai_operator_version() {
         fi
     done
 
+}
+
+# This function is to generate a truststore password for DB and LDAP verification
+# DBACLD-167057
+function generate_truststore_password() {
+    local pwd_length="${1:-8}"
+    local pwd_charset="${2:-A-Za-z0-9}"
+    local machine_lower=$(echo "${machine}" | tr '[:upper:]' '[:lower:]')
+    if [[ "$machine_lower" == "linux" ]]; then
+        < /dev/urandom tr -dc "$pwd_charset" | head -c "$pwd_length"
+    else
+        < /dev/urandom tr -dc "$pwd_charset" | cut -c1-"$pwd_length"
+    fi
+    echo
+}
+
+# Helper function for (validate_ssl_certificates) to check a single SSL certificate
+# check type -> either certificate or key as the validation command for both are different
+# config_name -> the configuration for which we are doing the check for i.e LDAP or DB etc
+# cert_path -> full cert path including the required name of the cert to check for
+# missing_msg -> display message if the cert is not found
+# invalid_msg -> display message if the cert is invalid
+# valid_msg -> display message if the cert is valid
+function check_ssl_cert() {
+    local check_type="$1"
+    local config_name="$2"
+    local cert_path="$3"
+    local missing_msg="$4"
+    local invalid_msg="$5"
+    local valid_msg="$6"
+
+    
+    if [[ ! -f "$cert_path" ]]; then
+        MISSING_CERTS+=("$config_name|$cert_path")
+        error "$missing_msg"
+    else
+        if [[ "$check_type" == "certificate" ]]; then
+            if openssl x509 -in "$cert_path" -noout -text >/dev/null 2>&1; then
+                success "$valid_msg"
+            else
+                error "$invalid_msg"
+                FAILING_CERTS+=("$config_name|$cert_path")
+            fi
+        else
+            #openssl pkcs8 -in "$key_path" -inform PEM -nocrypt -noout
+            if openssl pkcs8 -in "$cert_path" -inform PEM -nocrypt >/dev/null 2>&1; then
+                success "$valid_msg"
+            else
+                error "$invalid_msg"
+                FAILING_CERTS+=("$config_name|$cert_path")
+            fi
+        fi
+    fi
+    
+}
+
+# Helper function for (validate_ssl_certificates) to print summary of cert check results
+function print_cert_summary() {
+    if [[ ${#MISSING_CERTS[@]} -gt 0 ]]; then
+        error "The following SSL certificates are missing or incorrectly named. Please ensure these files are present and correctly named before proceeding:\n"
+        printf "%-28s | %-80s\n" "Configuration" "Missing Certificate Path"
+        printf -- "-----------------------------------------------------------------------------------------------------------------------------------------------\n"
+        for entry in "${MISSING_CERTS[@]}"; do
+            IFS="|" read -r config path <<< "$entry"
+            printf "%-28s | %-80s\n" "$config" "$path"
+        done
+    fi
+    if [[ ${#FAILING_CERTS[@]} -gt 0 ]]; then
+        error "The following SSL certificates are present but failed validation. Please check the certificate files and replace them if necessary:\n"
+        printf "%-28s | %-80s\n" "Configuration" "Invalid Certificate Path"
+        printf -- "-----------------------------------------------------------------------------------------------------------------------------------------------\n"
+        for entry in "${FAILING_CERTS[@]}"; do
+            IFS="|" read -r config path <<< "$entry"
+            printf "%-28s | %-80s\n" "$config" "$path"
+        done
+    fi
+    if [[ ${#MISSING_CERTS[@]} -gt 0 || ${#FAILING_CERTS[@]} -gt 0 ]]; then
+        error "Resolve the above SSL certificate issues before continuing with the \"generate\" mode of the bai-prerequisites.sh script."
+        SSL_CERT_ERROR_TAG=true
+    else
+        success "All required certificates are present and valid."
+        SSL_CERT_ERROR_TAG=false
+    fi
+}
+
+# Validates the presence and format of required LDAP and external PostgreSQL SSL certificates.
+# Logs status for each cert, and prints a summary table of any missing or invalid ones before exiting.
+# https://jsw.ibm.com/browse/DBACLD-180201
+function validate_ssl_certificates() {
+    INFO "Checking if all LDAP and external PostgreSQL certificates have been copied and are in a valid format"
+
+    SSL_CERT_ERROR_TAG=false
+
+    MISSING_CERTS=()
+    FAILING_CERTS=()
+
+    # Read LDAP SSL flag only if LDAP is enabled for BAI S.
+    # BAI S can be deployed without an LDAP 
+    if [[ -f "$LDAP_PROPERTY_FILE" ]]; then
+        ldap_ssl_enabled=$(prop_ldap_property_file LDAP_SSL_ENABLED | tr '[:upper:]' '[:lower:]')
+    else
+        ldap_ssl_enabled="false"
+    fi
+
+    # LDAP certificate check (or skip if SSL isn’t enabled)
+    if [[ "$ldap_ssl_enabled" != "true" ]]; then
+        info "Skipping SSL certificate validation for LDAP, as SSL is not enabled for LDAP configuration in the current setup."
+        #SSL_CERT_ERROR_TAG=false
+    else
+        check_ssl_cert \
+        "certificate" \
+        "LDAP" \
+        "${LDAP_SSL_CERT_FOLDER}/ldap-cert.crt" \
+        "LDAP SSL certificate is missing." \
+        "LDAP SSL certificate is invalid." \
+        "LDAP SSL certificate is valid."
+    fi
+
+    # External PostgreSQL cert checks for IM, ZEN, BTS
+    for ext_db in IM ZEN BTS; do
+        flag_var="EXTERNAL_POSTGRESDB_FOR_${ext_db}_FLAG"
+        external_flag=$(prop_tmp_property_file "$flag_var" \
+                        | tr -d '"' \
+                        | tr '[:upper:]' '[:lower:]')
+
+        # If the flag is true, we must have a valid cert
+        # External postgres DB for BTS/IM/ZEN if enabled should have three certs server.crt, client.crt and client.key
+        if [[ "$external_flag" == "true" ]]; then
+
+            cert_folder_var="${ext_db}_DB_SSL_CERT_FOLDER"
+            cert_folder="${!cert_folder_var}"
+            server_cert_path="${cert_folder}/root.crt"
+            clientkey_cert_path="${cert_folder}/client.key"
+            client_cert_path="${cert_folder}/client.crt"
+
+            check_ssl_cert \
+            "certificate" \
+            "External Postgres for $ext_db" \
+            "$server_cert_path" \
+            "SSL certificate for the external database to be used by $ext_db is missing." \
+            "SSL certificate for the external database to be used by $ext_db is invalid." \
+            "SSL certificate for the external database to be used by $ext_db is valid."
+            
+            check_ssl_cert \
+            "key" \
+            "External Postgres for $ext_db" \
+            "$clientkey_cert_path" \
+            "Client Key for the external database to be used by $ext_db is missing." \
+            "Client Key for the external database to be used by $ext_db is invalid." \
+            "Client Key for the external database to be used by $ext_db is valid."
+            
+            check_ssl_cert \
+            "certificate" \
+            "External Postgres for $ext_db" \
+            "$client_cert_path" \
+            "Client SSL certificate for the external database to be used by $ext_db is missing." \
+            "Client SSL certificate for the external database to be used by $ext_db is invalid." \
+            "Client SSL certificate for the external database to be used by $ext_db is valid."
+        else
+            info "Skipping SSL certificate validation for external Postgres for ${ext_db}, as external Postgres for ${ext_db} is not enabled in the current setup."
+        fi
+    done
+
+    print_cert_summary
+}
+
+# Fixes: https://jsw.ibm.com/browse/DBACLD
+# Validates that all required fields in a property file have valid values.
+# Marks all entries in "OPTIONAL_PARAMETERS_LIST" as optional by appending them to the TEMPORARY_PROPERTY_FILE under "OPTIONAL_PARAMETERS:"
+# These optional parameters are skipped in validate_property_file_required_fields()
+function mark_optional() {
+  if grep -q '^OPTIONAL_PARAMETERS:' "$TEMPORARY_PROPERTY_FILE"; then
+    for key in "${OPTIONAL_PARAMETERS_LIST[@]}"; do
+      sed "/^OPTIONAL_PARAMETERS:/ s|$|,${key}|" "$TEMPORARY_PROPERTY_FILE" > "$TEMPORARY_PROPERTY_FILE.tmp" && 
+      mv "$TEMPORARY_PROPERTY_FILE.tmp" "$TEMPORARY_PROPERTY_FILE"
+    done
+  else
+    local joined_keys
+    joined_keys=$(printf '%s,' "${OPTIONAL_PARAMETERS_LIST[@]}")
+    joined_keys=${joined_keys%,}
+    printf 'OPTIONAL_PARAMETERS:%s\n' "$joined_keys" >> "$TEMPORARY_PROPERTY_FILE"
+  fi
+}
+
+# Empty values or {xor} are considered invalid.
+# For comma-separated values, each part must be non-empty.
+function validate_property_file_required_fields() {
+
+    local property_file="$1"
+
+    # Load optional parameters from file
+    local optional_line
+    optional_line=$(grep '^OPTIONAL_PARAMETERS:' "$TEMPORARY_PROPERTY_FILE" | sed 's/^OPTIONAL_PARAMETERS://')
+    
+    # Split into array
+    local OPTIONAL_PARAMETERS=()
+    if [[ -n "$optional_line" ]]; then
+        local IFS=','
+        for param in $optional_line; do
+            OPTIONAL_PARAMETERS+=("$param")
+        done
+    fi
+
+    # Find all non-comment, non-blank property keys that are empty and not optional
+    local missing_required=()
+
+    while IFS='=' read -r key value; do
+        # Remove whitespace and quotes
+        key=$(echo "$key" | sed -e 's/^ *//' -e 's/ *$//')
+        value=$(echo "$value" | sed -e 's/^ *//' -e 's/"//g' -e 's/ *$//')
+
+        # Skip comments and blank lines
+        [[ "$key" =~ ^#.*$ || -z "$key" ]] && continue
+
+        # Skip if key is in OPTIONAL_PARAMETERS
+        local is_optional=false
+        for optional_param in "${OPTIONAL_PARAMETERS[@]}"; do
+            if [[ "$optional_param" == "$key" ]]; then
+                is_optional=true
+                break
+            fi
+        done
+
+        if [[ "$is_optional" == true ]]; then
+            continue
+        fi
+
+        # Fail early if value is <Required>, {xor}
+        if [[ "$value" == "<Required>" || "$value" == "{xor}" ]]; then
+            MISSING_REQUIRED_PARAMETERS=true
+            break
+        fi
+
+        # Check if the value is empty
+        local invalid=0
+        if [[ -z "$value" ]]; then
+            invalid=1
+        fi
+
+        if [[ $invalid -eq 1 ]]; then
+            missing_required+=("$key")
+        fi
+    done < "$property_file"
+
+    if [[ "$MISSING_REQUIRED_PARAMETERS" != true ]]; then
+        if (( ${#missing_required[@]} )); then
+            local uniq_missing=()
+            local temp_file="/tmp/validate_temp.$$"
+            printf "%s\n" "${missing_required[@]}" | sort -u > "$temp_file"
+            while IFS= read -r line; do
+                uniq_missing+=("$line")
+            done < "$temp_file"
+            rm -f "$temp_file"
+            
+            error "The following required properties are missing values in $property_file:"
+            INFO "Parameter Name"
+            for param in "${uniq_missing[@]}"; do
+                printf "$param\n"
+            done
+            error "Please provide a non-empty value for each of the above parameters."
+            MISSING_REQUIRED_PARAMETERS=true
+        else
+            success "All required properties in $property_file have valid values."
+        fi
+    fi
 }

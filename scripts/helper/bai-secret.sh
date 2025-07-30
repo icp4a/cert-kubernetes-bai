@@ -25,6 +25,7 @@ apiVersion: v1
 type: Opaque
 metadata:
   name: ldap-bind-secret
+  namespace: ${bai_services_namespace}
   # DO NOT change the content of metadata.labels
   labels:
     name: ldap-bind-secret
@@ -45,8 +46,8 @@ cat << EOF > ${CP4A_LDAP_SSL_SECRET_FILE}
 #!/bin/bash
 # Shell template for ibm-cp4a-ldap-ssl-cert-secret.sh 
 if [[ -f "<cp4a-ldap-crt-file-in-local>/ldap-cert.crt" ]]; then
-  kubectl delete secret generic "<cp4a-ldap_ssl_secret_name>" >/dev/null 2>&1
-  kubectl create secret generic "<cp4a-ldap_ssl_secret_name>" --from-file=tls.crt="<cp4a-ldap-crt-file-in-local>/ldap-cert.crt"
+  kubectl delete secret generic "<cp4a-ldap_ssl_secret_name>" -n ${bai_services_namespace} >/dev/null 2>&1
+  kubectl create secret generic "<cp4a-ldap_ssl_secret_name>" --from-file=tls.crt="<cp4a-ldap-crt-file-in-local>/ldap-cert.crt" -n ${bai_services_namespace}
 else
   echo -e "\x1B[1;31m[FAILED]:\x1B[0m Please copy \"ldap-cert.crt\" into \"<cp4a-ldap-crt-file-in-local>\" firstly."
   exit 1
@@ -75,11 +76,11 @@ if [[ -f "<cp4a-db-crt-file-in-local>/root.crt" && -f "<cp4a-db-crt-file-in-loca
 
   openssl x509 -in <cp4a-db-crt-file-in-local>/root.crt -outform PEM -out <cp4a-db-crt-file-in-local>/root.pem >/dev/null 2>&1
 
-  kubectl delete secret generic "ibm-zen-metastore-edb-secret" >/dev/null 2>&1
+  kubectl delete secret generic "ibm-zen-metastore-edb-secret" -n ${bai_services_namespace} >/dev/null 2>&1
   kubectl create secret generic "ibm-zen-metastore-edb-secret" --from-file=ca.crt="<cp4a-db-crt-file-in-local>/root.pem"\
   --from-file=tls.crt="<cp4a-db-crt-file-in-local>/client.pem"\
   --from-file=tls.key="<cp4a-db-crt-file-in-local>/client_key.pem"\
-  --type=kubernetes.io/tls
+  --type=kubernetes.io/tls -n ${bai_services_namespace}
 else
   echo -e "\x1B[1;31m[FAILED]:\x1B[0m Please copy \"root.crt\" \"client.crt\" \"client.key\" into \"<cp4a-db-crt-file-in-local>\" first."
   exit 1
@@ -99,6 +100,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: ibm-zen-metastore-edb-cm
+  namespace: ${bai_services_namespace}
 data:
   IS_EMBEDDED: "false"
   DATABASE_CA_CERT: ca.crt
@@ -128,11 +130,11 @@ if [[ -f "<cp4a-db-crt-file-in-local>/root.crt" && -f "<cp4a-db-crt-file-in-loca
   openssl rsa -in <cp4a-db-crt-file-in-local>/client.key -outform PEM -out <cp4a-db-crt-file-in-local>/client_key.pem >/dev/null 2>&1
   openssl x509 -in <cp4a-db-crt-file-in-local>/client.crt -outform PEM -out <cp4a-db-crt-file-in-local>/client.pem >/dev/null 2>&1
   openssl x509 -in <cp4a-db-crt-file-in-local>/root.crt -outform PEM -out <cp4a-db-crt-file-in-local>/root.pem >/dev/null 2>&1
-  kubectl delete secret generic "im-datastore-edb-secret" >/dev/null 2>&1
+  kubectl delete secret generic "im-datastore-edb-secret" -n ${bai_services_namespace}  >/dev/null 2>&1
   kubectl create secret generic "im-datastore-edb-secret" --from-file=ca.crt="<cp4a-db-crt-file-in-local>/root.pem"\
   --from-file=tls.crt="<cp4a-db-crt-file-in-local>/client.pem"\
   --from-file=tls.key="<cp4a-db-crt-file-in-local>/client_key.pem"\
-  --type=kubernetes.io/tls
+  --type=kubernetes.io/tls -n ${bai_services_namespace}
 else
   echo -e "\x1B[1;31m[FAILED]:\x1B[0m Please copy \"root.crt\" \"client.crt\" \"client.key\" into \"<cp4a-db-crt-file-in-local>\" first."
   exit 1
@@ -152,6 +154,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: im-datastore-edb-cm
+  namespace: ${bai_services_namespace}
 data:
   IS_EMBEDDED: "false"
   DATABASE_PORT: "<DatabasePort>"
@@ -180,10 +183,10 @@ if [[ -f "<cp4a-db-crt-file-in-local>/root.crt" && -f "<cp4a-db-crt-file-in-loca
   openssl x509 -in <cp4a-db-crt-file-in-local>/client.crt -outform PEM -out <cp4a-db-crt-file-in-local>/client.pem >/dev/null 2>&1
   openssl x509 -in <cp4a-db-crt-file-in-local>/root.crt -outform PEM -out <cp4a-db-crt-file-in-local>/root.pem >/dev/null 2>&1
   openssl pkcs8 -topk8 -inform PEM -in <cp4a-db-crt-file-in-local>/client_key.pem -outform DER -nocrypt -out <cp4a-db-crt-file-in-local>/tls_key.pk8
-  kubectl delete secret generic "bts-datastore-edb-secret" >/dev/null 2>&1
+  kubectl delete secret generic "bts-datastore-edb-secret" -n ${bai_services_namespace} >/dev/null 2>&1
   kubectl create secret generic "bts-datastore-edb-secret" --from-file=ca.crt="<cp4a-db-crt-file-in-local>/root.pem"\
   --from-file=tls.crt="<cp4a-db-crt-file-in-local>/client.pem"\
-  --from-file=tls.key="<cp4a-db-crt-file-in-local>/tls_key.pk8"
+  --from-file=tls.key="<cp4a-db-crt-file-in-local>/tls_key.pk8" -n ${bai_services_namespace}
 else
   echo -e "\x1B[1;31m[FAILED]:\x1B[0m Please copy \"root.crt\" \"client.crt\" \"client.key\" into \"<cp4a-db-crt-file-in-local>\" first."
   exit 1
@@ -196,13 +199,14 @@ EOF
   mkdir -p $BTS_SECRET_FOLDER >/dev/null 2>&1
 
 cat << EOF > ${BTS_SECRET_FILE}
-# YAML template for ldap-bind-secret secret
+# YAML template for bts-datastore-edb-user secret
 ---
 kind: Secret
 apiVersion: v1
 type: Opaque
 metadata:
   name: bts-datastore-edb-user
+  namespace: ${bai_services_namespace}
 stringData:
   username: "<USERNAME>"
   password: '<PASSWORD>'
@@ -222,6 +226,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: ibm-bts-config-extension
+  namespace: ${bai_services_namespace}
 data:
   serverName: "<DatabaseHostName>"
   portNumber: "<DatabasePort>"

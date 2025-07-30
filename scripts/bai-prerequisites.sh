@@ -360,6 +360,14 @@ function check_required_values(){
 }
 
 function check_property_file(){
+
+    # Function to check for valid certificates (LDAP, IM, ZEN, BTS)
+    # For https://jsw.ibm.com/browse/DBACLD-180201
+    validate_ssl_certificates
+
+    # Validate required properties in configuration files
+    INFO "Validating required properties in configuration files"
+
     # Function to check for missing quotes in any of the property files
     # For https://jsw.ibm.com/browse/DBACLD-161426
     check_missing_quotes
@@ -371,16 +379,25 @@ function check_property_file(){
     ## -- https://jsw.ibm.com/browse/DBACLD-172803 - We are now asking user to use {xor} for special characters in password for some parameters, so we need to check if the "{xor}<Required>" is not filled out.
     check_required_values "{xor}<Required>" "${USER_PROFILE_PROPERTY_FILE}"
 
+    # Check for empty values in the user profile property file
+    validate_property_file_required_fields "${USER_PROFILE_PROPERTY_FILE}"
+
     # Check <Required> values for cp4ba_LDAP.property
     if [[ $SELECTED_LDAP == "Yes" ]]; then 
         check_required_values "<Required>" "${LDAP_PROPERTY_FILE}"
         check_required_values "{Base64}<Required>" "${LDAP_PROPERTY_FILE}"
         ## -- https://jsw.ibm.com/browse/DBACLD-172803 - We are now asking user to use {xor} for special characters in password for some parameters, so we need to check if the "{xor}<Required>" is not filled out.
         check_required_values "{xor}<Required>" "${LDAP_PROPERTY_FILE}"
+        
+        # Check for empty values in the ldap property file
+        validate_property_file_required_fields "${LDAP_PROPERTY_FILE}"
     fi
 
     if [[ $SET_EXT_LDAP == "Yes" ]]; then
         check_required_values "<Required>" "${EXTERNAL_LDAP_PROPERTY_FILE}"
+
+        # Check for empty values in the external ldap property file
+        validate_property_file_required_fields "${EXTERNAL_LDAP_PROPERTY_FILE}"
     fi
 
     if [[ "$empty_value_tag" == "1" ]]; then
@@ -452,7 +469,7 @@ function check_property_file(){
 
     fi
 
-    if [[ "$error_value_tag" == "1" ]]; then
+    if [[ "$error_value_tag" == "1" || "$SSL_CERT_ERROR_TAG" == "true" || "$MISSING_REQUIRED_PARAMETERS" == "true" ]]; then
         exit 1
     fi
 }
@@ -701,36 +718,6 @@ function create_prerequisites() {
     tips
     msgB "* Enter the <Required> values in the YAML templates for the secrets under $SECRET_FILE_FOLDER"
 
-    # LDAP: Show which certificate file should be copy into which folder 
-    tmp_flag=$(sed -e 's/^"//' -e 's/"$//' <<<"$(prop_ldap_property_file LDAP_SSL_ENABLED)")
-    tmp_flag=$(echo $tmp_flag | tr '[:upper:]' '[:lower:]')
-
-    if [[ $tmp_flag == "true" || $tmp_flag == "yes" || $tmp_flag == "y" ]]; then
-        tmp_folder="$(prop_ldap_property_file LDAP_SSL_CERT_FILE_FOLDER)"
-        tmp_ldapserver="$(prop_ldap_property_file LDAP_SERVER)"
-        msgB "* Get the \"ldap-cert.crt\" from the remote LDAP server \"$tmp_ldapserver\", and copy it into the folder \"$tmp_folder\" before you create the Kubernetes secret for the LDAP SSL"
-    fi
-
-    # show tips for IM metastore external Postgres DB
-    tmp_flag=$(sed -e 's/^"//' -e 's/"$//' <<<"$(prop_tmp_property_file EXTERNAL_POSTGRESDB_FOR_IM_FLAG)")
-    tmp_flag=$(echo $tmp_flag | tr '[:upper:]' '[:lower:]')
-    if [[ $tmp_flag == "true" || $tmp_flag == "yes" || $tmp_flag == "y" ]]; then
-        msgB "* You have enabled IM metastore external Postgres DB, please get \"<your-server-certification: root.crt>\" \"<your-client-certification: client.crt>\" \"<your-client-key: client.key>\" from your local or remote database server \"$im_external_db_host_name\", and copy them into folder \"$im_external_db_cert_folder\" before you create the secret for PostgreSQL database SSL"
-    fi
-
-    # show tips for Zen metastore external Postgres DB
-    tmp_flag=$(sed -e 's/^"//' -e 's/"$//' <<<"$(prop_tmp_property_file EXTERNAL_POSTGRESDB_FOR_ZEN_FLAG)")
-    tmp_flag=$(echo $tmp_flag | tr '[:upper:]' '[:lower:]')
-    if [[ $tmp_flag == "true" || $tmp_flag == "yes" || $tmp_flag == "y" ]]; then
-        msgB "* You have enabled Zen metastore external Postgres DB, please get \"<your-server-certification: root.crt>\" \"<your-client-certification: client.crt>\" \"<your-client-key: client.key>\" from your local or remote database server \"$zen_external_db_host_name\", and copy them into folder \"$zen_external_db_cert_folder\" before you create the secret for PostgreSQL database SSL"
-    fi
-
-    # show tips for BTS metastore external Postgres DB
-    tmp_flag=$(sed -e 's/^"//' -e 's/"$//' <<<"$(prop_tmp_property_file EXTERNAL_POSTGRESDB_FOR_BTS_FLAG)")
-    tmp_flag=$(echo $tmp_flag | tr '[:upper:]' '[:lower:]')
-    if [[ $tmp_flag == "true" || $tmp_flag == "yes" || $tmp_flag == "y" ]]; then
-        msgB "* You have enabled BTS metastore external Postgres DB, please get \"<your-server-certification: root.crt>\" \"<your-client-certification: client.crt>\" \"<your-client-key: client.key>\" from your local or remote database server \"$im_external_db_host_name\", and copy them into folder \"$im_external_db_cert_folder\" before you create the secret for PostgreSQL database SSL"
-    fi
 
     msgB "* You can use this shell script to create the secret automatically: $CREATE_SECRET_SCRIPT_FILE"
     msgB "* Create the Kubernetes secrets manually based on your modified \"YAML template for secret\".\n* And then run the  \"bai-prerequisites.sh -m validate\" command to verify that the secrets are created correctly."
@@ -885,13 +872,8 @@ function create_property_file(){
                 echo "${TDS_LDAP_PROPERTY[i]}=\"\"" >> ${LDAP_PROPERTY_FILE}
                 echo "" >> ${LDAP_PROPERTY_FILE}
             done
-        else
-            ${SED_COMMAND} "s|LDAP_TYPE=\"\"|LDAP_TYPE=\"Custom\"|g" ${LDAP_PROPERTY_FILE}
-            for i in "${!CUSTOM_LDAP_PROPERTY[@]}"; do
-                echo "${COMMENTS_CUSTOM_LDAP_PROPERTY[i]}" >> ${LDAP_PROPERTY_FILE}
-                echo "${CUSTOM_LDAP_PROPERTY[i]}=\"\"" >> ${LDAP_PROPERTY_FILE}
-                echo "" >> ${LDAP_PROPERTY_FILE}
-            done
+        # https://jsw.ibm.com/browse/DBACLD-178129 (Remove Custom LDAP type option which was not removed in BAI S scripts)    
+        #Removed else part from here
         fi
         # Set default value
         ${SED_COMMAND} "s|LDAP_SSL_ENABLED=\"\"|LDAP_SSL_ENABLED=\"True\"|g" ${LDAP_PROPERTY_FILE}
@@ -909,7 +891,9 @@ function create_property_file(){
             ${SED_COMMAND} "s|LC_GROUP_FILTER=\"\"|LC_GROUP_FILTER=\"(\&(cn=%v)(objectcategory=group))\"|g" ${LDAP_PROPERTY_FILE}
             # For https://jsw.ibm.com/browse/DBACLD-155190 where the GC PORT and GC HOST should be optional parameters
             ${SED_COMMAND} "s|LC_AD_GC_HOST=\"\"|LC_AD_GC_HOST=\"<Optional>\"|g" ${LDAP_PROPERTY_FILE}
+            OPTIONAL_PARAMETERS_LIST+=("LC_AD_GC_HOST")
             ${SED_COMMAND} "s|LC_AD_GC_PORT=\"\"|LC_AD_GC_PORT=\"<Optional>\"|g" ${LDAP_PROPERTY_FILE}
+            OPTIONAL_PARAMETERS_LIST+=("LC_AD_GC_PORT")
         elif [[ $LDAP_TYPE == "TDS" ]]; then
             ${SED_COMMAND} "s|LDAP_USER_NAME_ATTRIBUTE=\"\"|LDAP_USER_NAME_ATTRIBUTE=\"*:uid\"|g" ${LDAP_PROPERTY_FILE}
             ${SED_COMMAND} "s|LDAP_USER_DISPLAY_NAME_ATTR=\"\"|LDAP_USER_DISPLAY_NAME_ATTR=\"cn\"|g" ${LDAP_PROPERTY_FILE}
@@ -919,16 +903,16 @@ function create_property_file(){
             ${SED_COMMAND} "s|LDAP_GROUP_MEMBER_ID_MAP=\"\"|LDAP_GROUP_MEMBER_ID_MAP=\"groupofnames:member\"|g" ${LDAP_PROPERTY_FILE}
             ${SED_COMMAND} "s|LC_USER_FILTER=\"\"|LC_USER_FILTER=\"(\&(cn=%v)(objectclass=person))\"|g" ${LDAP_PROPERTY_FILE}
             ${SED_COMMAND} "s|LC_GROUP_FILTER=\"\"|LC_GROUP_FILTER=\"(\&(cn=%v)(\|(objectclass=groupofnames)(objectclass=groupofuniquenames)(objectclass=groupofurls)))\"|g" ${LDAP_PROPERTY_FILE}
-        else
-            ${SED_COMMAND} "s|LDAP_USER_NAME_ATTRIBUTE=\"\"|LDAP_USER_NAME_ATTRIBUTE=\"<Required>\"|g" ${LDAP_PROPERTY_FILE}
-            ${SED_COMMAND} "s|LDAP_USER_DISPLAY_NAME_ATTR=\"\"|LDAP_USER_DISPLAY_NAME_ATTR=\"<Required>\"|g" ${LDAP_PROPERTY_FILE}
-            ${SED_COMMAND} "s|LDAP_GROUP_NAME_ATTRIBUTE=\"\"|LDAP_GROUP_NAME_ATTRIBUTE=\"<Required>\"|g" ${LDAP_PROPERTY_FILE}
-            ${SED_COMMAND} "s|LDAP_GROUP_DISPLAY_NAME_ATTR=\"\"|LDAP_GROUP_DISPLAY_NAME_ATTR=\"<Required>\"|g" ${LDAP_PROPERTY_FILE}
-            ${SED_COMMAND} "s|LDAP_GROUP_MEMBERSHIP_SEARCH_FILTER=\"\"|LDAP_GROUP_MEMBERSHIP_SEARCH_FILTER=\"<Required>\"|g" ${LDAP_PROPERTY_FILE}
-            ${SED_COMMAND} "s|LDAP_GROUP_MEMBER_ID_MAP=\"\"|LDAP_GROUP_MEMBER_ID_MAP=\"<Required>\"|g" ${LDAP_PROPERTY_FILE}
-            ${SED_COMMAND} "s|LC_USER_FILTER=\"\"|LC_USER_FILTER=\"(\&(objectClass=person)(cn=%v))\"|g" ${LDAP_PROPERTY_FILE}
-            ${SED_COMMAND} "s|LC_GROUP_FILTER=\"\"|LC_GROUP_FILTER=\"(\&(objectClass=group)(cn=%v))\"|g" ${LDAP_PROPERTY_FILE}
+        # https://jsw.ibm.com/browse/DBACLD-178129 (Remove Custom LDAP type option which was not removed in BAI S scripts)
+        #Removed else part from here
         fi
+
+        # Added "BAI.BTS_EXTERNAL_POSTGRES_DATABASE_USER_PASSWORD" to OPTIONAL_PARAMETERS_LIST
+        OPTIONAL_PARAMETERS_LIST+=("BAI.BTS_EXTERNAL_POSTGRES_DATABASE_USER_PASSWORD")
+
+        # Marks all entries in "OPTIONAL_PARAMETERS_LIST" as optional by appending them to the TEMPORARY_PROPERTY_FILE under "OPTIONAL_PARAMETERS:"
+        mark_optional
+
         success "Created the LDAP Server property file for BAI stand-alone\n"
     fi
 
@@ -1191,15 +1175,32 @@ function create_property_file(){
     msgRed   "The value in the property file must be within double quotes."
     msgRed   "The value for User/Password in [bai_user_profile.property] file should NOT include special characters: single quotation \"'\""
     
+    echo
     if [[ $SELECTED_LDAP == "Yes" ]]; then
         msgRed   "The value in [bai_LDAP.property] [bai_user_profile.property] file should NOT include special character '\"'"
         echo -e  "\x1b[32m* [bai_LDAP.property]:\x1B[0m"
         echo -e  "  - Properties for the LDAP server that is used by the BAI stand-alone deployment, such as LDAP_SERVER/LDAP_PORT/LDAP_BASE_DN/LDAP_BIND_DN/LDAP_BIND_DN_PASSWORD.\n"
+        echo -e " - $RED_TEXT[REQUIRED]$RESET_TEXT If you plan to enable SSL-based connections for your LDAP server, retrieve the server certificate file from your remote LDAP server and copy it into the folder \"$LDAP_SSL_CERT_FOLDER\" before running the cp4a-prerequisites.sh script in \"generate\" mode.$RED_TEXT The certificate must be named ldap-cert.crt. $RESET_TEXT"
     fi
 
     echo -e  "\x1b[32m* [bai_user_profile.property]:\x1B[0m"
     echo -e  "  - Properties for the global value used by the BAI stand-alone deployment, such as \"sc_deployment_license\".\n"
     echo -e  "  - Properties for the value used by each component of BAI stand-alone, such as \"sc_deployment_profile_size\"\n"
+
+    # show tips for IM metastore external Postgres DB
+    if [[ $EXTERNAL_POSTGRESDB_FOR_IM == "true" ]]; then
+        msgB "* You have enabled IM metastore external Postgres DB, please get \"<your-server-certification: root.crt>\" \"<your-client-certification: client.crt>\" \"<your-client-key: client.key>\" from your local or remote database server, and copy them into folder \"$IM_DB_SSL_CERT_FOLDER\" before you execute the generate mode of bai-prerequisites.sh script."
+    fi
+
+    # show tips for Zen metastore external Postgres DB
+    if [[ $EXTERNAL_POSTGRESDB_FOR_ZEN == "true"  ]]; then
+        msgB "* You have enabled Zen metastore external Postgres DB, please get \"<your-server-certification: root.crt>\" \"<your-client-certification: client.crt>\" \"<your-client-key: client.key>\" from your local or remote database server, and copy them into folder \"$ZEN_DB_SSL_CERT_FOLDER\" before you execute the generate mode of bai-prerequisites.sh script."
+    fi
+
+    # show tips for BTS metastore external Postgres DB
+    if [[ $EXTERNAL_POSTGRESDB_FOR_BTS == "true" ]]; then
+        msgB "* You have enabled BTS metastore external Postgres DB, please get \"<your-server-certification: root.crt>\" \"<your-client-certification: client.crt>\" \"<your-client-key: client.key>\" from your local or remote database server, and copy them into folder \"$BTS_DB_SSL_CERT_FOLDER\" before you execute the generate mode of bai-prerequisites.sh script."
+    fi
 }
 
 function select_storage_class(){
@@ -1450,8 +1451,8 @@ function select_ldap_type(){
         printf "\n"
         COLUMNS=12
         echo -e "\x1B[1mWhat is the LDAP type that will be used for this deployment? \x1B[0m"
-        options=("Microsoft Active Directory" "IBM Tivoli Directory Server / Security Directory Server" "Custom")
-        PS3='Enter a valid option [1 to 3]: '
+        options=("Microsoft Active Directory" "IBM Tivoli Directory Server / Security Directory Server")
+        PS3='Enter a valid option [1 to 2]: '
         select opt in "${options[@]}"
         do
             case $opt in
@@ -1461,10 +1462,6 @@ function select_ldap_type(){
                     ;;
                 "IBM Tivoli"*)
                     LDAP_TYPE="TDS"
-                    break
-                    ;;
-                "Custom"*)
-                    LDAP_TYPE="Custom"
                     break
                     ;;
                 *) echo "invalid option $REPLY";;
@@ -1684,7 +1681,7 @@ function validate_secret_in_cluster(){
             secret_name_tmp=$(sed -e 's/^"//' -e 's/"$//' <<<"$secret_name_tmp")
             # need to check ibm-zen-metastore-edb-cm/im-datastore-edb-cm for Zen/IM and ibm-bts-config-extension external postgresql db support
             if [[ $secret_name_tmp != "ibm-zen-metastore-edb-cm" && $secret_name_tmp != "im-datastore-edb-cm" && $secret_name_tmp != "ibm-bts-config-extension" ]]; then
-                secret_exists=`kubectl get secret $secret_name_tmp --ignore-not-found | wc -l`  >/dev/null 2>&1
+                secret_exists=`kubectl get secret $secret_name_tmp -n $bai_services_namespace --ignore-not-found | wc -l`  >/dev/null 2>&1
                 if [ "$secret_exists" -ne 2 ] ; then
                     error "Secret \"$secret_name_tmp\" not found in Kubernetes cluster! Please create it before deploying BAI Standalone."
                     SECRET_CREATE_PASSED="false"
@@ -1692,7 +1689,7 @@ function validate_secret_in_cluster(){
                     success "Secret \"$secret_name_tmp\" found in Kubernetes cluster, PASSED!"              
                 fi
             else
-                secret_exists=`kubectl get configmap $secret_name_tmp --ignore-not-found | wc -l`  >/dev/null 2>&1
+                secret_exists=`kubectl get configmap $secret_name_tmp -n $bai_services_namespace --ignore-not-found | wc -l`  >/dev/null 2>&1
                 if [ "$secret_exists" -ne 2 ] ; then
                     error "ConfigMap \"$secret_name_tmp\" not found in Kubernetes cluster! Please create it before deploying BAI Standalone"
                     SECRET_CREATE_PASSED="false"
@@ -1727,7 +1724,7 @@ function validate_secret_in_cluster(){
             exit 1
         else
             secret_name_tmp=$(sed -e 's/^"//' -e 's/"$//' <<<"$secret_name_tmp")
-            secret_exists=`kubectl get secret $secret_name_tmp --ignore-not-found | wc -l`  >/dev/null 2>&1
+            secret_exists=`kubectl get secret $secret_name_tmp -n $bai_services_namespace --ignore-not-found | wc -l`  >/dev/null 2>&1
             if [ "$secret_exists" -ne 2 ] ; then
                 error "Secret \"$secret_name_tmp\" not found in Kubernetes cluster! Please create it before deploying BAI Standalone."
                 SECRET_CREATE_PASSED="false"
@@ -1790,8 +1787,8 @@ function validate_prerequisites(){
         tmp_ldapssl="$(prop_ldap_property_file LDAP_SSL_ENABLED)"
         tmp_user=$( ${CLI_CMD} get secret -l name=ldap-bind-secret -o yaml | ${YQ_CMD} r - items.[0].data.ldapUsername | base64 --decode )
         ## <https://jsw.ibm.com/browse/DBACLD-172803> - We are now asking user to use {xor} for special characters in password, so we need to use decode_xor_password to get the password decoded before validation.
-        bai_operator=$( ${CLI_CMD} get pods -l name=ibm-bai-insights-engine-operator --no-headers --ignore-not-found -n "$TARGET_PROJECT_NAME" | awk '{print $1}' )
-        tmp_userpwd=$( decode_xor_password "$( ${CLI_CMD} get secret -n "$TARGET_PROJECT_NAME" -l name=ldap-bind-secret -o yaml | ${YQ_CMD} r - items.[0].data.ldapPassword | base64 --decode )" "$TARGET_PROJECT_NAME" "$bai_operator" | sed  's/\$/\\$/g' )
+        bai_operator=$( ${CLI_CMD} get pods -l name=ibm-bai-insights-engine-operator --no-headers --ignore-not-found -n "$bai_operators_namespace" | awk '{print $1}' )
+        tmp_userpwd=$( decode_xor_password "$( ${CLI_CMD} get secret -n "$TARGET_PROJECT_NAME" -l name=ldap-bind-secret -o yaml | ${YQ_CMD} r - items.[0].data.ldapPassword | base64 --decode )" "$bai_operators_namespace" "$bai_operator" | sed  's/\$/\\$/g' )
 
         tmp_servername=$(sed -e 's/^"//' -e 's/"$//' <<<"$tmp_servername")
         tmp_serverport=$(sed -e 's/^"//' -e 's/"$//' <<<"$tmp_serverport")
@@ -2019,18 +2016,27 @@ fi
 save_log "bai-script-logs/project/$TARGET_PROJECT_NAME" "bai-prerequisites-log"
 trap cleanup_log EXIT
 
+info "The bai-prerequisite script is currently being executed in the ${RUNTIME_MODE} mode"
+printf "\n"
+
 # Import common utilities and environment variables
 source ${CUR_DIR}/helper/common.sh $TARGET_PROJECT_NAME
 
 clear
 
 if [[ $RUNTIME_MODE == "property" ]]; then
+    # Check separation of duties
+    check_bai_separate_operand $TARGET_PROJECT_NAME # Function Definition can be found in helper/common.sh
+
     prompt_license
     input_information
     create_property_file
     clean_up_temp_file
 fi
 if [[ $RUNTIME_MODE == "generate" ]]; then
+    # Check separation of duties
+    check_bai_separate_operand $TARGET_PROJECT_NAME # Function Definition can be found in helper/common.sh
+
     # reload db type and OS number
     load_property_before_generate
     check_property_file
@@ -2048,6 +2054,9 @@ if [[ $RUNTIME_MODE == "validate" ]]; then
     echo  "*****************************************************"
     echo  "Validating the prerequisites before you install BAI stand-alone"
     echo  "*****************************************************"
+    # Check separation of duties
+    check_bai_separate_operand $TARGET_PROJECT_NAME # Function Definition can be found in helper/upgrade/commmon.sh
+
     validate_utility_tool_for_validation
     load_property_before_generate
     validate_prerequisites

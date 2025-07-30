@@ -1,16 +1,16 @@
 name: ibm-ba-insights
-version: 24.0.3
-description: Generated from CASE ibm-ba-insights version 24.0.3 on 2024-04-16 06:24:59
+version: 24.0.4
+description: Generated from CASE ibm-ba-insights version 24.0.4 on 2025-06-11 06:24:59
   PDT
 cases:
 - name: ibm-ba-insights
-  version: 24.0.3
+  version: 24.0.4
   launch: true
   catalogGeneration:
     ocMirror:
       disableMerge: true
 - name: ibm-bts-bundle
-  version: 1.0.27
+  version: 1.0.30
   catalogGeneration:
     ocMirror:
       disableMerge: true
@@ -20,12 +20,12 @@ cases:
     ocMirror:
       disableMerge: true
 - name: ibm-cs-install
-  version: 4.6.11
+  version: 4.6.16
   catalogGeneration:
     ocMirror:
       disableMerge: true
 - name: ibm-cs-iam
-  version: 4.5.10
+  version: 4.5.14
   catalogGeneration:
     ocMirror:
       disableMerge: true
@@ -50,7 +50,7 @@ cases:
     ocMirror:
       disableMerge: true
 - name: ibm-zen
-  version: 3.1.13
+  version: 3.1.17
   catalogGeneration:
     ocMirror:
       disableMerge: true
