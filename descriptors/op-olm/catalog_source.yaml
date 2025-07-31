@@ -18,7 +18,7 @@ spec:
   displayName: ibm-bai-operator
   publisher: IBM
   sourceType: grpc
-  image: icr.io/cpopen/ibm-bai-catalog@sha256:7f583c6ed25d3073e2ca3fcde762765d3efb1ad09c9114e60ecca66cf439ddaa
+  image: icr.io/cpopen/ibm-bai-catalog@sha256:c17b1ea973915a42e509b94f468bf96f5f833204fc1524c410b6d9473db26554
   updateStrategy:
     registryPoll:
       interval: 45m
