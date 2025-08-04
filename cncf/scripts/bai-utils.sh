@@ -336,8 +336,10 @@ function create_bai_subscription() {
 
     printf "\n"
     info "Waiting for BAI subscription to become active."
-    patch_csv "ibm-bai-insights-engine-operator" $namespace
-    patch_csv "ibm-bai-foundation-operator" $namespace
+    if [[ "$dev_mode" == true ]]; then
+        patch_csv "ibm-bai-insights-engine-operator" $namespace
+        patch_csv "ibm-bai-foundation-operator" $namespace
+    fi
 
     wait_for_operator "${namespace}" "ibm-bai-insights-engine-operator"
     wait_for_operator "${namespace}" "ibm-common-service-operator"
