@@ -225,6 +225,9 @@ fi
 save_log "bai-script-logs/project/$TARGET_PROJECT_NAME" "bai-prerequisites-log"
 trap cleanup_log EXIT
 
+info "The bai-prerequisite script is currently being executed in the ${RUNTIME_MODE} mode"
+printf "\n"
+
 ###################################################################################
 ##### END - Logging set up #####
 ###################################################################################

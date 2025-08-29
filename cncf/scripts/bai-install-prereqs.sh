@@ -139,7 +139,7 @@ function check_cncf_rancher_prereqs() {
             # If customer does not want the script to install OLM they can do so on their own.
             # https://jsw.ibm.com/browse/DBACLD-183358
             else
-                info "The script will not install OLM is prerequisite to installing IBM Business Automation Insights Standalone and will exit now. ${OLM_VERSION}"
+                info "OLM is a required prerequisite for installing IBM Business Automation Insights Standalone. The script will not proceed with the installation of OLM version: ${OLM_VERSION} and will now exit."
                 echo
                 echo "${YELLOW_TEXT}[NEXT ACTIONS]:${RESET_TEXT}"
                 step_num=1
@@ -226,7 +226,7 @@ function bai_cncf_rancher_prereq_install() {
     #check_prereqs
     check_cert_manager
     check_licensing_service
-    create_all_catalog_sources ${bai_namespace} ${dev_mode} # this function is in bai-utils and is used to create all catalog sources.
+    create_all_catalog_sources ${bai_namespace} ${dev_mode} ${CATALOG_SOURCE_FILENAME} "freshinstall" # this function is in bai-utils and is used to create all catalog sources.
     create_operator_groups
     create_subscriptions
 }

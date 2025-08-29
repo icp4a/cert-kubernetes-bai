@@ -109,8 +109,10 @@ function wait_for_service_account() {
 function create_all_catalog_sources(){
     local bai_namespace=$1
     local dev=$2
+    local catalogsources=$3
+    local mode=$4
     catalog_source_file_name=${TEMP_FOLDER}/catalog_sources.yaml
-    cp ${CATALOG_SOURCE_FILENAME} ${catalog_source_file_name}
+    cp ${catalogsources} ${catalog_source_file_name}
     catalog_names=()
 
     # Read catalog names into the array
@@ -150,12 +152,31 @@ function create_all_catalog_sources(){
                     ${YQ_CMD} w -i "$catalog_source_file_name" -d "$((doc_index - 1))" "spec.image" "$updated_image"
                 fi
             fi
+            
+            #if [[ "$name" == "cloud-native-postgresql-catalog" || "$name" == "ibm-zen-operator-catalog"* ]]; then
+            #    ${YQ_CMD} w -i "$catalog_source_file_name" -d "$((doc_index - 1))"  "spec.secrets[+]" "ibm-staging-entitlement-key"
+            #    # Extract the current image value
+            #    current_image=$(${YQ_CMD} r -d "$((doc_index - 1))" "$catalog_source_file_name" 'spec.image')
+            #
+            #    if [[ -n "$current_image" && "$current_image" == icr.io/cpopen/* ]]; then
+            #        # Modify the repository path
+            #        updated_image=${current_image/icr.io\/cpopen\//cp.stg.icr.io\/cp/}
+            #
+            #        # Update the image field in the YAML
+            #        ${YQ_CMD} w -i "$catalog_source_file_name" -d "$((doc_index - 1))" "spec.image" "$updated_image"
+            #    fi
+            #fi
+            
         fi
 
     done
 
     info "Applying all required Catalog Sources for BAI-Standalone on platform type -> Other - Cloud Native Computing Foundation ( CNCF )"
-    ${CLI_CMD} apply -f ${catalog_source_file_name}
+    if [[ "$mode" == "upgrade" ]]; then
+        ${CLI_CMD} apply -f ${catalog_source_file_name}
+    else
+        ${CLI_CMD} apply -f ${catalog_source_file_name}
+    fi
     for catalog in "${catalog_names[@]}"; do
         if [[ "$catalog" == "ibm-cert-manager-catalog"  ]]; then 
             wait_for_pod "ibm-cert-manager" "${catalog}"
@@ -259,62 +280,65 @@ function patch_csv() {
     local retry_delay=20
     # Function to find a CSV that starts with the given prefix
     function get_csv_by_prefix() {
-        ${CLI_CMD} get csv -n "$namespace" --no-headers -o custom-columns=":metadata.name" | grep -E "^$csv_prefix" | head -n 1
+        #${CLI_CMD} get csv -n "$namespace" --no-headers -o custom-columns=":metadata.name" | grep -E "^$csv_prefix" | head -n 1
+        ${CLI_CMD} get csv -n "$namespace" --no-headers -o custom-columns=":metadata.name" | grep -E "^$csv_prefix"
     }
     # Check if the CSV exists, retry up to max_retries times
-    
-    for ((i=1; i<=max_retries; i++)); do
-        csv_name=$(get_csv_by_prefix)
-        if [[ -n "$csv_name" ]]; then
-            info "Found matching CSV: $csv_name"
-            break
-        fi
+    csv_list=($(get_csv_by_prefix))
+    for csv_name in "${csv_list[@]}"; do
+        for ((i=1; i<=max_retries; i++)); do
+            if [[ -n "$csv_name" ]]; then
+                info "Found matching CSV: $csv_name"
+                break
+            fi
 
-        if [[ "$i" -eq "$max_retries" ]]; then
-            error "CSV $csv_name not found after $max_retries attempts. Exiting..."
+            if [[ "$i" -eq "$max_retries" ]]; then
+                error "CSV $csv_name not found after $max_retries attempts. Exiting..."
+                exit 1
+            fi
+
+            echo "CSV $csv_name not found. Retrying in $retry_delay seconds... ($i/$max_retries)"
+            sleep "$retry_delay"
+        done
+    done
+    for csv_name in "${csv_list[@]}"; do
+        # Get the current image
+        image=$(${CLI_CMD} get csv "$csv_name" -n "$namespace" -o json | ${YQ_CMD} r - 'spec.install.spec.deployments[0].spec.template.spec.containers[0].image')
+
+        if [[ -z "$image" ]]; then
+            error "No image found in CSV $csv_name"
             exit 1
         fi
+        sleep 5
+        # Transform the image path
+        updated_image=$(echo "$image" | sed -E 's|^icr.io/cpopen/|cp.stg.icr.io/cp/|')
+        if [[ "$csv_name" == "ibm-bai-insights-engine-operator"* ]]; then
+            ${CLI_CMD} scale deployment "$(${CLI_CMD} get deployments -n "$namespace" -o jsonpath='{.items[*].metadata.name}' | tr ' ' '\n' | grep '^ibm-bai-insights-engine-operator')" -n "$namespace" --replicas=0
+        fi
+        if [[ "$csv_name" == "ibm-bai-foundation-operator"* ]]; then
+            ${CLI_CMD} scale deployment "$(${CLI_CMD} get deployments -n "$namespace" -o jsonpath='{.items[*].metadata.name}' | tr ' ' '\n' | grep '^ibm-bai-foundation-operator')" -n "$namespace" --replicas=0
+        fi
 
-        echo "CSV $csv_name not found. Retrying in $retry_delay seconds... ($i/$max_retries)"
-        sleep "$retry_delay"
-    done
+        sleep 5
+        # Patch the CSV with the new image
+        ${CLI_CMD} patch csv "$csv_name" -n "$namespace" --type='json' -p="[{'op': 'replace', 'path': '/spec/install/spec/deployments/0/spec/template/spec/containers/0/image', 'value': '$updated_image'}]"
+        ${CLI_CMD} patch csv "$csv_name" -n "$namespace" --type='json' -p="[{'op': 'replace', 'path': '/spec/install/spec/deployments/0/spec/template/spec/initContainers/0/image', 'value': '$updated_image'}]"
 
-    # Get the current image
-    image=$(${CLI_CMD} get csv "$csv_name" -n "$namespace" -o json | ${YQ_CMD} r - 'spec.install.spec.deployments[0].spec.template.spec.containers[0].image')
-
-    if [[ -z "$image" ]]; then
-        error "No image found in CSV $csv_name"
-        exit 1
-    fi
-    sleep 5
-    # Transform the image path
-    updated_image=$(echo "$image" | sed -E 's|^icr.io/cpopen/|cp.stg.icr.io/cp/|')
-    if [[ "$csv_name" == "ibm-bai-insights-engine-operator"* ]]; then
-        ${CLI_CMD} scale deployment "$(${CLI_CMD} get deployments -o jsonpath='{.items[*].metadata.name}' | tr ' ' '\n' | grep '^ibm-bai-insights-engine-operator')" --replicas=0
-    fi
-    if [[ "$csv_name" == "ibm-bai-foundation-operator"* ]]; then
-        ${CLI_CMD} scale deployment "$(${CLI_CMD} get deployments -o jsonpath='{.items[*].metadata.name}' | tr ' ' '\n' | grep '^ibm-bai-foundation-operator')" --replicas=0
-    fi
-
-    sleep 5
-    # Patch the CSV with the new image
-    ${CLI_CMD} patch csv "$csv_name" -n "$namespace" --type='json' -p="[{'op': 'replace', 'path': '/spec/install/spec/deployments/0/spec/template/spec/containers/0/image', 'value': '$updated_image'}]"
-    ${CLI_CMD} patch csv "$csv_name" -n "$namespace" --type='json' -p="[{'op': 'replace', 'path': '/spec/install/spec/deployments/0/spec/template/spec/initContainers/0/image', 'value': '$updated_image'}]"
-
-    #Patch the CSV with the image pull secret which has the staging credentials
-    ${CLI_CMD} patch csv "$csv_name" -n "$namespace" --type='json' -p="[
-    {
-        \"op\": \"add\",
-        \"path\": \"/spec/install/spec/deployments/0/spec/template/spec/imagePullSecrets\",
-        \"value\": [
+        #Patch the CSV with the image pull secret which has the staging credentials
+        ${CLI_CMD} patch csv "$csv_name" -n "$namespace" --type='json' -p="[
         {
-            \"name\": \"ibm-staging-entitlement-key\"
+            \"op\": \"add\",
+            \"path\": \"/spec/install/spec/deployments/0/spec/template/spec/imagePullSecrets\",
+            \"value\": [
+            {
+                \"name\": \"ibm-staging-entitlement-key\"
+            }
+            ]
         }
-        ]
-    }
-    ]"
+        ]"
 
-    success "The $csv_name CSV has been patched successfully!"
+        success "The $csv_name CSV has been patched successfully!"
+    done
 }
 
 # Function to create the BAI-Standalone Operator subscription.

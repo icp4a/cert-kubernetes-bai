@@ -36,12 +36,12 @@ OLM_VERSION=v0.27.0
 #Licensing service related variables that required during the creation of subscription and the checks.
 # NEED TO BE UPDATED WHEN WE UPDATE THE VERSIONS
 LICENSING_SERVICE_CHANNEL=v4.2
-LICENSING_SERVICE_TARGET_VERSION="4.2.12"
+LICENSING_SERVICE_TARGET_VERSION="4.2.15"
 
 #Cert Manager related variables that required during the creation of subscription and the checks.
 # NEED TO BE UPDATED WHEN WE UPDATE THE VERSIONS
 CERT_MANAGER_CHANNEL=v4.2
-CERT_MANAGER_TARGET_VERSION="4.2.12"
+CERT_MANAGER_TARGET_VERSION="4.2.15"
 
 # CATALOG SOURCE file name
 CATALOG_SOURCE_FILENAME=${PARENT_DIR}/descriptors/op-olm/catalog_source.yaml
@@ -62,7 +62,7 @@ cs_maximal_version_for_ifix="5.0.0" # Maximal supported Common Service version b
 BAI_S_FC_CR=${PARENT_DIR}/descriptors/patterns/ibm_cp4a_cr_production_FC_bai.yaml
 
 #Change required each sprint for using dev mode
-CURRENT_SPRINT_TAG="25.0.0"
+CURRENT_SPRINT_TAG="25.0.0-IF001"
 
 
 # End of Section for BAI Rancher specific variables
@@ -109,35 +109,35 @@ LDAP_SECRET_FILE=${SECRET_FILE_FOLDER}/ldap-bind-secret.yaml
 # Release/Patch version for CP4BA
 # BAI_RELEASE_BASE is for fetch content/foundation operator pod, only need to change for major release.
 BAI_RELEASE_BASE="25.0.0"
-BAI_PATCH_VERSION="GA"
+BAI_PATCH_VERSION="IF001"
 # BAI_RELEASE_BASE_MAJOR_VERSION is used in certain checks where we used to hardcode to see if a upgrade is not ifix to ifix,change this only for major release
 BAI_RELEASE_BASE_MAJOR_VERSION="25.0"
 # BAI_CSV_VERSION is for checking CP4BA operator upgrade status, need to update for each IFIX
-BAI_CSV_VERSION="v25.0.0"
+BAI_CSV_VERSION="v25.0.1"
 # BAI_CHANNEL_VERSION is for switch CP4BA operator upgrade status, need to update for major release
 BAI_CHANNEL_VERSION="v25.0"
 # CS_OPERATOR_VERSION is for checking CPFS operator upgrade status, need to update for each IFIX
-CS_OPERATOR_VERSION="v4.12.0"
+CS_OPERATOR_VERSION="v4.14.0"
 # CS_CHANNEL_VERSION is for for CPFS script -c option, need to update for each IFIX
-CS_CHANNEL_VERSION="v4.12"
+CS_CHANNEL_VERSION="v4.14"
 # CS CHANNEL VERSION that is used in the KC
-CS_CHANNEL_KC="4.12.0"
+CS_CHANNEL_KC="4.14.0"
 # CERT_LICENSE_OPERATOR_VERSION is for checking IBM cert-manager/licensing operator upgrade status, need to update for each IFIX
-CERT_LICENSE_OPERATOR_VERSION="v4.2.13"
+CERT_LICENSE_OPERATOR_VERSION="v4.2.15"
 # CERT_LICENSE_CHANNEL_VERSION is for for IBM cert-manager/licensing script -c option, need to update for each IFIX
 CERT_LICENSE_CHANNEL_VERSION="v4.2"
 # CS_CATALOG_VERSION is for CPFS script -s option, need to update for each IFIX
-CS_CATALOG_VERSION="ibm-cs-install-catalog-v4-12-0"
+CS_CATALOG_VERSION="ibm-cs-install-catalog-v4-14-0"
 # ZEN_OPERATOR_VERSION is for checking ZenService operator upgrade status, need to update for each IFIX
-ZEN_OPERATOR_VERSION="v6.1.3"
+ZEN_OPERATOR_VERSION="v6.2.1"
 # BTS_CHANNEL_VERSION is for for BTS, need to update for each IFIX
 BTS_CHANNEL_VERSION="v3.35"
 # BTS_CATALOG_VERSION is for BTS 3.35.4.
 BTS_CATALOG_VERSION="ibm-bts-operator-catalog-v3-35"
 # REQUIREDVER_BTS is for checking bts operator upgrade status before run removal_iaf.sh, need to update for each IFIX
-REQUIREDVER_BTS="3.35.4"
+REQUIREDVER_BTS="3.35.5"
 # REQUIREDVER_POSTGRESQL is for checking postgresql operator upgrade status before run removal_iaf.sh, need to update for each IFIX
-REQUIREDVER_POSTGRESQL="1.25.1"
+REQUIREDVER_POSTGRESQL="1.25.2"
 # EVENTS_OPERATOR_VERSION is for checking IBM Events operator upgrade status, need to update for each IFIX
 EVENTS_OPERATOR_VERSION="v5.1.2"
 # List of BAI versions that are supported for upgrade to $BAI_CSV_VERSION
@@ -166,6 +166,15 @@ COMMON_SERVICES_CM_DEDICATE_FILE_NAME_UPDATE="common-service-maps-update.yaml"
 COMMON_SERVICES_CM_DEDICATE_FILE_NAME="common-service-maps.yaml"
 COMMON_SERVICES_CM_DEDICATE_FILE="${PARENT_DIR}/descriptors/${COMMON_SERVICES_CM_DEDICATE_FILE_NAME}"
 COMMON_SERVICES_CM_DEDICATE_FILE_UPDATE="${PARENT_DIR}/descriptors/${COMMON_SERVICES_CM_DEDICATE_FILE_NAME_UPDATE}"
+
+# Becomes true if any SSL certificate validation fails (Used in the validate_ssl_certificates function and it's helper functions)
+SSL_CERT_ERROR_TAG=false
+
+# Becomes true if any required parameters are null or empty (Used in validate_property_file_required_fields)
+MISSING_REQUIRED_PARAMETERS=false
+
+# Global array to store all optional parameter keys
+OPTIONAL_PARAMETERS_LIST=()
 
 function prop_upgrade_property_file() {
     grep "^${1}=" ${UPGRADE_DEPLOYMENT_PROPERTY_FILE}|cut -d'=' -f2
@@ -490,29 +499,19 @@ function check_platform_version(){
 }
 
 ## <https://jsw.ibm.com/browse/DBACLD-161428> - Create a common function to check cluster login for all related scripts.
+## <https://jsw.ibm.com/browse/DBACLD-187651> - Simplified check_cluster_login()
 #############################
 # Check Cluster Login
 #############################
 function check_cluster_login() {
-    local oc_login=true
-    local kubectl_login=true
     if [[ "$CLI_CMD" == "oc" ]]; then
         oc whoami >/dev/null 2>&1
-        if [ $? -gt 0 ]; then
-            warning "Not able to login to a cluster using oc command. Please login to a cluster before running this script."
-            oc_login=false
-        fi
-    fi
-    if [[ "$CLI_CMD" == "kubectl" ]]; then
+    else
         kubectl auth whoami >/dev/null 2>&1
-        if [ $? -gt 0 ]; then
-            warning "Not able to login to a cluster using kubectl command. Please login to a cluster before running this script."
-            kubectl_login=false
-        fi
     fi
-    # if both oc and kubectl are not logged in, exit the script
-    if [[ "$oc_login" == "false" && "$kubectl_login" == "false" ]]; then
-        error "Cannot find a login context for the cluster. Please login to a cluster before running this script."
+    
+    if [ $? -gt 0 ]; then
+        error "Not logged in to a cluster. Please login to a cluster before running this script."
         exit 1
     fi
 }
@@ -1126,10 +1125,10 @@ function prompt_to_continue() {
         printf "\x1B[1mPlease confirm that you are ready to continue.  Enter Yes to continue or No to exit (Yes/No, default: No): \x1B[0m"
         read -rp "" ans
         case "$ans" in
-        "y"|"Y"|"yes"|"Yes"|"YES"|"")
+        "y"|"Y"|"yes"|"Yes"|"YES")
             break
             ;;
-        "n"|"N"|"no"|"No"|"NO")
+        "n"|"N"|"no"|"No"|"NO"|"")
             exit
             ;;
         *)
@@ -1186,4 +1185,255 @@ function generate_truststore_password() {
         < /dev/urandom tr -dc "$pwd_charset" | cut -c1-"$pwd_length"
     fi
     echo
+}
+
+# Helper function for (validate_ssl_certificates) to check a single SSL certificate
+# check type -> either certificate or key as the validation command for both are different
+# config_name -> the configuration for which we are doing the check for i.e LDAP or DB etc
+# cert_path -> full cert path including the required name of the cert to check for
+# missing_msg -> display message if the cert is not found
+# invalid_msg -> display message if the cert is invalid
+# valid_msg -> display message if the cert is valid
+function check_ssl_cert() {
+    local check_type="$1"
+    local config_name="$2"
+    local cert_path="$3"
+    local missing_msg="$4"
+    local invalid_msg="$5"
+    local valid_msg="$6"
+
+    
+    if [[ ! -f "$cert_path" ]]; then
+        MISSING_CERTS+=("$config_name|$cert_path")
+        error "$missing_msg"
+    else
+        if [[ "$check_type" == "certificate" ]]; then
+            if openssl x509 -in "$cert_path" -noout -text >/dev/null 2>&1; then
+                success "$valid_msg"
+            else
+                error "$invalid_msg"
+                FAILING_CERTS+=("$config_name|$cert_path")
+            fi
+        else
+            #openssl pkcs8 -in "$key_path" -inform PEM -nocrypt -noout
+            if openssl pkcs8 -in "$cert_path" -inform PEM -nocrypt >/dev/null 2>&1; then
+                success "$valid_msg"
+            else
+                error "$invalid_msg"
+                FAILING_CERTS+=("$config_name|$cert_path")
+            fi
+        fi
+    fi
+    
+}
+
+# Helper function for (validate_ssl_certificates) to print summary of cert check results
+function print_cert_summary() {
+    if [[ ${#MISSING_CERTS[@]} -gt 0 ]]; then
+        error "The following SSL certificates are missing or incorrectly named. Please ensure these files are present and correctly named before proceeding:\n"
+        printf "%-28s | %-80s\n" "Configuration" "Missing Certificate Path"
+        printf -- "-----------------------------------------------------------------------------------------------------------------------------------------------\n"
+        for entry in "${MISSING_CERTS[@]}"; do
+            IFS="|" read -r config path <<< "$entry"
+            printf "%-28s | %-80s\n" "$config" "$path"
+        done
+    fi
+    if [[ ${#FAILING_CERTS[@]} -gt 0 ]]; then
+        error "The following SSL certificates are present but failed validation. Please check the certificate files and replace them if necessary:\n"
+        printf "%-28s | %-80s\n" "Configuration" "Invalid Certificate Path"
+        printf -- "-----------------------------------------------------------------------------------------------------------------------------------------------\n"
+        for entry in "${FAILING_CERTS[@]}"; do
+            IFS="|" read -r config path <<< "$entry"
+            printf "%-28s | %-80s\n" "$config" "$path"
+        done
+    fi
+    if [[ ${#MISSING_CERTS[@]} -gt 0 || ${#FAILING_CERTS[@]} -gt 0 ]]; then
+        error "Resolve the above SSL certificate issues before continuing with the \"generate\" mode of the bai-prerequisites.sh script."
+        SSL_CERT_ERROR_TAG=true
+    else
+        success "All required certificates are present and valid."
+        SSL_CERT_ERROR_TAG=false
+    fi
+}
+
+# Validates the presence and format of required LDAP and external PostgreSQL SSL certificates.
+# Logs status for each cert, and prints a summary table of any missing or invalid ones before exiting.
+# https://jsw.ibm.com/browse/DBACLD-180201
+function validate_ssl_certificates() {
+    INFO "Checking if all LDAP and external PostgreSQL certificates have been copied and are in a valid format"
+
+    SSL_CERT_ERROR_TAG=false
+
+    MISSING_CERTS=()
+    FAILING_CERTS=()
+
+    # Read LDAP SSL flag only if LDAP is enabled for BAI S.
+    # BAI S can be deployed without an LDAP 
+    if [[ -f "$LDAP_PROPERTY_FILE" ]]; then
+        ldap_ssl_enabled=$(prop_ldap_property_file LDAP_SSL_ENABLED | tr '[:upper:]' '[:lower:]')
+    else
+        ldap_ssl_enabled="false"
+    fi
+
+    # LDAP certificate check (or skip if SSL isn’t enabled)
+    if [[ "$ldap_ssl_enabled" != "true" ]]; then
+        info "Skipping SSL certificate validation for LDAP, as SSL is not enabled for LDAP configuration in the current setup."
+        #SSL_CERT_ERROR_TAG=false
+    else
+        check_ssl_cert \
+        "certificate" \
+        "LDAP" \
+        "${LDAP_SSL_CERT_FOLDER}/ldap-cert.crt" \
+        "LDAP SSL certificate is missing." \
+        "LDAP SSL certificate is invalid." \
+        "LDAP SSL certificate is valid."
+    fi
+
+    # External PostgreSQL cert checks for IM, ZEN, BTS
+    for ext_db in IM ZEN BTS; do
+        flag_var="EXTERNAL_POSTGRESDB_FOR_${ext_db}_FLAG"
+        external_flag=$(prop_tmp_property_file "$flag_var" \
+                        | tr -d '"' \
+                        | tr '[:upper:]' '[:lower:]')
+
+        # If the flag is true, we must have a valid cert
+        # External postgres DB for BTS/IM/ZEN if enabled should have three certs root.crt, client.crt and client.key
+        if [[ "$external_flag" == "true" ]]; then
+
+            cert_folder_var="${ext_db}_DB_SSL_CERT_FOLDER"
+            cert_folder="${!cert_folder_var}"
+            server_cert_path="${cert_folder}/root.crt"
+            clientkey_cert_path="${cert_folder}/client.key"
+            client_cert_path="${cert_folder}/client.crt"
+
+            check_ssl_cert \
+            "certificate" \
+            "External Postgres for $ext_db" \
+            "$server_cert_path" \
+            "SSL certificate for the external database to be used by $ext_db is missing." \
+            "SSL certificate for the external database to be used by $ext_db is invalid." \
+            "SSL certificate for the external database to be used by $ext_db is valid."
+            
+            check_ssl_cert \
+            "key" \
+            "External Postgres for $ext_db" \
+            "$clientkey_cert_path" \
+            "Client Key for the external database to be used by $ext_db is missing." \
+            "Client Key for the external database to be used by $ext_db is invalid." \
+            "Client Key for the external database to be used by $ext_db is valid."
+            
+            check_ssl_cert \
+            "certificate" \
+            "External Postgres for $ext_db" \
+            "$client_cert_path" \
+            "Client SSL certificate for the external database to be used by $ext_db is missing." \
+            "Client SSL certificate for the external database to be used by $ext_db is invalid." \
+            "Client SSL certificate for the external database to be used by $ext_db is valid."
+        else
+            info "Skipping SSL certificate validation for external Postgres for ${ext_db}, as external Postgres for ${ext_db} is not enabled in the current setup."
+        fi
+    done
+
+    print_cert_summary
+}
+
+# Fixes: https://jsw.ibm.com/browse/DBACLD
+# Validates that all required fields in a property file have valid values.
+# Marks all entries in "OPTIONAL_PARAMETERS_LIST" as optional by appending them to the TEMPORARY_PROPERTY_FILE under "OPTIONAL_PARAMETERS:"
+# These optional parameters are skipped in validate_property_file_required_fields()
+function mark_optional() {
+  if grep -q '^OPTIONAL_PARAMETERS:' "$TEMPORARY_PROPERTY_FILE"; then
+    for key in "${OPTIONAL_PARAMETERS_LIST[@]}"; do
+      sed "/^OPTIONAL_PARAMETERS:/ s|$|,${key}|" "$TEMPORARY_PROPERTY_FILE" > "$TEMPORARY_PROPERTY_FILE.tmp" && 
+      mv "$TEMPORARY_PROPERTY_FILE.tmp" "$TEMPORARY_PROPERTY_FILE"
+    done
+  else
+    local joined_keys
+    joined_keys=$(printf '%s,' "${OPTIONAL_PARAMETERS_LIST[@]}")
+    joined_keys=${joined_keys%,}
+    printf 'OPTIONAL_PARAMETERS:%s\n' "$joined_keys" >> "$TEMPORARY_PROPERTY_FILE"
+  fi
+}
+
+# Empty values or {xor} are considered invalid.
+# For comma-separated values, each part must be non-empty.
+function validate_property_file_required_fields() {
+
+    local property_file="$1"
+
+    # Load optional parameters from file
+    local optional_line
+    optional_line=$(grep '^OPTIONAL_PARAMETERS:' "$TEMPORARY_PROPERTY_FILE" | sed 's/^OPTIONAL_PARAMETERS://')
+    
+    # Split into array
+    local OPTIONAL_PARAMETERS=()
+    if [[ -n "$optional_line" ]]; then
+        local IFS=','
+        for param in $optional_line; do
+            OPTIONAL_PARAMETERS+=("$param")
+        done
+    fi
+
+    # Find all non-comment, non-blank property keys that are empty and not optional
+    local missing_required=()
+
+    while IFS='=' read -r key value; do
+        # Remove whitespace and quotes
+        key=$(echo "$key" | sed -e 's/^ *//' -e 's/ *$//')
+        value=$(echo "$value" | sed -e 's/^ *//' -e 's/"//g' -e 's/ *$//')
+
+        # Skip comments and blank lines
+        [[ "$key" =~ ^#.*$ || -z "$key" ]] && continue
+
+        # Skip if key is in OPTIONAL_PARAMETERS
+        local is_optional=false
+        for optional_param in "${OPTIONAL_PARAMETERS[@]}"; do
+            if [[ "$optional_param" == "$key" ]]; then
+                is_optional=true
+                break
+            fi
+        done
+
+        if [[ "$is_optional" == true ]]; then
+            continue
+        fi
+
+        # Fail early if value is <Required>, {xor}
+        if [[ "$value" == "<Required>" || "$value" == "{xor}" ]]; then
+            MISSING_REQUIRED_PARAMETERS=true
+            break
+        fi
+
+        # Check if the value is empty
+        local invalid=0
+        if [[ -z "$value" ]]; then
+            invalid=1
+        fi
+
+        if [[ $invalid -eq 1 ]]; then
+            missing_required+=("$key")
+        fi
+    done < "$property_file"
+
+    if [[ "$MISSING_REQUIRED_PARAMETERS" != true ]]; then
+        if (( ${#missing_required[@]} )); then
+            local uniq_missing=()
+            local temp_file="/tmp/validate_temp.$$"
+            printf "%s\n" "${missing_required[@]}" | sort -u > "$temp_file"
+            while IFS= read -r line; do
+                uniq_missing+=("$line")
+            done < "$temp_file"
+            rm -f "$temp_file"
+            
+            error "The following required properties are missing values in $property_file:"
+            INFO "Parameter Name"
+            for param in "${uniq_missing[@]}"; do
+                printf "$param\n"
+            done
+            error "Please provide a non-empty value for each of the above parameters."
+            MISSING_REQUIRED_PARAMETERS=true
+        else
+            success "All required properties in $property_file have valid values."
+        fi
+    fi
 }

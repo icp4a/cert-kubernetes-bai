@@ -215,7 +215,7 @@ function validate_secret_in_cluster(){
             secret_name_tmp=$(sed -e 's/^"//' -e 's/"$//' <<<"$secret_name_tmp")
             # need to check ibm-zen-metastore-edb-cm/im-datastore-edb-cm for Zen/IM and ibm-bts-config-extension external postgresql db support
             if [[ $secret_name_tmp != "ibm-zen-metastore-edb-cm" && $secret_name_tmp != "im-datastore-edb-cm" && $secret_name_tmp != "ibm-bts-config-extension" ]]; then
-                secret_exists=`kubectl get secret $secret_name_tmp -n $bai_services_namespace --ignore-not-found | wc -l`  >/dev/null 2>&1
+                secret_exists=`kubectl get secret $secret_name_tmp -n $BAI_SERVICES_NS --ignore-not-found | wc -l`  >/dev/null 2>&1
                 if [ "$secret_exists" -ne 2 ] ; then
                     error "Secret \"$secret_name_tmp\" not found in Kubernetes cluster! Please create it before deploying BAI Standalone"
                     SECRET_CREATE_PASSED="false"
@@ -223,7 +223,7 @@ function validate_secret_in_cluster(){
                     success "Secret \"$secret_name_tmp\" found in Kubernetes cluster, PASSED!"              
                 fi
             else
-                secret_exists=`kubectl get configmap $secret_name_tmp -n $bai_services_namespace --ignore-not-found | wc -l`  >/dev/null 2>&1
+                secret_exists=`kubectl get configmap $secret_name_tmp -n $BAI_SERVICES_NS --ignore-not-found | wc -l`  >/dev/null 2>&1
                 if [ "$secret_exists" -ne 2 ] ; then
                     error "ConfigMap \"$secret_name_tmp\" not found in Kubernetes cluster! Please create it before deploying BAI Standalone"
                     SECRET_CREATE_PASSED="false"
@@ -258,7 +258,7 @@ function validate_secret_in_cluster(){
             exit 1
         else
             secret_name_tmp=$(sed -e 's/^"//' -e 's/"$//' <<<"$secret_name_tmp")
-            secret_exists=`kubectl get secret $secret_name_tmp -n $bai_services_namespace --ignore-not-found | wc -l`  >/dev/null 2>&1
+            secret_exists=`kubectl get secret $secret_name_tmp -n $BAI_SERVICES_NS --ignore-not-found | wc -l`  >/dev/null 2>&1
             if [ "$secret_exists" -ne 2 ] ; then
                 error "Secret \"$secret_name_tmp\" not found in Kubernetes cluster! Please create it before deploying BAI Standalone"
                 SECRET_CREATE_PASSED="false"
@@ -503,10 +503,10 @@ function validate_prerequisites(){
         tmp_serverport="$(prop_ldap_property_file LDAP_PORT)"
         tmp_basdn="$(prop_ldap_property_file LDAP_BASE_DN)"
         tmp_ldapssl="$(prop_ldap_property_file LDAP_SSL_ENABLED)"
-        tmp_user=$( ${CLI_CMD} get secret -l name=ldap-bind-secret -o yaml | ${YQ_CMD} r - items.[0].data.ldapUsername | base64 --decode )
+        tmp_user=$( ${CLI_CMD} get secret -l name=ldap-bind-secret -o yaml -n "$BAI_SERVICES_NS" | ${YQ_CMD} r - items.[0].data.ldapUsername | base64 --decode )
         ## <https://jsw.ibm.com/browse/DBACLD-172803> - We are now asking user to use {xor} for special characters in password, so we need to use decode_xor_password to get the password decoded before validation.
-        bai_operator=$( ${CLI_CMD} get pods -l name=ibm-bai-insights-engine-operator --no-headers --ignore-not-found -n "$bai_operators_namespace" | awk '{print $1}' )
-        tmp_userpwd=$( decode_xor_password "$( ${CLI_CMD} get secret -n "$TARGET_PROJECT_NAME" -l name=ldap-bind-secret -o yaml | ${YQ_CMD} r - items.[0].data.ldapPassword | base64 --decode )" "$bai_operators_namespace" "$bai_operator" | sed  's/\$/\\$/g' )
+        bai_operator=$( ${CLI_CMD} get pods -l name=ibm-bai-insights-engine-operator --no-headers --ignore-not-found -n "$BAI_OPERATORS_NS" | awk '{print $1}' )
+        tmp_userpwd=$( decode_xor_password "$( ${CLI_CMD} get secret -n "$BAI_SERVICES_NS" -l name=ldap-bind-secret -o yaml | ${YQ_CMD} r - items.[0].data.ldapPassword | base64 --decode )" "$BAI_OPERATORS_NS" "$bai_operator" | sed  's/\$/\\$/g' )
 
         tmp_servername=$(sed -e 's/^"//' -e 's/"$//' <<<"$tmp_servername")
         tmp_serverport=$(sed -e 's/^"//' -e 's/"$//' <<<"$tmp_serverport")

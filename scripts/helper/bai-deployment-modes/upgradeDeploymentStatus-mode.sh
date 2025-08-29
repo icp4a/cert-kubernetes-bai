@@ -24,15 +24,7 @@ function upgradedeploymentstatus_mode(){
     else
         set_upgrade_file_paths $TARGET_PROJECT_NAME #function definition in helper/upgrade/upgrade_check_status.sh
     fi
-    TEMP_CP_CONSOLE_FILE=${UPGRADE_DEPLOYMENT_FOLDER}/original-cp-console.yaml
-    TEMP_CP_CONSOLE_FILE_ID_PROVIDER=${UPGRADE_DEPLOYMENT_FOLDER}/id-provider-cp-console.yaml
-    TEMP_CP_CONSOLE_FILE_ID_MGMT=${UPGRADE_DEPLOYMENT_FOLDER}/id-mgmt-cp-console.yaml
-
-    CP_CONSOLE='cp-console'
-    ID_PROVIDER_ROUTE_NAME='cp-console-iam-provider'
-    ID_PROVIDER_PATH='/idprovider/'
-    ID_MGMT_ROUTE_NAME='cp-console-iam-idmgmt'
-    ID_MGMT_PATH='/idmgmt/'
+    
     project_name=$TARGET_PROJECT_NAME
     
     bai_operator_csv_name_target_ns=$(${CLI_CMD} get csv -n $TARGET_PROJECT_NAME --no-headers --ignore-not-found | grep "IBM Business Automation Insights" | awk '{print $1}')

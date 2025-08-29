@@ -631,7 +631,9 @@ function create_ldap_property_file(){
         ${SED_COMMAND} "s|LC_GROUP_FILTER=\"\"|LC_GROUP_FILTER=\"(\&(cn=%v)(objectcategory=group))\"|g" ${LDAP_PROPERTY_FILE}
         # For https://jsw.ibm.com/browse/DBACLD-178021 where the GC PORT and GC HOST should be empty value. 
         ${SED_COMMAND} 's|LC_AD_GC_HOST=\"<Required>\"|LC_AD_GC_HOST=\"\"|g' ${LDAP_PROPERTY_FILE}
+        OPTIONAL_PARAMETERS_LIST+=("LC_AD_GC_HOST")
         ${SED_COMMAND} "s|LC_AD_GC_PORT=\"<Required>\"|LC_AD_GC_PORT=\"\"|g" ${LDAP_PROPERTY_FILE}
+        OPTIONAL_PARAMETERS_LIST+=("LC_AD_GC_PORT")
     elif [[ $LDAP_TYPE == "TDS" ]]; then
         ${SED_COMMAND} "s|LDAP_USER_NAME_ATTRIBUTE=\"\"|LDAP_USER_NAME_ATTRIBUTE=\"*:uid\"|g" ${LDAP_PROPERTY_FILE}
         ${SED_COMMAND} "s|LDAP_USER_DISPLAY_NAME_ATTR=\"\"|LDAP_USER_DISPLAY_NAME_ATTR=\"cn\"|g" ${LDAP_PROPERTY_FILE}
@@ -654,6 +656,13 @@ function create_ldap_property_file(){
         ${SED_COMMAND} "s|LDAP_BIND_DN=\"\"|LDAP_BIND_DN=\"<Required>\"|g" ${LDAP_PROPERTY_FILE}
         ${SED_COMMAND} "s|LDAP_GROUP_BASE_DN=\"\"|LDAP_GROUP_BASE_DN=\"<Required>\"|g" ${LDAP_PROPERTY_FILE}
     fi
+
+    # Added "BAI.BTS_EXTERNAL_POSTGRES_DATABASE_USER_PASSWORD" to OPTIONAL_PARAMETERS_LIST
+    OPTIONAL_PARAMETERS_LIST+=("BAI.BTS_EXTERNAL_POSTGRES_DATABASE_USER_PASSWORD")
+    
+    # Marks all entries in "OPTIONAL_PARAMETERS_LIST" as optional by appending them to the TEMPORARY_PROPERTY_FILE under "OPTIONAL_PARAMETERS:"
+    mark_optional
+
     success "Created the LDAP Server property file for BAI stand-alone\n"
 }
 
@@ -952,14 +961,31 @@ function create_property_file(){
     msgRed   "The key name in the property file is created by the bai-prerequisites.sh and is NOT EDITABLE."
     msgRed   "The value in the property file must be within double quotes."
     msgRed   "The value for User/Password in [bai_user_profile.property] file should NOT include special characters: single quotation \"'\""
-    
+    echo
     if [[ $SELECTED_LDAP == "Yes" ]]; then
         msgRed   "The value in [bai_LDAP.property] [bai_user_profile.property] file should NOT include special character '\"'"
         echo -e  "\x1b[32m* [bai_LDAP.property]:\x1B[0m"
         echo -e  "  - Contains Properties for the LDAP server that is used by the BAI stand-alone deployment, such as LDAP_SERVER/LDAP_PORT/LDAP_BASE_DN/LDAP_BIND_DN/LDAP_BIND_DN_PASSWORD.\n"
+        echo -e " - $RED_TEXT[REQUIRED]$RESET_TEXT If you plan to enable SSL-based connections for your LDAP server, retrieve the server certificate file from your remote LDAP server and copy it into the folder \"$LDAP_SSL_CERT_FOLDER\" before running the bai-prerequisites.sh script in \"generate\" mode.$RED_TEXT The certificate must be named ldap-cert.crt. $RESET_TEXT"
     fi
 
+    echo
     echo -e  "\x1b[32m* [bai_user_profile.property]:\x1B[0m"
     echo -e  "  - Contains Properties for the global value used by the BAI stand-alone deployment, such as \"sc_deployment_license\".\n"
     echo -e  "  - Contains Properties for the value used by each component of BAI stand-alone, such as \"sc_deployment_profile_size\"\n"
+
+    # show tips for IM metastore external Postgres DB
+    if [[ $EXTERNAL_POSTGRESDB_FOR_IM == "true" ]]; then
+        msgB "* You have enabled IM metastore external Postgres DB, please get \"<your-server-certification: root.crt>\" \"<your-client-certification: client.crt>\" \"<your-client-key: client.key>\" from your local or remote database server, and copy them into folder \"$IM_DB_SSL_CERT_FOLDER\" before you execute the generate mode of bai-prerequisites.sh script."
+    fi
+
+    # show tips for Zen metastore external Postgres DB
+    if [[ $EXTERNAL_POSTGRESDB_FOR_ZEN == "true"  ]]; then
+        msgB "* You have enabled Zen metastore external Postgres DB, please get \"<your-server-certification: root.crt>\" \"<your-client-certification: client.crt>\" \"<your-client-key: client.key>\" from your local or remote database server, and copy them into folder \"$ZEN_DB_SSL_CERT_FOLDER\" before you execute the generate mode of bai-prerequisites.sh script."
+    fi
+
+    # show tips for BTS metastore external Postgres DB
+    if [[ $EXTERNAL_POSTGRESDB_FOR_BTS == "true" ]]; then
+        msgB "* You have enabled BTS metastore external Postgres DB, please get \"<your-server-certification: root.crt>\" \"<your-client-certification: client.crt>\" \"<your-client-key: client.key>\" from your local or remote database server, and copy them into folder \"$BTS_DB_SSL_CERT_FOLDER\" before you execute the generate mode of bai-prerequisites.sh script."
+    fi
 }

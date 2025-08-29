@@ -407,6 +407,13 @@ foundation_component_arr=()
 save_log "bai-script-logs/project/$TARGET_PROJECT_NAME" "bai-deployment-log"
 trap cleanup_log EXIT
 
+if [[ -n "${RUNTIME_MODE}" ]]; then
+    info "The bai-deployment script is currently being executed in the ${RUNTIME_MODE} mode"
+else
+    info "The bai-deployment script is currently running in a mode designed to generate the custom resource (CR) file required for a BAI Standalone deployment"
+    printf "\n"
+fi
+
 ###################################################################################
 ##### END - Logging set up #####
 ###################################################################################

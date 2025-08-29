@@ -35,6 +35,7 @@ CLEAN_CPFS="true"
 CLEAN_CRDS="false"
 SEPARATION_DUTY="false"
 ALL_NAMESPACE="false"
+IS_SHARED_CPFS="false"
 
 # Function to check which platform is to be used for deletion, based on this the CLI_CMD is different
 function select_platform(){
@@ -227,6 +228,7 @@ if [[ "$ALL_NAMESPACE" == "false" ]]; then
                     NAMESPACES_MAPPED_TO_CS=$(${YQ_CMD} r "$CS_MAPS_YAML" "namespaceMapping[${i}].requested-from-namespace")
                     CPFS_SHARED_NAMESPACE=$(${YQ_CMD} r "$CS_MAPS_YAML" "namespaceMapping[${i}].map-to-common-service-namespace")
                     CS_MAP_INDEX="${i}"
+		    REQUEST_NS_INDEX="${j}"
                     # Found and break out of nested loop
                     break 2
                 fi
@@ -248,6 +250,7 @@ if [[ "$ALL_NAMESPACE" == "false" ]]; then
             if [[ "${SHARED_NAMESPACE_COUNT}" -gt 1 && "${SEPARATION_DUTY}" == "false" ]]; then
                 info "Multiple namespaces are sharing the same Cloud Pak foundational services. This script does not support cleaning up shared Cloud Pak foundational services. The script will only clean up BAI namespace."
                 CLEAN_CPFS="false"
+		IS_SHARED_CPFS="true"
             fi
         fi
     fi
@@ -373,6 +376,7 @@ BAI_RESOURCES=(
 	"flinkdeployments.flink.apache.org"
 	"secret"
 	"kafkatopics.ibmevents.ibm.com"
+	"endpoints"
 )
 
 if [[ "$SEPARATION_DUTY" == "true" ]]; then
@@ -671,7 +675,25 @@ if [[ $CLEAN_CPFS == "true" ]]; then
 fi
 
 # Update/delete configmaps in kube-public
-if [[ "$CS_NAMESPACE_COUNT" -gt 1 ]]; then
+if [[ $IS_SHARED_CPFS == "true" ]]; then
+	INFO "Remove mapping from ${COMMON_SERVICES_CM_NAMESPACE} namespace"
+	# Remove mapping from common-service-maps.yaml and apply it back
+	NEW_CS_MAPS=$(${YQ_CMD} d "$CS_MAPS_YAML" "namespaceMapping[${CS_MAP_INDEX}].requested-from-namespace[${REQUEST_NS_INDEX}]")
+	padded_yaml=$(echo "$NEW_CS_MAPS" | awk '$0="    "$0')
+	NEW_CS_MAPS_YAML="$(
+	cat <<EOF
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: common-service-maps
+  namespace: kube-public
+data:
+  common-service-maps.yaml: |
+${padded_yaml}
+EOF
+)"
+	echo "$NEW_CS_MAPS_YAML" | ${CLI_CMD} apply -f -
+else
 	INFO "Remove mapping from ${COMMON_SERVICES_CM_NAMESPACE} namespace"
 	# Remove mapping from common-service-maps.yaml and apply it back
 	NEW_CS_MAPS=$(${YQ_CMD} d "$CS_MAPS_YAML" "namespaceMapping[${CS_MAP_INDEX}]")
@@ -689,9 +711,6 @@ ${padded_yaml}
 EOF
 )"
 	echo "$NEW_CS_MAPS_YAML" | ${CLI_CMD} apply -f -
-else
-	INFO "Delete configmaps from ${COMMON_SERVICES_CM_NAMESPACE} namespace"
-	${CLI_CMD} delete cm common-service-maps ibm-common-services-status -n "${COMMON_SERVICES_CM_NAMESPACE}" --ignore-not-found
 fi
 
 # Delete resource in openshift-operator namespace

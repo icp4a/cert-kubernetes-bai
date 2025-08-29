@@ -73,7 +73,7 @@ function check_missing_quotes(){
         fi
     done
     if [[ "$missing_quotes" == 1 ]] ; then
-        info "[NEXT_STEPS]: Reference the table above and ensure all values in all property files are enclosed in quotes and re-run cp4a-prerequisites.sh script in generate mode."
+        info "[NEXT_STEPS]: Reference the table above and ensure all values in all property files are enclosed in quotes and re-run bai-prerequisites.sh script in generate mode."
         exit 1
     fi
 }
@@ -99,6 +99,14 @@ function check_required_values(){
 
 # Function to check if there are valid properties entered
 function check_property_file(){
+
+    # Function to check for valid certificates (LDAP, IM, ZEN, BTS)
+    # For https://jsw.ibm.com/browse/DBACLD-180201
+    validate_ssl_certificates
+
+    # Validate required properties in configuration files
+    INFO "Validating required properties in configuration files"
+
     # Function to check for missing quotes in any of the property files
     # For https://jsw.ibm.com/browse/DBACLD-161426
     check_missing_quotes
@@ -110,12 +118,18 @@ function check_property_file(){
     ## -- https://jsw.ibm.com/browse/DBACLD-172803 - We are now asking user to use {xor} for special characters in password for some parameters, so we need to check if the "{xor}<Required>" is not filled out.
     check_required_values "<{xor}<Required>" "${USER_PROFILE_PROPERTY_FILE}"
     
+    # Check for empty values in the user profile property file
+    validate_property_file_required_fields "${USER_PROFILE_PROPERTY_FILE}"
+
     ### BEGIN LDAP Property file checks  ###
     if [[ $selected_ldap_flag == "Yes" ]]; then
         check_required_values "<Required>" "${LDAP_PROPERTY_FILE}"
         check_required_values "{Base64}<Required>" "${LDAP_PROPERTY_FILE}"
         ## -- https://jsw.ibm.com/browse/DBACLD-172803 - We are now asking user to use {xor} for special characters in password for some parameters, so we need to check if the "{xor}<Required>" is not filled out.
         check_required_values "{xor}<Required>" "${LDAP_PROPERTY_FILE}"
+
+        # Check for empty values in the ldap property file
+        validate_property_file_required_fields "${LDAP_PROPERTY_FILE}"
     fi
 
     if [[ "$empty_value_tag" == "1" ]]; then
@@ -190,7 +204,7 @@ function check_property_file(){
 
     fi
 
-    if [[ "$error_value_tag" == "1" ]]; then
+    if [[ "$error_value_tag" == "1" || "$SSL_CERT_ERROR_TAG" == "true" || "$MISSING_REQUIRED_PARAMETERS" == "true" ]]; then
         exit 1
     fi
 
@@ -417,33 +431,6 @@ function generate_secrets() {
     
     tips
     msgB "* Enter the <Required> values in the YAML templates for the secrets under $SECRET_FILE_FOLDER"
-
-    if [[ $selected_ldap_flag == "Yes" ]]; then
-        # LDAP: Show which certificate file should be copy into which folder 
-        tmp_flag=$(sed -e 's/^"//' -e 's/"$//' <<<"$(prop_ldap_property_file LDAP_SSL_ENABLED)")
-        tmp_flag=$(echo $tmp_flag | tr '[:upper:]' '[:lower:]')
-
-        if [[ $tmp_flag == "true" || $tmp_flag == "yes" || $tmp_flag == "y" ]]; then
-            tmp_folder="$(prop_ldap_property_file LDAP_SSL_CERT_FILE_FOLDER)"
-            tmp_ldapserver="$(prop_ldap_property_file LDAP_SERVER)"
-            msgB "* Get the \"ldap-cert.crt\" from the remote LDAP server \"$tmp_ldapserver\", and copy it into the folder \"$tmp_folder\" before you create the Kubernetes secret for the LDAP SSL"
-        fi
-    fi
-
-    # show tips for IM metastore external Postgres DB
-    if [[ $EXTERNAL_POSTGRESDB_FOR_IM_FLAG == "true" ]]; then
-        msgB "* You have enabled IM metastore external Postgres DB, please get \"<your-server-certification: root.crt>\" \"<your-client-certification: client.crt>\" \"<your-client-key: client.key>\" from your local or remote database server \"$im_external_db_host_name\", and copy them into folder \"$im_external_db_cert_folder\" before you create the secret for PostgreSQL database SSL"
-    fi
-
-    # show tips for Zen metastore external Postgres DB
-    if [[ $EXTERNAL_POSTGRESDB_FOR_ZEN_FLAG == "true"  ]]; then
-        msgB "* You have enabled Zen metastore external Postgres DB, please get \"<your-server-certification: root.crt>\" \"<your-client-certification: client.crt>\" \"<your-client-key: client.key>\" from your local or remote database server \"$zen_external_db_host_name\", and copy them into folder \"$zen_external_db_cert_folder\" before you create the secret for PostgreSQL database SSL"
-    fi
-
-    # show tips for BTS metastore external Postgres DB
-    if [[ $EXTERNAL_POSTGRESDB_FOR_BTS_FLAG == "true" ]]; then
-        msgB "* You have enabled BTS metastore external Postgres DB, please get \"<your-server-certification: root.crt>\" \"<your-client-certification: client.crt>\" \"<your-client-key: client.key>\" from your local or remote database server \"$im_external_db_host_name\", and copy them into folder \"$im_external_db_cert_folder\" before you create the secret for PostgreSQL database SSL"
-    fi
 
     msgB "* You can use this shell script to create the secret automatically: $CREATE_SECRET_SCRIPT_FILE"
     msgB "* Create the Kubernetes secrets manually based on your modified \"YAML template for secret\".\n* And then run the  \"bai-prerequisites.sh -m validate\" command to verify that the secrets are created correctly"
