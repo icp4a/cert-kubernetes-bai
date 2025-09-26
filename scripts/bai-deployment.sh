@@ -1907,6 +1907,14 @@ fi
 # For DBACLD-166508
 save_log "bai-script-logs/project/$TARGET_PROJECT_NAME" "bai-deployment-log"
 trap cleanup_log EXIT
+
+if [[ -n "${RUNTIME_MODE}" ]]; then
+    info "The bai-deployment script is currently being executed in the ${RUNTIME_MODE} mode"
+else
+    info "The bai-deployment script is currently running in a mode designed to generate the custom resource (CR) file required for a BAI Standalone deployment"
+    printf "\n"
+fi
+
 # Import upgrade upgrade_check_version.sh script
 source ${CUR_DIR}/helper/upgrade/upgrade_check_status.sh
 
@@ -2067,29 +2075,6 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
     info "Starting to upgrade BAI standalone operators and IBM foundation services"
     # check current bai operator version
     check_bai_operator_version $TARGET_PROJECT_NAME
-
-    #### Check for the operator to validate if it is already up to date with the current version the scripts correspond too ######
-    if [[ "$bai_operator_csv_version" == "${BAI_CSV_VERSION//v/}" ]]; then
-        warning "The BAI standalone operator is already at $BAI_CSV_VERSION."
-        printf "\n"
-        while true; do
-            printf "\x1B[1mDo you want to continue running the upgrade? (Yes/No, default: No): \x1B[0m"
-            read -rp "" ans
-            case "$ans" in
-            "y"|"Y"|"yes"|"Yes"|"YES")
-                break
-                ;;
-            "n"|"N"|"no"|"No"|"NO"|"")
-                echo "Exiting..."
-                exit 1
-                ;;
-            *)
-                echo -e "Answer must be \"Yes\" or \"No\"\n"
-                ;;
-            esac
-        done
-    fi
-    #### Check for the operator to validate if it is already up to date with the current version the scripts correspond too ######
 
     #### Seperaration of duties check ####
     # check if the deployment has seperate operators and operands
