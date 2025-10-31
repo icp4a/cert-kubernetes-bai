@@ -19,31 +19,6 @@
 
 #### BEGIN - Functions being called by the input_information function ####
 
-
-# Function that asks the customer if they want to generate network policy templates
-function generate_sample_network_policies(){
-    printf "\n"
-    echo ""
-    while true; do
-        printf "\x1B[1mDo you want to generate the network policy templates for this BAI stand-alone deployment?\x1B[0m ${YELLOW_TEXT}(Notes: Starting from $BAI_RELEASE_BASE, the BAI stand-alone operators no longer install network policies automatically. If you want the operators to generate network policies from a set of templates, select Yes. You can install the network policies by running a script after the BAI Deployment is installed. If you select No, then no network policies will be generated.)${RESET_TEXT} (Yes/No, default: No):" 
-        read -rp "" ans
-        case "$ans" in
-        "y"|"Y"|"yes"|"Yes"|"YES")
-            GENERATE_SAMPLE_NETWORK_POLICIES="true"
-            break
-            ;;
-        "n"|"N"|"no"|"No"|"NO"|"")
-            GENERATE_SAMPLE_NETWORK_POLICIES="false"
-            break
-            ;;
-        *)
-            echo -e "Answer must be \"Yes\" or \"No\"\n"
-            ;;
-        esac
-    done
-}
-
-
 function select_platform(){
     printf "\n"
     echo -e "\x1B[1mSelect the cloud platform to deploy: \x1B[0m"
@@ -469,9 +444,6 @@ function input_information(){
                 else
                     OTHER_DOMAIN_NAME=""
                 fi
-
-                # Function that asks the customer if they want to generate network policy templates
-                generate_sample_network_policies
                 
                 flink_job_cr_arr=()
                 for i in $(cat $USER_PROFILE_PROPERTY_FILE | grep BAI_STANDALONE.FLINK_JOB_  | grep "True" | tr '[:upper:]' '[:lower:]' | sed 's/.*\.//; s/=.*//')
@@ -481,7 +453,7 @@ function input_information(){
                 done
                 # echo "flink_job_cr_arr: ${flink_job_cr_arr[@]}"
             else 
-                fail "Not Found existing property file under \"$PROPERTY_FILE_FOLDER\". Run \"bai-prerequisites.sh\" to complete prerequisites"
+                fail "No existing property files found under \"$PROPERTY_FILE_FOLDER\". Run \"bai-prerequisites.sh\" to complete prerequisites"
                 exit 1
             fi
             # show_summary
@@ -502,7 +474,6 @@ function input_information(){
         #    select_profile_type
         #    select_iam_default_admin
         #
-        #    generate_sample_network_policies
         #    select_flink_job
         #fi
         check_ocp_version
@@ -544,8 +515,6 @@ function show_summary(){
     echo -e "${YELLOW_TEXT}6. Block storage classname(RWO): ${RESET_TEXT}${BLOCK_STORAGE_CLASS_NAME}"
 
     echo -e "${YELLOW_TEXT}7. Target project for this BAI standalone deployment: ${RESET_TEXT}${TARGET_PROJECT_NAME}"
-
-    echo -e "${YELLOW_TEXT}8. Generate network policy templates for this BAI standalone deployment: ${RESET_TEXT}${GENERATE_SAMPLE_NETWORK_POLICIES}"
 
     echo -e "${YELLOW_TEXT}9. The Flink job for which components selected: ${RESET_TEXT}"
     if [ "${#flink_job_cr_arr[@]}" -eq "0" ]; then
@@ -662,7 +631,7 @@ function sync_property_into_final_cr(){
         fi
 
         # set lc_bind_secret
-        tmp_secret_name=`kubectl get secret -l name=ldap-bind-secret -o yaml | ${YQ_CMD} r - items.[0].metadata.name`
+        tmp_secret_name=`${CLI_CMD} get secret -l name=ldap-bind-secret -o yaml | ${YQ_CMD} r - items.[0].metadata.name`
         ${YQ_CMD} w -i ${BAI_PATTERN_FILE_TMP} spec.ldap_configuration.lc_bind_secret "\"$tmp_secret_name\""
     else 
         ${YQ_CMD} d -i ${BAI_PATTERN_FILE_TMP} spec.ldap_configuration
@@ -985,16 +954,6 @@ function fresh_install(){
                     break
                     ;;
                 "8")
-                    if [[ $DEPLOYMENT_WITH_PROPERTY == "No" ]]; then
-                        generate_sample_network_policies
-                    else
-                        generate_sample_network_policies
-                        info "ReRun bai-deployment.sh to modify the generate network policy"
-                        prompt_press_any_key_to_continue
-                    fi
-                    break
-                    ;;
-                "9")
                     if [[ $DEPLOYMENT_WITH_PROPERTY == "No" ]]; then
                         select_flink_job
                     else

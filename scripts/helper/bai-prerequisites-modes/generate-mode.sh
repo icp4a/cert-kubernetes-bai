@@ -100,6 +100,9 @@ function check_required_values(){
 # Function to check if there are valid properties entered
 function check_property_file(){
 
+    # Initialize OPTIONAL_PARAMETERS_LIST (it gets reset in common.sh)
+    OPTIONAL_PARAMETERS_LIST=()
+
     # Function to check for valid certificates (LDAP, IM, ZEN, BTS)
     # For https://jsw.ibm.com/browse/DBACLD-180201
     validate_ssl_certificates
@@ -122,6 +125,24 @@ function check_property_file(){
     validate_property_file_required_fields "${USER_PROFILE_PROPERTY_FILE}"
 
     ### BEGIN LDAP Property file checks  ###
+    # Conditionally mark LDAP SSL params optional BEFORE validating LDAP files
+    # so the validator will skip them when SSL is disabled
+
+    # First, remove any existing SSL parameters from the optional list to handle toggling
+    OPTIONAL_PARAMETERS_LIST=($(printf '%s\n' "${OPTIONAL_PARAMETERS_LIST[@]}" | grep -v "^LDAP_SSL_SECRET_NAME$" | grep -v "^LDAP_SSL_CERT_FILE_FOLDER$"))
+
+    if [[ $selected_ldap_flag == "Yes" ]]; then
+        tmp_flag=$(sed -e 's/^"//' -e 's/"$//' <<<"$(prop_ldap_property_file LDAP_SSL_ENABLED)")
+        tmp_flag=$(echo $tmp_flag | tr '[:upper:]' '[:lower:]')
+        if [[ ${tmp_flag} =~ ^(no|n|false)$ ]]; then
+            OPTIONAL_PARAMETERS_LIST+=("LDAP_SSL_SECRET_NAME")
+            OPTIONAL_PARAMETERS_LIST+=("LDAP_SSL_CERT_FILE_FOLDER")
+        fi
+    fi
+
+    # Persist optional list before any LDAP validations
+    mark_optional
+    
     if [[ $selected_ldap_flag == "Yes" ]]; then
         check_required_values "<Required>" "${LDAP_PROPERTY_FILE}"
         check_required_values "{Base64}<Required>" "${LDAP_PROPERTY_FILE}"
@@ -451,7 +472,7 @@ function generate_create_secret_script(){
         echo "echo \"****************************************************************************\"" >> ${CREATE_SECRET_SCRIPT_FILE_TMP}
         echo "echo \"******************************* START **************************************\"" >> ${CREATE_SECRET_SCRIPT_FILE_TMP}
         echo "echo \"[INFO] Applying YAML template file:$item\"">> ${CREATE_SECRET_SCRIPT_FILE_TMP}
-        echo "kubectl apply -f \"$item\"" >> ${CREATE_SECRET_SCRIPT_FILE_TMP}
+        echo "${CLI_CMD} apply -f \"$item\"" >> ${CREATE_SECRET_SCRIPT_FILE_TMP}
         echo "echo \"******************************** END ***************************************\"" >> ${CREATE_SECRET_SCRIPT_FILE_TMP}
         echo "echo \"****************************************************************************\"" >> ${CREATE_SECRET_SCRIPT_FILE_TMP}
         echo "printf \"\\n\"" >> ${CREATE_SECRET_SCRIPT_FILE_TMP}

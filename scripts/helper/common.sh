@@ -36,12 +36,12 @@ OLM_VERSION=v0.27.0
 #Licensing service related variables that required during the creation of subscription and the checks.
 # NEED TO BE UPDATED WHEN WE UPDATE THE VERSIONS
 LICENSING_SERVICE_CHANNEL=v4.2
-LICENSING_SERVICE_TARGET_VERSION="4.2.15"
+LICENSING_SERVICE_TARGET_VERSION="4.2.17"
 
 #Cert Manager related variables that required during the creation of subscription and the checks.
 # NEED TO BE UPDATED WHEN WE UPDATE THE VERSIONS
 CERT_MANAGER_CHANNEL=v4.2
-CERT_MANAGER_TARGET_VERSION="4.2.15"
+CERT_MANAGER_TARGET_VERSION="4.2.17"
 
 # CATALOG SOURCE file name
 CATALOG_SOURCE_FILENAME=${PARENT_DIR}/descriptors/op-olm/catalog_source.yaml
@@ -62,7 +62,7 @@ cs_maximal_version_for_ifix="5.0.0" # Maximal supported Common Service version b
 BAI_S_FC_CR=${PARENT_DIR}/descriptors/patterns/ibm_cp4a_cr_production_FC_bai.yaml
 
 #Change required each sprint for using dev mode
-CURRENT_SPRINT_TAG="25.0.0-IF001"
+CURRENT_SPRINT_TAG="25.0.0-IF002"
 
 
 # End of Section for BAI Rancher specific variables
@@ -109,37 +109,37 @@ LDAP_SECRET_FILE=${SECRET_FILE_FOLDER}/ldap-bind-secret.yaml
 # Release/Patch version for CP4BA
 # BAI_RELEASE_BASE is for fetch content/foundation operator pod, only need to change for major release.
 BAI_RELEASE_BASE="25.0.0"
-BAI_PATCH_VERSION="IF001"
+BAI_PATCH_VERSION="IF002"
 # BAI_RELEASE_BASE_MAJOR_VERSION is used in certain checks where we used to hardcode to see if a upgrade is not ifix to ifix,change this only for major release
 BAI_RELEASE_BASE_MAJOR_VERSION="25.0"
 # BAI_CSV_VERSION is for checking CP4BA operator upgrade status, need to update for each IFIX
-BAI_CSV_VERSION="v25.0.1"
+BAI_CSV_VERSION="v25.0.2"
 # BAI_CHANNEL_VERSION is for switch CP4BA operator upgrade status, need to update for major release
 BAI_CHANNEL_VERSION="v25.0"
 # CS_OPERATOR_VERSION is for checking CPFS operator upgrade status, need to update for each IFIX
-CS_OPERATOR_VERSION="v4.14.0"
+CS_OPERATOR_VERSION="v4.15.0"
 # CS_CHANNEL_VERSION is for for CPFS script -c option, need to update for each IFIX
-CS_CHANNEL_VERSION="v4.14"
+CS_CHANNEL_VERSION="v4.15"
 # CS CHANNEL VERSION that is used in the KC
-CS_CHANNEL_KC="4.14.0"
+CS_CHANNEL_KC="4.x_cd"
 # CERT_LICENSE_OPERATOR_VERSION is for checking IBM cert-manager/licensing operator upgrade status, need to update for each IFIX
-CERT_LICENSE_OPERATOR_VERSION="v4.2.15"
+CERT_LICENSE_OPERATOR_VERSION="v4.2.17"
 # CERT_LICENSE_CHANNEL_VERSION is for for IBM cert-manager/licensing script -c option, need to update for each IFIX
 CERT_LICENSE_CHANNEL_VERSION="v4.2"
 # CS_CATALOG_VERSION is for CPFS script -s option, need to update for each IFIX
-CS_CATALOG_VERSION="ibm-cs-install-catalog-v4-14-0"
+CS_CATALOG_VERSION="ibm-cs-install-catalog-v4-15-0"
 # ZEN_OPERATOR_VERSION is for checking ZenService operator upgrade status, need to update for each IFIX
-ZEN_OPERATOR_VERSION="v6.2.1"
+ZEN_OPERATOR_VERSION="v6.2.2"
 # BTS_CHANNEL_VERSION is for for BTS, need to update for each IFIX
 BTS_CHANNEL_VERSION="v3.35"
-# BTS_CATALOG_VERSION is for BTS 3.35.4.
+# BTS_CATALOG_VERSION is for BTS 3.35.6.
 BTS_CATALOG_VERSION="ibm-bts-operator-catalog-v3-35"
 # REQUIREDVER_BTS is for checking bts operator upgrade status before run removal_iaf.sh, need to update for each IFIX
-REQUIREDVER_BTS="3.35.5"
+REQUIREDVER_BTS="3.35.6"
 # REQUIREDVER_POSTGRESQL is for checking postgresql operator upgrade status before run removal_iaf.sh, need to update for each IFIX
-REQUIREDVER_POSTGRESQL="1.25.2"
+REQUIREDVER_POSTGRESQL="1.25.3"
 # EVENTS_OPERATOR_VERSION is for checking IBM Events operator upgrade status, need to update for each IFIX
-EVENTS_OPERATOR_VERSION="v5.1.2"
+EVENTS_OPERATOR_VERSION="v5.2.1"
 # List of BAI versions that are supported for upgrade to $BAI_CSV_VERSION
 MINIMUM_SUPPORTED_UPGRADE_VERSIONS=("24.1.2" "25.0.0")
 
@@ -486,7 +486,7 @@ function prompt_press_any_key_to_continue() {
 # check OCP version
 ############################
 function check_platform_version(){
-    currentver=$(oc get nodes | awk 'NR==2{print $5}')
+    currentver=$(${CLI_CMD} get nodes | awk 'NR==2{print $5}')
     requiredver="v1.17.1"
     if [ "$(printf '%s\n' "$requiredver" "$currentver" | sort -V | head -n1)" = "$requiredver" ]; then
         PLATFORM_VERSION="4.4OrLater"  
@@ -505,9 +505,9 @@ function check_platform_version(){
 #############################
 function check_cluster_login() {
     if [[ "$CLI_CMD" == "oc" ]]; then
-        oc whoami >/dev/null 2>&1
+        ${CLI_CMD} whoami >/dev/null 2>&1
     else
-        kubectl auth whoami >/dev/null 2>&1
+        ${CLI_CMD} auth whoami >/dev/null 2>&1
     fi
     
     if [ $? -gt 0 ]; then
@@ -947,7 +947,7 @@ function get_domain_name() {
     # Check if the ConfigMap exists
     if ${CLI_CMD} get configmap "$configmap_name" -n "$namespace" &>/dev/null; then
         # Retrieve the parameter from the data section
-        domain_name=$(kubectl get configmap "$configmap_name" -n "$namespace" -o jsonpath="{.data.domain_name}" 2>/dev/null)
+        domain_name=$(${CLI_CMD} get configmap "$configmap_name" -n "$namespace" -o jsonpath="{.data.domain_name}" 2>/dev/null)
 
         if [ -n "$domain_name" ]; then
             success "\033[1;32mConfigMap '$configmap_name' found and Domain Name was retrieved sucessfully\033[0m"
@@ -1153,8 +1153,8 @@ function retrieve_network_details(){
         printf "\n"
         printf "The user does not have sufficient permissions to retrieve cluster network details. As a result, the \"ibm-cp4a-common-configmap\" ConfigMap must be manually updated with the correct network CIDR and network type. This step is required before applying the custom resource file."
         printf "\n"
-        printf "${YELLOW_TEXT}[NOTE]:${RESET_TEXT} In OCP or ROKS, this information can be obtained by querying the Network resource \"oc get network cluster -o yaml\" or by retrieving the details from the OCP Console."
-        printf "Then update the 'ibm-cp4ba-common-config' configMap in the namespace where BAI Standalone is deployed with the following command: \" oc patch configmap ibm-cp4ba-common-config -n <BAI-namespace> --type merge -p \"{ \"data\": { \"network_cidr\": \"<cidr range from command>\", \"network_type\": \"<networkType from command>\" } } \" where the values being patched are the CIDR range and networkType that you obtained from the command above respectively."
+        printf "${YELLOW_TEXT}[NOTE]:${RESET_TEXT} In OCP or ROKS, this information can be obtained by querying the Network resource \"${CLI_CMD} get network cluster -o yaml\" or by retrieving the details from the OCP Console."
+        printf "Then update the 'ibm-cp4ba-common-config' configMap in the namespace where BAI Standalone is deployed with the following command: \" ${CLI_CMD} patch configmap ibm-cp4ba-common-config -n <BAI-namespace> --type merge -p \"{ \"data\": { \"network_cidr\": \"<cidr range from command>\", \"network_type\": \"<networkType from command>\" } } \" where the values being patched are the CIDR range and networkType that you obtained from the command above respectively."
         printf "\n"
     else
         network_cidr=$(${YQ_CMD} r - <<< "$network_configuration_output" 'spec.clusterNetwork[0].cidr')
@@ -1215,8 +1215,9 @@ function check_ssl_cert() {
                 FAILING_CERTS+=("$config_name|$cert_path")
             fi
         else
-            #openssl pkcs8 -in "$key_path" -inform PEM -nocrypt -noout
-            if openssl pkcs8 -in "$cert_path" -inform PEM -nocrypt >/dev/null 2>&1; then
+            #https://jsw.ibm.com/browse/DBACLD-194329
+            # Updated command that will tackle all types of formats of a private key
+            if openssl rsa -in "$cert_path" -check -noout >/dev/null 2>&1 || openssl ec -in "$cert_path" -check -noout >/dev/null 2>&1 || openssl pkcs8 -in "$cert_path" -inform PEM -nocrypt -noout >/dev/null 2>&1; then
                 success "$valid_msg"
             else
                 error "$invalid_msg"
@@ -1343,15 +1344,39 @@ function validate_ssl_certificates() {
 # These optional parameters are skipped in validate_property_file_required_fields()
 function mark_optional() {
   if grep -q '^OPTIONAL_PARAMETERS:' "$TEMPORARY_PROPERTY_FILE"; then
+    # Get the existing line and remove SSL parameters from it
+    local existing_line=$(grep '^OPTIONAL_PARAMETERS:' "$TEMPORARY_PROPERTY_FILE")
+    local existing_params=$(echo "$existing_line" | sed 's/^OPTIONAL_PARAMETERS://')
+    
+    # Remove SSL parameters from existing params
+    local cleaned_params=$(echo "$existing_params" | sed 's/,LDAP_SSL_SECRET_NAME//g' | sed 's/LDAP_SSL_SECRET_NAME,//g' | sed 's/LDAP_SSL_SECRET_NAME//g')
+    cleaned_params=$(echo "$cleaned_params" | sed 's/,LDAP_SSL_CERT_FILE_FOLDER//g' | sed 's/LDAP_SSL_CERT_FILE_FOLDER,//g' | sed 's/LDAP_SSL_CERT_FILE_FOLDER//g')
+    
+    # Remove the old line
+    sed -i '/^OPTIONAL_PARAMETERS:/d' "$TEMPORARY_PROPERTY_FILE"
+    
+    # Add new parameters to the cleaned list
+    local final_params="$cleaned_params"
     for key in "${OPTIONAL_PARAMETERS_LIST[@]}"; do
-      sed "/^OPTIONAL_PARAMETERS:/ s|$|,${key}|" "$TEMPORARY_PROPERTY_FILE" > "$TEMPORARY_PROPERTY_FILE.tmp" && 
-      mv "$TEMPORARY_PROPERTY_FILE.tmp" "$TEMPORARY_PROPERTY_FILE"
+      if [[ -n "$final_params" ]]; then
+        final_params="$final_params,$key"
+      else
+        final_params="$key"
+      fi
     done
+    
+    # Remove leading/trailing commas and write the new line
+    final_params=$(echo "$final_params" | sed 's/^,//' | sed 's/,$//')
+    if [[ -n "$final_params" ]]; then
+      printf 'OPTIONAL_PARAMETERS:%s\n' "$final_params" >> "$TEMPORARY_PROPERTY_FILE"
+    fi
   else
-    local joined_keys
-    joined_keys=$(printf '%s,' "${OPTIONAL_PARAMETERS_LIST[@]}")
-    joined_keys=${joined_keys%,}
-    printf 'OPTIONAL_PARAMETERS:%s\n' "$joined_keys" >> "$TEMPORARY_PROPERTY_FILE"
+    if [[ ${#OPTIONAL_PARAMETERS_LIST[@]} -gt 0 ]]; then
+      local joined_keys
+      joined_keys=$(printf '%s,' "${OPTIONAL_PARAMETERS_LIST[@]}")
+      joined_keys=${joined_keys%,}
+      printf 'OPTIONAL_PARAMETERS:%s\n' "$joined_keys" >> "$TEMPORARY_PROPERTY_FILE"
+    fi
   fi
 }
 
@@ -1435,5 +1460,83 @@ function validate_property_file_required_fields() {
         else
             success "All required properties in $property_file have valid values."
         fi
+    fi
+}
+
+# This function is to patch the kafka strimzi podset for an upgrade to a version having Events Operator 5.2 or higher
+# The function checks if events operator subscription is on channel 5.2 and if so gets the kafka strimzi podset and replaces an annotation which will allow the zen upgrade to complete
+# The subscription for events operator is updated after the new CR is applied and the foundation-operator applies the new operand request, so this function is called during upgradeDeploymentStatus
+# For https://jsw.ibm.com/browse/DBACLD-199163 https://jsw.ibm.com/browse/DBACLD-199093
+function patch_strimzi_podset(){
+    local operator_namespace=$1
+    local services_namespace=$2
+
+    echo "Checking ibm-events-operator subscription channel..."
+    # Check if the subscription exists
+    events_operator_subscription_exists=$(${CLI_CMD} get subscription ibm-events-operator -n $operator_namespace -o name --no-headers 2>/dev/null || echo "")
+
+    if [[ -z "$events_operator_subscription_exists" ]]; then
+        echo "Subscription 'ibm-events-operator' not found, skipping"
+        strimzi_patched=true
+        return
+    fi
+
+    # Get the subscription channel - YQ 3.3 compatible syntax
+    events_operator_channel=$(${CLI_CMD} get subscription ibm-events-operator -n $operator_namespace -o yaml | ${YQ_CMD} read - spec.channel)
+
+    echo "Current channel: $events_operator_channel"
+
+    # Check if channel is v5.2
+    if [[ "$events_operator_channel" == "v5.2" ]]; then
+        echo "Events Operator Channel is v5.2, proceeding to check if the events operator is running..."
+
+        # Find the operator pod that starts with ibm-events-operator-v5.2
+        events_operator_pod=$(${CLI_CMD} get pods --no-headers -n $operator_namespace -o custom-columns=":metadata.name" | grep "^ibm-events-operator-v5.2" || echo "")
+
+        if [[ -z "$events_operator_pod" ]]; then
+            echo "'ibm-events-operator-v5.2' pod is not found"
+            return
+        fi
+
+        echo "Found operator pod: $events_operator_pod"
+
+        # Check if the pod is in Ready state
+        events_operator_pod_ready=$(${CLI_CMD} get pod "$events_operator_pod" -n $operator_namespace -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}')
+
+        if [[ "$events_operator_pod_ready" != "True" ]]; then
+            echo "Operator pod '$events_operator_pod' is not in Ready state"
+            return
+        fi
+
+        # Get the StrimziPodSet resource
+        kafka_podset_exists=$(${CLI_CMD} get strimzipodset iaf-system-kafka -n $services_namespace -o name --no-headers 2>/dev/null || echo "")
+
+        if [[ -z "$kafka_podset_exists" ]]; then
+            echo "StrimziPodSet 'iaf-system-kafka' not found"
+            return
+        fi
+
+        echo "Found StrimziPodSet 'iaf-system-kafka'"
+
+        # Get the current kafka version from the annotation - YQ 3.3 compatible syntax
+        kafka_annotation_value=$(${CLI_CMD} get strimzipodset iaf-system-kafka -n $services_namespace -o yaml | ${YQ_CMD} read - "metadata.annotations[strimzi.io/kafka-version]" 2>/dev/null || echo "")
+
+        if [[ -z "$kafka_annotation_value" || "$kafka_annotation_value" == "null" ]]; then
+            strimzi_patched=true
+            return
+        fi
+
+        echo "Current kafka version: $kafka_annotation_value"
+
+        # Apply the patch directly
+        echo "Applying patch to update annotations..."
+        ${CLI_CMD} patch strimzipodset iaf-system-kafka -n $services_namespace --type=merge -p "{\"metadata\":{\"annotations\":{\"strimzi.io/kafka-version\":null,\"ibmevents.ibm.com/kafka-version\":\"$kafka_annotation_value\"}}}"
+
+        echo "Successfully updated annotations:"
+        echo "- Removed: strimzi.io/kafka-version"
+        echo "- Added: ibmevents.ibm.com/kafka-version: $kafka_annotation_value"
+        strimzi_patched=true
+    else
+        echo "Events operator is not at channel v5.2"
     fi
 }

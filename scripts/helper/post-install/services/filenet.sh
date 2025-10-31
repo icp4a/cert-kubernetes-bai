@@ -25,13 +25,13 @@ cp4baFilenetConsole()
   echo '' > ${LOG_DIR}/filenet-console.log
   echo '' > ${LOG_DIR}/filenet-cpds-console.log
 
-  oc get cm ${CP4BA_DEPLOYMENT_NAME}-cp4ba-access-info -n ${CP4BA_AUTO_NAMESPACE} -o jsonpath='{.data.cpe-access-info}' &> ${LOG_DIR}/filenet-console.log
+  ${CLI_CMD} get cm ${CP4BA_DEPLOYMENT_NAME}-cp4ba-access-info -n ${CP4BA_AUTO_NAMESPACE} -o jsonpath='{.data.cpe-access-info}' &> ${LOG_DIR}/filenet-console.log
 
   DEPLOYMENT_TYPE_TO_LOWER=`echo $CP4BA_DEPLOYMENT_TYPE | awk '{print tolower($0)}'`
   if [ "$DEPLOYMENT_TYPE_TO_LOWER" == "production" ]; then
-    NAV_USERNAME=`oc get secret ibm-fncm-secret -o go-template --template="{{.data.appLoginUsername|base64decode}}"`
+    NAV_USERNAME=`${CLI_CMD} get secret ibm-fncm-secret -o go-template --template="{{.data.appLoginUsername|base64decode}}"`
     echo "Username                                      : ${NAV_USERNAME}"
-    NAV_PASSWORD=`oc get secret ibm-fncm-secret -o go-template --template="{{.data.appLoginPassword|base64decode}}"`
+    NAV_PASSWORD=`${CLI_CMD} get secret ibm-fncm-secret -o go-template --template="{{.data.appLoginPassword|base64decode}}"`
     echo "Password                                      : ${NAV_PASSWORD}"
   else
       NAV_USERNAME=`cat  ${LOG_DIR}/filenet-console.log | grep "username"  | awk '{print $2}'| head -n 1`
@@ -44,7 +44,7 @@ cp4baFilenetConsole()
   #ICCSAP
   #################################################
   if [ $DEPLOYMENT_TYPE_TO_LOWER == "production" ]; then
-    oc get cm ${CP4BA_DEPLOYMENT_NAME}-cp4ba-access-info -n ${CP4BA_AUTO_NAMESPACE} -o jsonpath='{.data.ICCSAP-access-info}' &> ${LOG_DIR}/filenet-console.log
+    ${CLI_CMD} get cm ${CP4BA_DEPLOYMENT_NAME}-cp4ba-access-info -n ${CP4BA_AUTO_NAMESPACE} -o jsonpath='{.data.ICCSAP-access-info}' &> ${LOG_DIR}/filenet-console.log
     local SAP_SSL_Webport_URL=`cat  ${LOG_DIR}/filenet-console.log | grep "Content Collector for SAP SSL Webport URL"  | awk '{print $8}' | head -n 1`
     echo "Content Collector for SAP SSL Webport URL     : ${BLUE_TEXT}$SAP_SSL_Webport_URL${RESET_TEXT}"
     local SAP_PLUGIN_URL=`cat  ${LOG_DIR}/filenet-console.log | grep "Content Collector for SAP Plugin URL"  | awk '{print $7}' | head -n 1`
@@ -53,7 +53,7 @@ cp4baFilenetConsole()
   #################################################
   #CPE
   #################################################
-  oc get cm ${CP4BA_DEPLOYMENT_NAME}-cp4ba-access-info -n ${CP4BA_AUTO_NAMESPACE} -o jsonpath='{.data.cpe-access-info}' &> ${LOG_DIR}/filenet-console.log
+  ${CLI_CMD} get cm ${CP4BA_DEPLOYMENT_NAME}-cp4ba-access-info -n ${CP4BA_AUTO_NAMESPACE} -o jsonpath='{.data.cpe-access-info}' &> ${LOG_DIR}/filenet-console.log
   CPE_ADMIN_URL=`cat  ${LOG_DIR}/filenet-console.log | grep "Content Platform Engine administration"  | awk '{print $5}' | head -n 1`
   echo "Content Platform Engine administration        : ${BLUE_TEXT}${CPE_ADMIN_URL}${RESET_TEXT}"
   CPE_HC_URL=`cat  ${LOG_DIR}/filenet-console.log | grep "Content Platform Engine health check"  | awk '{print $6}' | head -n 1`
@@ -88,14 +88,14 @@ cp4baFilenetConsole()
   #################################################
   #GraphQL
   #################################################
-  oc get cm ${CP4BA_DEPLOYMENT_NAME}-cp4ba-access-info -n ${CP4BA_AUTO_NAMESPACE} -o jsonpath='{.data.graphql-access-info}' &> ${LOG_DIR}/graphql-console.log
+  ${CLI_CMD} get cm ${CP4BA_DEPLOYMENT_NAME}-cp4ba-access-info -n ${CP4BA_AUTO_NAMESPACE} -o jsonpath='{.data.graphql-access-info}' &> ${LOG_DIR}/graphql-console.log
   CONTENT_SERVICES_GRAPHQL_URL=`cat  ${LOG_DIR}/graphql-console.log | grep "Content Services GraphQL"  | awk '{print $4}'| head -n 1`
   echo "Content Services GraphQL                      : ${BLUE_TEXT}${CONTENT_SERVICES_GRAPHQL_URL}${RESET_TEXT}"
 
   #################################################
   #CPDS
   #################################################
-  oc get cm ${CP4BA_DEPLOYMENT_NAME}-cp4ba-access-info -n ${CP4BA_AUTO_NAMESPACE} -o jsonpath='{.data.cpds-access-info}' &> ${LOG_DIR}/filenet-cpds-console.log
+  ${CLI_CMD} get cm ${CP4BA_DEPLOYMENT_NAME}-cp4ba-access-info -n ${CP4BA_AUTO_NAMESPACE} -o jsonpath='{.data.cpds-access-info}' &> ${LOG_DIR}/filenet-cpds-console.log
   local CPDS_URL=`cat  ${LOG_DIR}/filenet-cpds-console.log | grep "Content Project Deployment Service"  | awk '{print $5}' | head -n 1`
   echo "Content Project Deployment Service            : ${BLUE_TEXT}$CPDS_URL${RESET_TEXT}"
 }
@@ -108,9 +108,9 @@ cp4baFilenetStatus()
     DEPLOYMENT_TYPE_TO_LOWER=`echo $CP4BA_DEPLOYMENT_TYPE | awk '{print tolower($0)}'`
 
     if [ "$CONTENT_DEPLOYMENT" == "true" ]; then
-      kubectl get Content ${CP4BA_DEPLOYMENT_NAME} -n ${CP4BA_AUTO_NAMESPACE} -o jsonpath='{.status.components}' 2> /dev/null  | jq  . |  sed 's/\"//g' | sed 's/,//g'  | sed 's/://g' | sed 's/{//g' | sed 's/}//g'  &> ${LOG_DIR}/filenet-status.log
+      ${CLI_CMD} get Content ${CP4BA_DEPLOYMENT_NAME} -n ${CP4BA_AUTO_NAMESPACE} -o jsonpath='{.status.components}' 2> /dev/null  | jq  . |  sed 's/\"//g' | sed 's/,//g'  | sed 's/://g' | sed 's/{//g' | sed 's/}//g'  &> ${LOG_DIR}/filenet-status.log
     else
-      kubectl get ICP4ACluster ${CP4BA_DEPLOYMENT_NAME} -n ${CP4BA_AUTO_NAMESPACE} -o jsonpath='{.status.components}' 2> /dev/null  | jq  . |  sed 's/\"//g' | sed 's/,//g'  | sed 's/://g' | sed 's/{//g' | sed 's/}//g'  &> ${LOG_DIR}/filenet-status.log
+      ${CLI_CMD} get ICP4ACluster ${CP4BA_DEPLOYMENT_NAME} -n ${CP4BA_AUTO_NAMESPACE} -o jsonpath='{.status.components}' 2> /dev/null  | jq  . |  sed 's/\"//g' | sed 's/,//g'  | sed 's/://g' | sed 's/{//g' | sed 's/}//g'  &> ${LOG_DIR}/filenet-status.log
     fi
 
     #################################################

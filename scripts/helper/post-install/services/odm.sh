@@ -18,17 +18,17 @@ cp4baODMConsole()
   printHeaderMessage "ODM - Operational Decision Manager Console"
   local CP4BA_DEPLOYMENT_TYPE=${1}
 
-  ODM_USERNAME=`oc get secret platform-auth-idp-credentials -n ibm-common-services 2> /dev/null -o go-template --template="{{.data.admin_username|base64decode}}"`
+  ODM_USERNAME=`${CLI_CMD} get secret platform-auth-idp-credentials -n ibm-common-services 2> /dev/null -o go-template --template="{{.data.admin_username|base64decode}}"`
   if [ -z $ODM_USERNAME ]; then
-    ODM_USERNAME=`oc get secret platform-auth-idp-credentials -n $CP4BA_AUTO_NAMESPACE 2> /dev/null -o go-template --template="{{.data.admin_username|base64decode}}"`
+    ODM_USERNAME=`${CLI_CMD} get secret platform-auth-idp-credentials -n $CP4BA_AUTO_NAMESPACE 2> /dev/null -o go-template --template="{{.data.admin_username|base64decode}}"`
   fi
 
-  ODM_PASSWORD=`oc get secret platform-auth-idp-credentials -n ibm-common-services 2> /dev/null -o go-template --template="{{.data.admin_password|base64decode}}"`
+  ODM_PASSWORD=`${CLI_CMD} get secret platform-auth-idp-credentials -n ibm-common-services 2> /dev/null -o go-template --template="{{.data.admin_password|base64decode}}"`
   if [ -z $ODM_PASSWORD ]; then
-      ODM_PASSWORD=`oc get secret platform-auth-idp-credentials -n $CP4BA_AUTO_NAMESPACE 2> /dev/null -o go-template --template="{{.data.admin_password|base64decode}}"`
+      ODM_PASSWORD=`${CLI_CMD} get secret platform-auth-idp-credentials -n $CP4BA_AUTO_NAMESPACE 2> /dev/null -o go-template --template="{{.data.admin_password|base64decode}}"`
   fi
 
-  oc get cm ${CP4BA_DEPLOYMENT_NAME}-cp4ba-access-info -n ${CP4BA_AUTO_NAMESPACE} -o=jsonpath='{.data.odm-access-info}' 2>/dev/null &> ${LOG_DIR}/odm-console.log
+  ${CLI_CMD} get cm ${CP4BA_DEPLOYMENT_NAME}-cp4ba-access-info -n ${CP4BA_AUTO_NAMESPACE} -o=jsonpath='{.data.odm-access-info}' 2>/dev/null &> ${LOG_DIR}/odm-console.log
   if [ "${CP4BA_DEPLOYMENT_TYPE}" == "Starter" ]; then
     ODM_USERNAME=`cat  ${LOG_DIR}/odm-console.log | grep "username"  | awk '{print $4}'`
     echo "Decisions Admin Username                      : ${ODM_USERNAME}"
@@ -59,7 +59,7 @@ cp4baODMStatus()
     rm ${LOG_DIR}/odm-status.log 2> /dev/null
     echo '' > ${LOG_DIR}/odm-status.log
 
-    kubectl get ICP4ACluster  ${CP4BA_DEPLOYMENT_NAME} -n ${CP4BA_AUTO_NAMESPACE} -o jsonpath='{.status.components.odm}' 2> /dev/null  | jq  . |  sed 's/\"//g' | sed 's/,//g'  | sed 's/://g' | sed 's/{//g' | sed 's/}//g'  &> ${LOG_DIR}/odm-status.log
+    ${CLI_CMD} get ICP4ACluster  ${CP4BA_DEPLOYMENT_NAME} -n ${CP4BA_AUTO_NAMESPACE} -o jsonpath='{.status.components.odm}' 2> /dev/null  | jq  . |  sed 's/\"//g' | sed 's/,//g'  | sed 's/://g' | sed 's/{//g' | sed 's/}//g'  &> ${LOG_DIR}/odm-status.log
 
     CP4BA_ODM_STATUS=`cat ${LOG_DIR}/odm-status.log | grep odmDecisionCenterDeployment | awk '{print $2}'`
     if [ -z ${CP4BA_ODM_STATUS}  ]; then

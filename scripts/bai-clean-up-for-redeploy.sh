@@ -362,7 +362,7 @@ function delete_catalog_sources() {
 
     info "Fetching all catalog sources in namespace: $namespace"
 
-    catalog_source=$(kubectl get catalogsources -n "$namespace" -o custom-columns=":metadata.name" --no-headers)
+    catalog_source=$(${CLI_CMD} get catalogsources -n "$namespace" -o custom-columns=":metadata.name" --no-headers)
 
     if [[ -z "$catalog_source" ]]; then
         echo "No catalog sources found in namespace: $namespace"
@@ -475,7 +475,7 @@ function cleanup_ibm_licensing() {
         echo "No IBM Licensing Subscription found."
     fi
 
-    kubectl get IBMLicensing -n ibm-licensing
+    ${CLI_CMD} get IBMLicensing -n ibm-licensing
 
     echo "IBM Licensing cleanup completed in namespace: $IBM_LICENSING_NAMESPACE"
 }

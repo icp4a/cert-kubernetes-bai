@@ -65,6 +65,8 @@ function upgradedeploymentstatus_mode(){
         fi
     fi
 
+    # The control variable used to detect if the strimzi patch function has to be executed.
+    strimzi_patched=false
     # check for zenStatus and currentverison for zen
 
     zen_service_name=$(${CLI_CMD} get zenService --no-headers --ignore-not-found -n $BAI_SERVICES_NS |awk '{print $1}')
@@ -150,6 +152,13 @@ function upgradedeploymentstatus_mode(){
 
     while true
     do
+        # Each refresh of the zen upgrade , we check if we need to update the kafka strimzi podset
+        # The function patch_strimzi_podset which is defined in common.sh will set strimzi_patched  to true once the patch is completed
+        # For upgrades to 24.0.1 or newer, kafka tasks in the foundation-operator happen after zen is upgraded so this block is after zen upgrade completes
+        # For upgrades to 24.0.0, kafka tasks in the foundation-operator happen before zen is upgraded
+        if [[ $strimzi_patched == "false" ]]; then
+            patch_strimzi_podset $bai_operators_namespace $bai_services_namespace
+        fi
         printf '%s\n' "$(show_bai_upgrade_status)"
         sleep 30
     done

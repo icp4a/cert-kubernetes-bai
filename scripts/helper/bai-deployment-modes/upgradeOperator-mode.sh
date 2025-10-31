@@ -1033,31 +1033,6 @@ function upgradeoperator_mode(){
     # check current bai operator version
     check_bai_operator_version $TARGET_PROJECT_NAME
 
-    #### Check for the operator to validate if it is already up to date with the current version the scripts correspond too ######
-    if [[ "$bai_operator_csv_version" == "${BAI_CSV_VERSION//v/}" ]]; then
-        warning "The BAI standalone operator is already at $BAI_CSV_VERSION."
-        printf "\n"
-        while true; do
-            printf "\x1B[1mDo you want to continue running the upgrade? (Yes/No, default: No): \x1B[0m"
-            read -rp "" ans
-            if [[ -z "$ans" ]]; then
-                ans="no"
-            fi
-            case "$ans" in
-            "y"|"Y"|"yes"|"Yes"|"YES")
-                break
-                ;;
-            "n"|"N"|"no"|"No"|"NO"|"")
-                echo "Exiting..."
-                exit 1
-                ;;
-            *)
-                echo -e "Answer must be \"Yes\" or \"No\"\n"
-                ;;
-            esac
-        done
-    fi
-
     #### Seperaration of duties check ####
     # check if the deployment has seperate operators and operands
     check_bai_separate_operand $TARGET_PROJECT_NAME

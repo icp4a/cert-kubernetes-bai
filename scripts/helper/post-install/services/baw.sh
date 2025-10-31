@@ -20,7 +20,7 @@ cp4baBAWStatus()
     rm ${LOG_DIR}/baw-status.log 2> /dev/null
     DEPLOYMENT_TYPE_TO_LOWER=`echo $CP4BA_DEPLOYMENT_TYPE | awk '{print tolower($0)}'`
 
-    kubectl get ICP4ACluster ${CP4BA_DEPLOYMENT_NAME} -n ${CP4BA_AUTO_NAMESPACE} -o jsonpath='{.status.components.workflow-authoring}' 2> /dev/null  | jq  . |  sed 's/\"//g' | sed 's/,//g'  | sed 's/://g' | sed 's/{//g' | sed 's/}//g'  &> ${LOG_DIR}/workflow-status.log
+    ${CLI_CMD} get ICP4ACluster ${CP4BA_DEPLOYMENT_NAME} -n ${CP4BA_AUTO_NAMESPACE} -o jsonpath='{.status.components.workflow-authoring}' 2> /dev/null  | jq  . |  sed 's/\"//g' | sed 's/,//g'  | sed 's/://g' | sed 's/{//g' | sed 's/}//g'  &> ${LOG_DIR}/workflow-status.log
 
      if [ $DEPLOYMENT_TYPE_TO_LOWER == "production" ]; then
         WF_AUTHORING_STATUS=`cat ${LOG_DIR}/workflow-status.log | grep service | awk '{print $2}'`
@@ -29,7 +29,7 @@ cp4baBAWStatus()
         fi
         echo "workflow-authoring service                  :  ${WF_AUTHORING_STATUS}"
 
-        kubectl get ICP4ACluster ${CP4BA_DEPLOYMENT_NAME} -n ${CP4BA_AUTO_NAMESPACE} -o jsonpath='{.status.components.baw}' 2> /dev/null  | jq  . |  sed 's/\"//g' | sed 's/,//g'  | sed 's/://g' | sed 's/{//g' | sed 's/}//g'  &> ${LOG_DIR}/baw-status.log
+        ${CLI_CMD} get ICP4ACluster ${CP4BA_DEPLOYMENT_NAME} -n ${CP4BA_AUTO_NAMESPACE} -o jsonpath='{.status.components.baw}' 2> /dev/null  | jq  . |  sed 's/\"//g' | sed 's/,//g'  | sed 's/://g' | sed 's/{//g' | sed 's/}//g'  &> ${LOG_DIR}/baw-status.log
 
         CP4BA_BAW_DEPLOYMENT_STATUS=`cat ${LOG_DIR}/baw-status.log| grep bawDeployment |  awk 'NR==1' | awk '{print $2}'`
         if [ -z "${CP4BA_BAW_DEPLOYMENT_STATUS}"  ]; then
@@ -56,21 +56,21 @@ cp4baBAWConsole()
   rm ${LOG_DIR}/bastudio-access-info.log 2> /dev/null
   rm ${LOG_DIR}/baw-authoring-access-info.log 2> /dev/null
 
-  oc get cm ${CP4BA_DEPLOYMENT_NAME}-cp4ba-access-info -n ${CP4BA_AUTO_NAMESPACE} -o jsonpath='{.data.bastudio-access-info}' &> ${LOG_DIR}/bastudio-access-info.log
+  ${CLI_CMD} get cm ${CP4BA_DEPLOYMENT_NAME}-cp4ba-access-info -n ${CP4BA_AUTO_NAMESPACE} -o jsonpath='{.data.bastudio-access-info}' &> ${LOG_DIR}/bastudio-access-info.log
   if [ ! -s "${LOG_DIR}/bastudio-access-info.log" ]; then
     return
   fi
 
   local CP4BA_DEPLOYMENT_TYPE=${1}
 
-  BAW_USERNAME=`oc get secret platform-auth-idp-credentials -n ibm-common-services 2> /dev/null -o go-template --template="{{.data.admin_username|base64decode}}"`
+  BAW_USERNAME=`${CLI_CMD} get secret platform-auth-idp-credentials -n ibm-common-services 2> /dev/null -o go-template --template="{{.data.admin_username|base64decode}}"`
   if [ -z $BAW_USERNAME ]; then
-    BAW_USERNAME=`oc get secret platform-auth-idp-credentials -n $CP4BA_AUTO_NAMESPACE 2> /dev/null -o go-template --template="{{.data.admin_username|base64decode}}"`
+    BAW_USERNAME=`${CLI_CMD} get secret platform-auth-idp-credentials -n $CP4BA_AUTO_NAMESPACE 2> /dev/null -o go-template --template="{{.data.admin_username|base64decode}}"`
   fi
 
-  BAW_PASSWORD=`oc get secret platform-auth-idp-credentials -n ibm-common-services 2> /dev/null -o go-template --template="{{.data.admin_password|base64decode}}"`
+  BAW_PASSWORD=`${CLI_CMD} get secret platform-auth-idp-credentials -n ibm-common-services 2> /dev/null -o go-template --template="{{.data.admin_password|base64decode}}"`
   if [ -z $BAW_PASSWORD ]; then
-      BAW_PASSWORD=`oc get secret platform-auth-idp-credentials -n $CP4BA_AUTO_NAMESPACE 2> /dev/null -o go-template --template="{{.data.admin_password|base64decode}}"`
+      BAW_PASSWORD=`${CLI_CMD} get secret platform-auth-idp-credentials -n $CP4BA_AUTO_NAMESPACE 2> /dev/null -o go-template --template="{{.data.admin_password|base64decode}}"`
   fi
 
   printHeaderMessage "BAW - Business Automation Workflow, BA Studio Console"
@@ -108,20 +108,20 @@ cp4baBAWConsole()
 }
 cp4baBAWWorklowAuthoringConsole()
 {
-  oc get cm ${CP4BA_DEPLOYMENT_NAME}-cp4ba-access-info -n ${CP4BA_AUTO_NAMESPACE} -o jsonpath='{.data.workflow-authoring-access-info}' &> ${LOG_DIR}/baw-authoring-access-info.log
+  ${CLI_CMD} get cm ${CP4BA_DEPLOYMENT_NAME}-cp4ba-access-info -n ${CP4BA_AUTO_NAMESPACE} -o jsonpath='{.data.workflow-authoring-access-info}' &> ${LOG_DIR}/baw-authoring-access-info.log
   if [ ! -s "${LOG_DIR}/baw-authoring-access-info.log" ]; then
     return
   fi
 
   local CP4BA_DEPLOYMENT_TYPE=${1}
-  BAW_USERNAME=`oc get secret platform-auth-idp-credentials -n ibm-common-services 2> /dev/null -o go-template --template="{{.data.admin_username|base64decode}}"`
+  BAW_USERNAME=`${CLI_CMD} get secret platform-auth-idp-credentials -n ibm-common-services 2> /dev/null -o go-template --template="{{.data.admin_username|base64decode}}"`
   if [ -z $BAW_USERNAME ]; then
-    BAW_USERNAME=`oc get secret platform-auth-idp-credentials -n $CP4BA_AUTO_NAMESPACE 2> /dev/null -o go-template --template="{{.data.admin_username|base64decode}}"`
+    BAW_USERNAME=`${CLI_CMD} get secret platform-auth-idp-credentials -n $CP4BA_AUTO_NAMESPACE 2> /dev/null -o go-template --template="{{.data.admin_username|base64decode}}"`
   fi
 
-  BAW_PASSWORD=`oc get secret platform-auth-idp-credentials -n ibm-common-services 2> /dev/null -o go-template --template="{{.data.admin_password|base64decode}}"`
+  BAW_PASSWORD=`${CLI_CMD} get secret platform-auth-idp-credentials -n ibm-common-services 2> /dev/null -o go-template --template="{{.data.admin_password|base64decode}}"`
   if [ -z $BAW_PASSWORD ]; then
-      BAW_PASSWORD=`oc get secret platform-auth-idp-credentials -n $CP4BA_AUTO_NAMESPACE 2> /dev/null -o go-template --template="{{.data.admin_password|base64decode}}"`
+      BAW_PASSWORD=`${CLI_CMD} get secret platform-auth-idp-credentials -n $CP4BA_AUTO_NAMESPACE 2> /dev/null -o go-template --template="{{.data.admin_password|base64decode}}"`
   fi
 
   printHeaderMessage "BAW - Business Automation Workflow Authoring Console"

@@ -50,7 +50,7 @@ function generate_cncf_ingress_templates(){
     rm -rf $GENERATED_INGRESS_FILE_FOLDER >/dev/null 2>&1
     mkdir -p $GENERATED_INGRESS_FILE_FOLDER >/dev/null 2>&1
     bai_cncf_generate_ingress "$TARGET_PROJECT_NAME" "$GENERATED_INGRESS_FILE_FOLDER/ingress_nginx.yaml" "$tls_enable"
-    success "The ingress file has been created successfully. After reviewing the file, apply the yaml file using the command ${GREEN_TEXT}\"kubectl apply -f $GENERATED_INGRESS_FILE_FOLDER/ingress_nginx.yaml\"${RESET_TEXT}"
+    success "The ingress file has been created successfully. After reviewing the file, apply the yaml file using the command ${GREEN_TEXT}\"${CLI_CMD} apply -f $GENERATED_INGRESS_FILE_FOLDER/ingress_nginx.yaml\"${RESET_TEXT}"
     exit
 }
 

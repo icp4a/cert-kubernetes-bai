@@ -18,9 +18,9 @@ cp4baTMStatus()
   printHeaderMessage "CP4BA Service Status - Task Manager $1"
   rm ${LOG_DIR}/tm-status.log 2> /dev/null
   if [[ $CONTENT_DEPLOYMENT == "true" ]]; then
-    kubectl get Content  ${CP4BA_DEPLOYMENT_NAME} -n ${CP4BA_AUTO_NAMESPACE} -o jsonpath='{.status.components.tm}' 2> /dev/null | jq  . |  sed 's/\"//g' | sed 's/,//g'  | sed 's/://g' | sed 's/{//g' | sed 's/}//g'  &> ${LOG_DIR}/tm-status.log
+    ${CLI_CMD} get Content  ${CP4BA_DEPLOYMENT_NAME} -n ${CP4BA_AUTO_NAMESPACE} -o jsonpath='{.status.components.tm}' 2> /dev/null | jq  . |  sed 's/\"//g' | sed 's/,//g'  | sed 's/://g' | sed 's/{//g' | sed 's/}//g'  &> ${LOG_DIR}/tm-status.log
   else
-    kubectl get ICP4ACluster  ${CP4BA_DEPLOYMENT_NAME} -n ${CP4BA_AUTO_NAMESPACE} -o jsonpath='{.status.components.tm}' 2> /dev/null | jq  . |  sed 's/\"//g' | sed 's/,//g'  | sed 's/://g' | sed 's/{//g' | sed 's/}//g'  &> ${LOG_DIR}/tm-status.log
+    ${CLI_CMD} get ICP4ACluster  ${CP4BA_DEPLOYMENT_NAME} -n ${CP4BA_AUTO_NAMESPACE} -o jsonpath='{.status.components.tm}' 2> /dev/null | jq  . |  sed 's/\"//g' | sed 's/,//g'  | sed 's/://g' | sed 's/{//g' | sed 's/}//g'  &> ${LOG_DIR}/tm-status.log
   fi
   TM_DEPLOYMENT_STATUS=`cat ${LOG_DIR}/tm-status.log | grep tmDeployment | awk '{print $2}'`
   if [ -z ${TM_DEPLOYMENT_STATUS}  ]; then
@@ -53,7 +53,7 @@ cp4baTMConsole()
     rm ${LOG_DIR}/tm-console.log 2> /dev/null
     echo '' > ${LOG_DIR}/tm-console.log
 
-    oc get cm ${CP4BA_DEPLOYMENT_NAME}-cp4ba-access-info -n ${CP4BA_AUTO_NAMESPACE} -o jsonpath='{.data.taskmanager-access-info}' &> ${LOG_DIR}/tm-console.log
+    ${CLI_CMD} get cm ${CP4BA_DEPLOYMENT_NAME}-cp4ba-access-info -n ${CP4BA_AUTO_NAMESPACE} -o jsonpath='{.data.taskmanager-access-info}' &> ${LOG_DIR}/tm-console.log
     TM_URL=`cat  ${LOG_DIR}/tm-console.log | grep "Task Manager"  | awk '{print $3}'| head -n 1`
     echo "Task Manager                                  : ${BLUE_TEXT}${TM_URL}${RESET_TEXT}"
 }

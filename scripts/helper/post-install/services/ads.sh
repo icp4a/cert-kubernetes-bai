@@ -17,7 +17,7 @@ cp4baADSStatus()
 {
   printHeaderMessage "CP4BA Service Status - Automation Decision Services"
   rm ${LOG_DIR}/ads-status.log 2> /dev/null
-  kubectl get ICP4ACluster  ${CP4BA_DEPLOYMENT_NAME} -n ${CP4BA_AUTO_NAMESPACE} -o jsonpath='{.status.components}' 2> /dev/null | jq  . |  sed 's/\"//g' | sed 's/,//g'  | sed 's/://g' | sed 's/{//g' | sed 's/}//g'  &> ${LOG_DIR}/ads-status.log
+  ${CLI_CMD} get ICP4ACluster  ${CP4BA_DEPLOYMENT_NAME} -n ${CP4BA_AUTO_NAMESPACE} -o jsonpath='{.status.components}' 2> /dev/null | jq  . |  sed 's/\"//g' | sed 's/,//g'  | sed 's/://g' | sed 's/{//g' | sed 's/}//g'  &> ${LOG_DIR}/ads-status.log
 
   local adsBuildServiceDeployment_STATUS=`cat ${LOG_DIR}/ads-status.log | grep adsBuildServiceDeployment | awk '{print $2}'`
   if [ -z ${adsBuildServiceDeployment_STATUS}  ]; then
@@ -133,13 +133,13 @@ cp4baADSConsole()
   printHeaderMessage "ADS - Automation Decision Services Console"
   rm ${LOG_DIR}/ads-console.log 2> /dev/null
 
-  kubectl get cm ${CP4BA_DEPLOYMENT_NAME}-cp4ba-access-info -n ${CP4BA_AUTO_NAMESPACE} -o jsonpath='{.data.ADS-runtime-access-info}' &> ${LOG_DIR}/ads-console.log
+  ${CLI_CMD} get cm ${CP4BA_DEPLOYMENT_NAME}-cp4ba-access-info -n ${CP4BA_AUTO_NAMESPACE} -o jsonpath='{.data.ADS-runtime-access-info}' &> ${LOG_DIR}/ads-console.log
 
   DEPLOYMENT_TYPE_TO_LOWER=`echo $CP4BA_DEPLOYMENT_TYPE | awk '{print tolower($0)}'`
   if [ "$DEPLOYMENT_TYPE_TO_LOWER" == "production" ]; then
-    NAV_USERNAME=`oc get secret ibm-ban-secret -o go-template --template="{{.data.appLoginUsername|base64decode}}"`
+    NAV_USERNAME=`${CLI_CMD} get secret ibm-ban-secret -o go-template --template="{{.data.appLoginUsername|base64decode}}"`
     echo "Username                                      : ${NAV_USERNAME}"
-    NAV_PASSWORD=`oc get secret ibm-ban-secret -o go-template --template="{{.data.appLoginPassword|base64decode}}"`
+    NAV_PASSWORD=`${CLI_CMD} get secret ibm-ban-secret -o go-template --template="{{.data.appLoginPassword|base64decode}}"`
     echo "Password                                      : ${NAV_PASSWORD}"
   else
       NAV_USERNAME=`cat  ${LOG_DIR}/ads-console.log | grep "username"  | awk '{print $2}'| head -n 1`

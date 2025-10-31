@@ -20,7 +20,7 @@ cp4baPFSStatus()
 
     DEPLOYMENT_TYPE_TO_LOWER=`echo $CP4BA_DEPLOYMENT_TYPE | awk '{print tolower($0)}'`
 
-    kubectl get ICP4ACluster ${CP4BA_DEPLOYMENT_NAME} -n ${CP4BA_AUTO_NAMESPACE} -o jsonpath='{.status.components}' 2> /dev/null  | jq  . |  sed 's/\"//g' | sed 's/,//g'  | sed 's/://g' | sed 's/{//g' | sed 's/}//g'  &> ${LOG_DIR}/pfs-status.log
+    ${CLI_CMD} get ICP4ACluster ${CP4BA_DEPLOYMENT_NAME} -n ${CP4BA_AUTO_NAMESPACE} -o jsonpath='{.status.components}' 2> /dev/null  | jq  . |  sed 's/\"//g' | sed 's/,//g'  | sed 's/://g' | sed 's/{//g' | sed 's/}//g'  &> ${LOG_DIR}/pfs-status.log
 
     CP4BA_PFS_DEPLOYMENT_STATUS=`cat ${LOG_DIR}/pfs-status.log | grep pfsDeployment | awk '{print $2}'`
     if [ -z ${CP4BA_PFS_DEPLOYMENT_STATUS}  ]; then

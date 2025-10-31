@@ -159,12 +159,12 @@ EOF
     #     echo -e "\x1B[1;31mFailed\x1B[0m"
     # fi
    # Check Operator Persistent Volume status every 5 seconds (max 1 minutes) until allocate.
-    kubectl apply -f ${STORAGE_CLASS_SAMPLE} >/dev/null 2>&1
+    ${CLI_CMD} apply -f ${STORAGE_CLASS_SAMPLE} >/dev/null 2>&1
     ATTEMPTS=0
     TIMEOUT=12
     printf "\n"
     info "Checking the storage class: \"${sc_name}\"..."
-    until kubectl get pvc | grep ${sample_pvc_name}| grep -q -m 1 "Bound" || [ $ATTEMPTS -eq $TIMEOUT ]; do
+    until ${CLI_CMD} get pvc | grep ${sample_pvc_name}| grep -q -m 1 "Bound" || [ $ATTEMPTS -eq $TIMEOUT ]; do
         ATTEMPTS=$((ATTEMPTS + 1))
         echo -e "......"
         sleep 5
@@ -176,7 +176,7 @@ EOF
     done
     if [ $ATTEMPTS -lt $TIMEOUT ] ; then
         success "Verification storage class: \"${sc_name}\", PASSED!"
-        kubectl delete -f ${STORAGE_CLASS_SAMPLE} >/dev/null 2>&1
+        ${CLI_CMD} delete -f ${STORAGE_CLASS_SAMPLE} >/dev/null 2>&1
         verification_sc_passed="Yes"
         printf "\n"
     fi
@@ -215,7 +215,7 @@ function validate_secret_in_cluster(){
             secret_name_tmp=$(sed -e 's/^"//' -e 's/"$//' <<<"$secret_name_tmp")
             # need to check ibm-zen-metastore-edb-cm/im-datastore-edb-cm for Zen/IM and ibm-bts-config-extension external postgresql db support
             if [[ $secret_name_tmp != "ibm-zen-metastore-edb-cm" && $secret_name_tmp != "im-datastore-edb-cm" && $secret_name_tmp != "ibm-bts-config-extension" ]]; then
-                secret_exists=`kubectl get secret $secret_name_tmp -n $BAI_SERVICES_NS --ignore-not-found | wc -l`  >/dev/null 2>&1
+                secret_exists=`${CLI_CMD} get secret $secret_name_tmp -n $BAI_SERVICES_NS --ignore-not-found | wc -l`  >/dev/null 2>&1
                 if [ "$secret_exists" -ne 2 ] ; then
                     error "Secret \"$secret_name_tmp\" not found in Kubernetes cluster! Please create it before deploying BAI Standalone"
                     SECRET_CREATE_PASSED="false"
@@ -223,7 +223,7 @@ function validate_secret_in_cluster(){
                     success "Secret \"$secret_name_tmp\" found in Kubernetes cluster, PASSED!"              
                 fi
             else
-                secret_exists=`kubectl get configmap $secret_name_tmp -n $BAI_SERVICES_NS --ignore-not-found | wc -l`  >/dev/null 2>&1
+                secret_exists=`${CLI_CMD} get configmap $secret_name_tmp -n $BAI_SERVICES_NS --ignore-not-found | wc -l`  >/dev/null 2>&1
                 if [ "$secret_exists" -ne 2 ] ; then
                     error "ConfigMap \"$secret_name_tmp\" not found in Kubernetes cluster! Please create it before deploying BAI Standalone"
                     SECRET_CREATE_PASSED="false"
@@ -258,7 +258,7 @@ function validate_secret_in_cluster(){
             exit 1
         else
             secret_name_tmp=$(sed -e 's/^"//' -e 's/"$//' <<<"$secret_name_tmp")
-            secret_exists=`kubectl get secret $secret_name_tmp -n $BAI_SERVICES_NS --ignore-not-found | wc -l`  >/dev/null 2>&1
+            secret_exists=`${CLI_CMD} get secret $secret_name_tmp -n $BAI_SERVICES_NS --ignore-not-found | wc -l`  >/dev/null 2>&1
             if [ "$secret_exists" -ne 2 ] ; then
                 error "Secret \"$secret_name_tmp\" not found in Kubernetes cluster! Please create it before deploying BAI Standalone"
                 SECRET_CREATE_PASSED="false"
@@ -300,36 +300,38 @@ function verify_ldap_connection(){
 
         openssl x509 -outform der -in $tmp_cert_folder/ldap-cert.crt -out /tmp/ldap.der 2>&1 </dev/null
         keytool -import -alias cp4baLdapCerts -keystore /tmp/ldap-truststore.jks -file /tmp/ldap.der -storepass "$ldap_truststore_password" -storetype JKS -noprompt 2>&1 </dev/null
-        msg "Checking connection for LDAP server \"$ldap_server\" using Bind DN \"$ldap_binddn\".."
+        msg "Checking connection for LDAP server \"$ldap_server\" using BindDN \"$ldap_binddn\".."
         output=$(java -Dsemeru.fips=$fips_flag -Djavax.net.ssl.trustStore=/tmp/ldap-truststore.jks -Djavax.net.ssl.trustStorePassword=$ldap_truststore_password -jar ${LDAP_TEST_JAR_PATH}/LdapTest.jar -u "ldaps://$ldap_server:$ldap_port" -b "$ldap_basedn" -D "$ldap_binddn" -w "$ldap_binddn_pwd" 2>&1)
-        retVal_verify_ldap_tmp=$?
-        
-        # syncing the way we detect the LDAP connection failure similar to CP4BA and also printing the latency and connection time only if we have a successful connection
-        if [[ "$output" == *"Error while binding to LDAP"* ]]; then
-            warning "Execute: java -Dsemeru.fips=$fips_flag -Djavax.net.ssl.trustStore=/tmp/ldap-truststore.jks -Djavax.net.ssl.trustStorePassword=$ldap_truststore_password -jar ${LDAP_TEST_JAR_PATH}/LdapTest.jar -u \"ldaps://$ldap_server:$ldap_port\" -b \"$ldap_basedn\" -D \"$ldap_binddn\" -w \"******\"" && \
-            fail "Unable to connect to the LDAP server \"$ldap_server\" using Bind DN \"$ldap_binddn\", Please check the configuration supplied in ldap property file again."
-        else
-            success "Connected to LDAP \"$ldap_server\" using BindDN:\"$ldap_binddn\" successfuly, PASSED!"
+
+        # https://jsw.ibm.com/browse/DBACLD-192983 Check for successful connection - ONLY consider it successful if:
+        # The output contains "Connected to: ldaps://$ldap_server:$ldap_port" (indicating successful connection)
+        if [[ "$output" == *"Connected to: ldaps://$ldap_server:$ldap_port"* ]]; then
+            success "Connected to LDAP \"$ldap_server\" using BindDN:\"$ldap_binddn\" successfully, PASSED!"
+            printf "\n"
             connection_time=$(echo $output | awk -F 'Round Trip time: ' '{print $2}' | awk '{print $1}')
             if [[ ! -z $connection_time ]]; then
-                display_latency_warning $connection_time "LDAP"
+              display_latency_warning $connection_time "LDAP"
             fi
+        else
+            warning "Execute: java -Dsemeru.fips=$fips_flag -Djavax.net.ssl.trustStore=/tmp/ldap-truststore.jks -Djavax.net.ssl.trustStorePassword=$ldap_truststore_password -jar ${LDAP_TEST_JAR_PATH}/LdapTest.jar -u \"ldaps://$ldap_server:$ldap_port\" -b \"$ldap_basedn\" -D \"$ldap_binddn\" -w \"******\"" && \
+            fail "Unable to connect to LDAP server \"$ldap_server\" using BindDN \"$ldap_binddn\", please check configuration in LDAP property again."
         fi
     else
         msg "Checking connection for LDAP server \"$ldap_server\" using Bind DN \"$ldap_binddn\".."
         output=$(java -Dsemeru.fips=$fips_flag -jar ${LDAP_TEST_JAR_PATH}/LdapTest.jar -u "ldap://$ldap_server:$ldap_port" -b "$ldap_basedn" -D "$ldap_binddn" -w "$ldap_binddn_pwd" 2>&1)
-        retVal_verify_ldap_tmp=$?
-
-        # syncing the way we detect the LDAP connection failure similar to CP4BA and also printing the latency and connection time only if we have a successful connection
-        if [[ "$output" == *"Error while binding to LDAP"* ]]; then
-            warning "Execution: java -Dsemeru.fips=$fips_flag -jar ${LDAP_TEST_JAR_PATH}/LdapTest.jar -u \"ldap://$ldap_server:$ldap_port\" -b \"$ldap_basedn\" -D \"$ldap_binddn\" -w \"******\"" && \
-            fail "Unable to connect to the LDAP server \"$ldap_server\" using Bind DN \"$ldap_binddn\", Please check the configuration supplied in ldap property file again."
-        else
-            success "Connected to LDAP \"$ldap_server\" using BindDN:\"$ldap_binddn\" successfuly, PASSED!"
+        
+        # https://jsw.ibm.com/browse/DBACLD-192983 Check for successful connection - ONLY consider it successful if:
+        # The output contains "Connected to: ldap://$ldap_server:$ldap_port" (indicating successful connection)
+        if [[ "$output" == *"Connected to: ldap://$ldap_server:$ldap_port"* ]]; then
+            success "Connected to LDAP \"$ldap_server\" using BindDN:\"$ldap_binddn\" successfully, PASSED!"
+            printf "\n"
             connection_time=$(echo $output | awk -F 'Round Trip time: ' '{print $2}' | awk '{print $1}')
             if [[ ! -z $connection_time ]]; then
-                display_latency_warning $connection_time "LDAP"
+              display_latency_warning $connection_time "LDAP"
             fi
+        else
+            warning "Execution: java -Dsemeru.fips=$fips_flag -jar ${LDAP_TEST_JAR_PATH}/LdapTest.jar -u \"ldap://$ldap_server:$ldap_port\" -b \"$ldap_basedn\" -D \"$ldap_binddn\" -w \"******\"" && \
+            fail "Unable to connect to LDAP server \"$ldap_server\" using BindDN \"$ldap_binddn\", please check configuration in LDAP property again."
         fi
     fi 
 }
@@ -475,7 +477,7 @@ function validate_prerequisites(){
     verify_storage_class_valid $tmp_storage_classname "ReadWriteOnce" $sample_pvc_name
 
     if [[ $verification_sc_passed == "No" ]]; then
-        kubectl delete pvc -l bai=test-only >/dev/null 2>&1
+        ${CLI_CMD} delete pvc -l bai=test-only >/dev/null 2>&1
         exit 0
     fi
 
