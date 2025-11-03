@@ -113,7 +113,7 @@ function parse_arguments() {
                 # Check cluster login
                 check_cluster_login
                 # Check project name
-                isProjExists=`kubectl get project $TARGET_PROJECT_NAME --ignore-not-found | wc -l`  >/dev/null 2>&1
+                isProjExists=`${CLI_CMD} get project $TARGET_PROJECT_NAME --ignore-not-found | wc -l`  >/dev/null 2>&1
                 if [ $isProjExists -ne 2 ] ; then
                     echo -e "\x1B[1;31mInvalid project name \"$TARGET_PROJECT_NAME\", set a valid name...\x1B[0m"
                     exit 1
@@ -1109,28 +1109,6 @@ function select_upgrade_mode(){
     done
 }
 
-function select_restricted_internet_access(){
-    printf "\n"
-    echo ""
-    while true; do
-        printf "\x1B[1mDo you want to restrict network egress to unknown external destination for this BAI standalone deployment?\x1B[0m ${YELLOW_TEXT}(Notes: BAI standalone $BAI_RELEASE_BASE prevents all network egress to unknown destinations by default. You can either (1) enable all egress or (2) accept the new default and create network policies to allow your specific communication targets as documented in the knowledge center.)${RESET_TEXT} (Yes/No, default: Yes): "
-        read -rp "" ans
-        case "$ans" in
-        "y"|"Y"|"yes"|"Yes"|"YES"|"")
-            RESTRICTED_INTERNET_ACCESS="true"
-            break
-            ;;
-        "n"|"N"|"no"|"No"|"NO")
-            RESTRICTED_INTERNET_ACCESS="false"
-            break
-            ;;
-        *)
-            echo -e "Answer must be \"Yes\" or \"No\"\n"
-            ;;
-        esac
-    done
-}
-
 function select_ldap_type(){
     printf "\n"
     while true; do
@@ -1229,7 +1207,7 @@ function set_ldap_type_content_pattern(){
 
 function select_fips_enable(){
     select_project
-    all_fips_enabled_flag=$(kubectl get configmap bai-fips-status --no-headers --ignore-not-found -n $TARGET_PROJECT_NAME -o jsonpath={.data.all-fips-enabled})
+    all_fips_enabled_flag=$(${CLI_CMD} get configmap bai-fips-status --no-headers --ignore-not-found -n $TARGET_PROJECT_NAME -o jsonpath={.data.all-fips-enabled})
     if [ -z $all_fips_enabled_flag ]; then
         warning "Not found configmap \"bai-fips-status\" in project \"$TARGET_PROJECT_NAME\". setting shared_configuration.enable_fips as \"false\" by default in final custom resource file"
         sleep 3
@@ -1330,7 +1308,7 @@ function input_information(){
                 BLOCK_STORAGE_CLASS_NAME=$(prop_user_profile_property_file BAI_STANDALONE.BLOCK_STORAGE_CLASS_NAME)
 
                 select_project
-                select_restricted_internet_access
+                #select_restricted_internet_access
                 flink_job_cr_arr=()
                 for i in $(cat $USER_PROFILE_PROPERTY_FILE | grep BAI_STANDALONE.FLINK_JOB_  | grep "True" | tr '[:upper:]' '[:lower:]' | sed 's/.*\.//; s/=.*//')
                 do
@@ -1361,7 +1339,7 @@ function input_information(){
             select_iam_default_admin
 
             select_project
-            select_restricted_internet_access
+            #select_restricted_internet_access
             select_flink_job
         fi
         check_ocp_version
@@ -1440,7 +1418,7 @@ function sync_property_into_final_cr(){
         fi
 
         # set lc_bind_secret
-        tmp_secret_name=`kubectl get secret -l name=ldap-bind-secret -o yaml | ${YQ_CMD} r - items.[0].metadata.name`
+        tmp_secret_name=`${CLI_CMD} get secret -l name=ldap-bind-secret -o yaml | ${YQ_CMD} r - items.[0].metadata.name`
         ${YQ_CMD} w -i ${BAI_PATTERN_FILE_TMP} spec.ldap_configuration.lc_bind_secret "\"$tmp_secret_name\""
     else
         ${YQ_CMD} d -i ${BAI_PATTERN_FILE_TMP} spec.ldap_configuration
@@ -1788,7 +1766,7 @@ function startup_operator(){
     local project_name=$1
     local run_mode=$2  # silent
     info "Scaling up \"IBM Business Automation Insights standalone\" operator"
-    kubectl scale --replicas=1 deployment ibm-bai-insights-engine-operator -n $project_name >/dev/null 2>&1
+    ${CLI_CMD} scale --replicas=1 deployment ibm-bai-insights-engine-operator -n $project_name >/dev/null 2>&1
     if [ $? -eq 0 ]; then
         sleep 1
         if [[ -z "$run_mode" ]]; then
@@ -1800,7 +1778,7 @@ function startup_operator(){
 
 
     info "Scaling up \"IBM BAI standalone Foundation\" operator"
-    kubectl scale --replicas=1 deployment ibm-bai-foundation-operator -n $project_name >/dev/null 2>&1
+    ${CLI_CMD} scale --replicas=1 deployment ibm-bai-foundation-operator -n $project_name >/dev/null 2>&1
     if [ $? -eq 0 ]; then
         sleep 1
         if [[ -z "$run_mode" ]]; then
@@ -1815,11 +1793,11 @@ function shutdown_operator(){
     # scale down BAI standalone operators
     local project_name=$1
     info "Scaling down \"IBM BAI standalone Insights Engine\" operator"
-    kubectl scale --replicas=0 deployment ibm-bai-insights-engine-operator -n $project_name >/dev/null 2>&1
+    ${CLI_CMD} scale --replicas=0 deployment ibm-bai-insights-engine-operator -n $project_name >/dev/null 2>&1
     sleep 1
     echo "Done!"
     info "Scaling down \"IBM BAI standalone Foundation\" operator"
-    kubectl scale --replicas=0 deployment ibm-bai-foundation-operator -n $project_name >/dev/null 2>&1
+    ${CLI_CMD} scale --replicas=0 deployment ibm-bai-foundation-operator -n $project_name >/dev/null 2>&1
     sleep 1
     echo "Done!"
 }
@@ -1830,7 +1808,7 @@ function create_project() {
     isProjExists=`${CLI_CMD} get project $project_name --ignore-not-found | wc -l`  >/dev/null 2>&1
 
     if [ $isProjExists -ne 2 ] ; then
-        oc new-project ${project_name} >/dev/null 2>&1
+        ${CLI_CMD} new-project ${project_name} >/dev/null 2>&1
         returnValue=$?
         if [ "$returnValue" == 1 ]; then
             if [ -z "$BAI_AUTO_NAMESPACE" ]; then
@@ -1871,10 +1849,10 @@ function cncf_install(){
   else
       sed -e '/imagePullSecrets:/{N;d;}' ${CUR_DIR}/../upgradeOperator.yaml > ${CUR_DIR}/../upgradeOperatorsav.yaml ;  mv ${CUR_DIR}/../upgradeOperatorsav.yaml ${CUR_DIR}/../upgradeOperator.yaml
   fi
-  kubectl apply -f ${CUR_DIR}/../descriptors/service_account.yaml --validate=false
-  kubectl apply -f ${CUR_DIR}/../descriptors/role.yaml --validate=false
-  kubectl apply -f ${CUR_DIR}/../descriptors/role_binding.yaml --validate=false
-  kubectl apply -f ${CUR_DIR}/../upgradeOperator.yaml --validate=false
+  ${CLI_CMD} apply -f ${CUR_DIR}/../descriptors/service_account.yaml --validate=false
+  ${CLI_CMD} apply -f ${CUR_DIR}/../descriptors/role.yaml --validate=false
+  ${CLI_CMD} apply -f ${CUR_DIR}/../descriptors/role_binding.yaml --validate=false
+  ${CLI_CMD} apply -f ${CUR_DIR}/../upgradeOperator.yaml --validate=false
 }
 
 
@@ -2054,29 +2032,6 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
     # check current bai operator version
     check_bai_operator_version $TARGET_PROJECT_NAME
 
-    #### Check for the operator to validate if it is already up to date with the current version the scripts correspond too ######
-    if [[ "$bai_operator_csv_version" == "${BAI_CSV_VERSION//v/}" ]]; then
-        warning "The BAI standalone operator is already at $BAI_CSV_VERSION."
-        printf "\n"
-        while true; do
-            printf "\x1B[1mDo you want to continue running the upgrade? (Yes/No, default: No): \x1B[0m"
-            read -rp "" ans
-            case "$ans" in
-            "y"|"Y"|"yes"|"Yes"|"YES")
-                break
-                ;;
-            "n"|"N"|"no"|"No"|"NO"|"")
-                echo "Exiting..."
-                exit 1
-                ;;
-            *)
-                echo -e "Answer must be \"Yes\" or \"No\"\n"
-                ;;
-            esac
-        done
-    fi
-    #### Check for the operator to validate if it is already up to date with the current version the scripts correspond too ######
-
     #### Seperaration of duties check ####
 
     # check if the deployment has seperate operators and operands
@@ -2119,7 +2074,7 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
 
 
     # Checking CSV and subscription for bai-operator
-    sub_inst_list=$(kubectl get subscriptions.operators.coreos.com -n $TARGET_PROJECT_NAME|grep ibm-bai-insights-engine-operator|awk '{if(NR>0){if(NR==1){ arr=$1; }else{ arr=arr" "$1; }} } END{ print arr }')
+    sub_inst_list=$(${CLI_CMD} get subscriptions.operators.coreos.com -n $TARGET_PROJECT_NAME|grep ibm-bai-insights-engine-operator|awk '{if(NR>0){if(NR==1){ arr=$1; }else{ arr=arr" "$1; }} } END{ print arr }')
     if [[ -z $sub_inst_list ]]; then
         info "No existing BAI standalone subscriptions found, continue ..."
         exit 1
@@ -2129,8 +2084,8 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
     for i in ${!sub_array[@]}; do
         if [[ ! -z "${sub_array[i]}" ]]; then
             if [[ ${sub_array[i]} = ibm-bai-operator* ]]; then
-                current_version=$(kubectl get subscriptions.operators.coreos.com ${sub_array[i]} --no-headers --ignore-not-found -n $TARGET_PROJECT_NAME -o 'jsonpath={.status.currentCSV}') >/dev/null 2>&1
-                installed_version=$(kubectl get subscriptions.operators.coreos.com ${sub_array[i]} --no-headers --ignore-not-found -n $TARGET_PROJECT_NAME -o 'jsonpath={.status.installedCSV}') >/dev/null 2>&1
+                current_version=$(${CLI_CMD} get subscriptions.operators.coreos.com ${sub_array[i]} --no-headers --ignore-not-found -n $TARGET_PROJECT_NAME -o 'jsonpath={.status.currentCSV}') >/dev/null 2>&1
+                installed_version=$(${CLI_CMD} get subscriptions.operators.coreos.com ${sub_array[i]} --no-headers --ignore-not-found -n $TARGET_PROJECT_NAME -o 'jsonpath={.status.installedCSV}') >/dev/null 2>&1
                 if [[ -z $current_version || -z $installed_version ]]; then
                     error "Failed to retrieve installed or current CSV. Aborting the upgrade procedure. Check the subscription status of ${sub_array[i]}."
                     exit 1
@@ -2178,7 +2133,7 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
         done
     fi
 
-    PLATFORM_SELECTED=$(eval echo $(kubectl get insightsengine $(kubectl get insightsengine --no-headers --ignore-not-found -n $BAI_SERVICES_NS | grep NAME -v | awk '{print $1}') --no-headers --ignore-not-found -n $BAI_SERVICES_NS -o yaml | grep sc_deployment_platform | tail -1 | cut -d ':' -f 2))
+    PLATFORM_SELECTED=$(eval echo $(${CLI_CMD} get insightsengine $(${CLI_CMD} get insightsengine --no-headers --ignore-not-found -n $BAI_SERVICES_NS | grep NAME -v | awk '{print $1}') --no-headers --ignore-not-found -n $BAI_SERVICES_NS -o yaml | grep sc_deployment_platform | tail -1 | cut -d ':' -f 2))
     if [[ -z $PLATFORM_SELECTED ]]; then
         fail "No custom resource found for BAI Standalone under project \"$BAI_SERVICES_NS\", exiting"
         exit 1
@@ -3124,6 +3079,8 @@ if [[ "$RUNTIME_MODE" == "upgradeDeploymentStatus" ]]; then
     if [[ ! -z "$zen_service_name" ]]; then
         clear
         maxRetry=360
+        # The control variable used to detect if the strimzi patch function has to be executed.
+        strimzi_patched=false
         for ((retry=0;retry<=${maxRetry};retry++)); do
             # # As workaround for https://github.ibm.com/IBMPrivateCloud/roadmap/issues/64207
             # # update secret postgresql-operator-controller-manager-config in <BAI Standalone> namespace and/or ibm-common-services namespace and add this annotation ibm-bts/skip-updates: "true"
@@ -3134,7 +3091,6 @@ if [[ "$RUNTIME_MODE" == "upgradeDeploymentStatus" ]]; then
             zenservice_version=$(${CLI_CMD} get zenService $zen_service_name --no-headers --ignore-not-found -n $BAI_SERVICES_NS -o jsonpath='{.status.currentVersion}')
             isCompleted=$(${CLI_CMD} get zenService $zen_service_name --no-headers --ignore-not-found -n $BAI_SERVICES_NS -o jsonpath='{.status.zenStatus}')
             isProgressDone=$(${CLI_CMD} get zenService $zen_service_name --no-headers --ignore-not-found -n $BAI_SERVICES_NS -o jsonpath='{.status.Progress}')
-
             if [[ "$isCompleted" != "Completed" || "$isProgressDone" != "100%" || "$zenservice_version" != "${ZEN_OPERATOR_VERSION//v/}" ]]; then
                 clear
                 BAI_DEPLOYMENT_STATUS="Waiting for the zenService to be ready (could take up to 120 minutes) before upgrade the BAI Standalone capabilities..."
@@ -3168,6 +3124,13 @@ if [[ "$RUNTIME_MODE" == "upgradeDeploymentStatus" ]]; then
                 echo -e "\x1B[1mCheck the status of the Zen Service\x1B[0m"
                 printf "\n"
                 exit 1
+            fi
+            # Each refresh of the zen upgrade , we check if we need to update the kafka strimzi podset
+            # The function patch_strimzi_podset which is defined in common.sh will set strimzi_patched  to true once the patch is completed
+            # For upgrades to 24.0.1 or newer, kafka tasks in the foundation-operator happen after zen is upgraded so this block is after zen upgrade completes
+            # For upgrades to 24.0.0, kafka tasks in the foundation-operator happen before zen is upgraded
+            if [[ $strimzi_patched == "false" ]]; then
+                patch_strimzi_podset $bai_operators_namespace $bai_services_namespace
             fi
         done
         clear
@@ -3227,6 +3190,14 @@ if [[ "$RUNTIME_MODE" == "upgradeDeploymentStatus" ]]; then
 
     while true
     do
+        # Each refresh of the zen upgrade , we check if we need to update the kafka strimzi podset
+        # The function patch_strimzi_podset which is defined in common.sh will set strimzi_patched  to true once the patch is completed
+        # For upgrades to 24.0.1 or newer, kafka tasks in the foundation-operator happen after zen is upgraded so this block is after zen upgrade completes
+        # For upgrades to 24.0.0, kafka tasks in the foundation-operator happen before zen is upgraded, however there might be a timing issue for an IFIX to IFIX upgrade as there is no channel switch involved
+        # To handle that , this function is being called twice, and the second call only occurs if the strimzi pods have not yet been patched
+        if [[ $strimzi_patched == "false" ]]; then
+            patch_strimzi_podset $bai_operators_namespace $bai_services_namespace
+        fi
         printf '%s\n' "$(clear; show_bai_upgrade_status)"
         sleep 30
     done

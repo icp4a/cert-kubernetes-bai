@@ -81,7 +81,7 @@ validateOCPAccess()
 {
   printHeaderMessage "Validate OCP Access"
 
-  OCP_CONSOLE_URL=`oc whoami --show-console 2> /dev/null`
+  OCP_CONSOLE_URL=`${CLI_CMD} whoami --show-console 2> /dev/null`
   if [ -z  "${OCP_CONSOLE_URL}" ]; then
     echo "${RED_TEXT}${ICON_FAIL} ${RESET_TEXT} No access to cluster via oc command. PLease log in and try again...${RESET_TEXT}"
     consoleFooter "${CP_FUNCTION_NAME}"
@@ -89,31 +89,31 @@ validateOCPAccess()
   fi
   echo "${BLUE_TEXT}${ICON_SUCCESS} PASSED ${RESET_TEXT} Access to cluster via oc command${RESET_TEXT}"
 
-  OCP_CLUSTER_VERSION=`oc get clusterversion 2> /dev/null | grep version | awk '{print  $2 }'`
-  OCP_SERVER_VERSION=`oc get clusterversion 2> /dev/null | grep version | awk '{print  $2 }'`
-  ADMIN_USER=`oc whoami`
-  BAI_AUTO_NAMESPACE=`oc project -q`
+  OCP_CLUSTER_VERSION=`${CLI_CMD} get clusterversion 2> /dev/null | grep version | awk '{print  $2 }'`
+  OCP_SERVER_VERSION=`${CLI_CMD} get clusterversion 2> /dev/null | grep version | awk '{print  $2 }'`
+  ADMIN_USER=`${CLI_CMD} whoami`
+  BAI_AUTO_NAMESPACE=`${CLI_CMD} project -q`
 
-  CLUSTER_NAME=`oc -n kube-system get configmap cluster-info -o yaml 2> /dev/null | grep '"name":'  | grep -v cluster-info | sed 's/"//g' | sed 's/,//g' | sed "s/name: //g" | sed "s/ //g"`
+  CLUSTER_NAME=`${CLI_CMD} -n kube-system get configmap cluster-info -o yaml 2> /dev/null | grep '"name":'  | grep -v cluster-info | sed 's/"//g' | sed 's/,//g' | sed "s/name: //g" | sed "s/ //g"`
   #If cm cluster-info does not exist, check for cm cluster-config-v1
   if [ -z ${CLUSTER_NAME} ]; then
-    CLUSTER_NAME=`oc -n kube-system get configmap cluster-config-v1 -o yaml 2> /dev/null | grep name | awk 'NR==3' | awk '{print $2}'`
+    CLUSTER_NAME=`${CLI_CMD} -n kube-system get configmap cluster-config-v1 -o yaml 2> /dev/null | grep name | awk 'NR==3' | awk '{print $2}'`
   fi
   if [ -z ${CLUSTER_NAME} ]; then
-    CLUSTER_NAME=`oc describe infrastructure/cluster 2> /dev/null | grep "Infrastructure Name" | awk '{print $3}'`
+    CLUSTER_NAME=`${CLI_CMD} describe infrastructure/cluster 2> /dev/null | grep "Infrastructure Name" | awk '{print $3}'`
   fi
 
-  CLUSTER_DOMAIN=`oc describe infrastructure/cluster 2> /dev/null | grep "Etcd Discovery Domain" | awk '{print $4}'`
+  CLUSTER_DOMAIN=`${CLI_CMD} describe infrastructure/cluster 2> /dev/null | grep "Etcd Discovery Domain" | awk '{print $4}'`
 
   if [ -z "$CLUSTER_DOMAIN" ]; then
-     CLUSTER_BASE_DOMAIN=`oc -n kube-system get configmap cluster-config-v1 -o yaml 2> /dev/null| grep baseDomain | awk '{print $2}'`
+     CLUSTER_BASE_DOMAIN=`${CLI_CMD} -n kube-system get configmap cluster-config-v1 -o yaml 2> /dev/null| grep baseDomain | awk '{print $2}'`
      if [ ! -z "$CLUSTER_BASE_DOMAIN" ]; then
         CLUSTER_DOMAIN="$CLUSTER_NAME"."$CLUSTER_BASE_DOMAIN"
      fi
   fi
 
   if [ -z "$CLUSTER_DOMAIN" ]; then
-     CLUSTER_BASE_DOMAIN=`oc -n kube-system get configmap cluster-config -o yaml 2> /dev/null | grep "baseDomain" | awk '{print $2}'`
+     CLUSTER_BASE_DOMAIN=`${CLI_CMD} -n kube-system get configmap cluster-config -o yaml 2> /dev/null | grep "baseDomain" | awk '{print $2}'`
      if [ ! -z $CLUSTER_BASE_DOMAIN ]; then
         CLUSTER_DOMAIN="$CLUSTER_NAME"."$CLUSTER_BASE_DOMAIN"
      fi
@@ -136,10 +136,10 @@ validateOCPAccess()
    exit
   fi
 }
-BAI_DEPLOYMENT_NAME=`oc get InsightsEngine  2> /dev/null | awk 'NR==2' | awk '{print $1}'`
+BAI_DEPLOYMENT_NAME=`${CLI_CMD} get InsightsEngine  2> /dev/null | awk 'NR==2' | awk '{print $1}'`
 export BAI_DEPLOYMENT_NAME=$BAI_DEPLOYMENT_NAME
 
-CS_DEPLOYMENT_NAME=`oc get commonservices  2> /dev/null | awk 'NR==2' | awk '{print $1}'`
+CS_DEPLOYMENT_NAME=`${CLI_CMD} get commonservices  2> /dev/null | awk 'NR==2' | awk '{print $1}'`
 export CS_DEPLOYMENT_NAME=$CS_DEPLOYMENT_NAME
 
 
@@ -147,7 +147,7 @@ cpfs_status()
 {
 printHeaderMessage "CPFS Status - Common Service Components status"
 # Retrieve the JSON output
-json_output=$(oc get commonservices ${CS_DEPLOYMENT_NAME} -n ${BAI_AUTO_NAMESPACE} -o json)
+json_output=$(${CLI_CMD} get commonservices ${CS_DEPLOYMENT_NAME} -n ${BAI_AUTO_NAMESPACE} -o json)
 
 # Initialize an empty array
 declare -A operator_array

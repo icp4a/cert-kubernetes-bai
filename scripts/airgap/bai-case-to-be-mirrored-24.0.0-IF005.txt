@@ -1,10 +1,10 @@
 name: ibm-ba-insights
-version: 24.0.4
-description: Generated from CASE ibm-ba-insights version 24.0.4 on 2025-06-11 06:24:59
+version: 24.0.5
+description: Generated from CASE ibm-ba-insights version 24.0.5 on 2025-10-11 06:24:59
   PDT
 cases:
 - name: ibm-ba-insights
-  version: 24.0.4
+  version: 24.0.5
   launch: true
   catalogGeneration:
     ocMirror:
@@ -15,22 +15,22 @@ cases:
     ocMirror:
       disableMerge: true
 - name: ibm-cloud-native-postgresql
-  version: 4.30.0+20241023.165233.2074
+  version: 5.15.0+20250416.103820.2490
   catalogGeneration:
     ocMirror:
       disableMerge: true
 - name: ibm-cs-install
-  version: 4.6.16
+  version: 4.6.18
   catalogGeneration:
     ocMirror:
       disableMerge: true
 - name: ibm-cs-iam
-  version: 4.5.14
+  version: 4.5.15
   catalogGeneration:
     ocMirror:
       disableMerge: true
 - name: ibm-events-operator
-  version: 5.0.1
+  version: 5.2.1
   catalogGeneration:
     ocMirror:
       disableMerge: true
@@ -50,7 +50,7 @@ cases:
     ocMirror:
       disableMerge: true
 - name: ibm-zen
-  version: 3.1.17
+  version: 3.1.18
   catalogGeneration:
     ocMirror:
       disableMerge: true

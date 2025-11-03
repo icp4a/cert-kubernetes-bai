@@ -47,8 +47,8 @@ ZEN_SECRET_FILE=${ZEN_SECRET_FOLDER}/ibm-zen-metastore-edb-secret.sh
 ZEN_CONFIGMAP_FILE=${ZEN_SECRET_FOLDER}/ibm-zen-metastore-edb-cm.yaml
 
 IM_SECRET_FOLDER=${SECRET_FILE_FOLDER}/im_external_db
-IM_SECRET_FILE=${IM_SECRET_FOLDER}/ibm-im-metastore-edb-secret.sh
-IM_CONFIGMAP_FILE=${IM_SECRET_FOLDER}/ibm-im-metastore-edb-cm.yaml
+IM_SECRET_FILE=${IM_SECRET_FOLDER}/ibm-im-datastore-edb-secret.sh
+IM_CONFIGMAP_FILE=${IM_SECRET_FOLDER}/ibm-im-datastore-edb-cm.yaml
 
 BTS_SECRET_FOLDER=${SECRET_FILE_FOLDER}/bts_external_db
 BTS_SSL_SECRET_FILE=${BTS_SECRET_FOLDER}/ibm-bts-metastore-edb-ssl-secret.sh
@@ -64,13 +64,13 @@ LDAP_SECRET_FILE=${SECRET_FILE_FOLDER}/ldap-bind-secret.yaml
 # BAI_RELEASE_BASE is for fetch content/foundation operator pod, only need to change for major release.
 BAI_RELEASE_BASE="24.0.0"
 
-BAI_PATCH_VERSION="IF004"
+BAI_PATCH_VERSION="IF005"
 # BAI_CSV_VERSION is for checking BAI operator upgrade status, need to update for each IFIX
-BAI_CSV_VERSION="v24.0.4"
+BAI_CSV_VERSION="v24.0.5"
 # BAI_CHANNEL_VERSION is for switch BAI operator upgrade status, need to update for major release
 BAI_CHANNEL_VERSION="v24.0"
 # CS_OPERATOR_VERSION is for checking CPFS operator upgrade status, need to update for each IFIX
-CS_OPERATOR_VERSION="v4.6.16"
+CS_OPERATOR_VERSION="v4.6.18"
 # CS_CHANNEL_VERSION is for for CPFS script -c option, need to update for each IFIX
 CS_CHANNEL_VERSION="v4.6"
 # CERT_LICENSE_OPERATOR_VERSION is for checking IBM cert-manager/licensing operator upgrade status, need to update for each IFIX
@@ -78,9 +78,9 @@ CERT_LICENSE_OPERATOR_VERSION="v4.2.13"
 # CERT_LICENSE_CHANNEL_VERSION is for for IBM cert-manager/licensing script -c option, need to update for each IFIX
 CERT_LICENSE_CHANNEL_VERSION="v4.2"
 # CS_CATALOG_VERSION is for CPFS script -s option, need to update for each IFIX
-CS_CATALOG_VERSION="ibm-cs-install-catalog-v4-6-16"
+CS_CATALOG_VERSION="ibm-cs-install-catalog-v4-6-18"
 # ZEN_OPERATOR_VERSION is for checking ZenService operator upgrade status, need to update for each IFIX
-ZEN_OPERATOR_VERSION="v5.1.16"
+ZEN_OPERATOR_VERSION="v5.1.17"
 # BTS_CHANNEL_VERSION is for for BTS, need to update for each IFIX
 BTS_CHANNEL_VERSION="v3.35"
 # BTS_CATALOG_VERSION is for BTS 3.35.4.
@@ -90,7 +90,7 @@ REQUIREDVER_BTS="3.35.4"
 # REQUIREDVER_POSTGRESQL is for checking postgresql operator upgrade status before run removal_iaf.sh, need to update for each IFIX
 REQUIREDVER_POSTGRESQL="1.25.1"
 # EVENTS_OPERATOR_VERSION is for checking IBM Events operator upgrade status, need to update for each IFIX
-EVENTS_OPERATOR_VERSION="v5.0.1"
+EVENTS_OPERATOR_VERSION="v5.2.1"
 # List of BAI versions that are supported for upgrade to $BAI_CSV_VERSION
 MINIMUM_SUPPORTED_UPGRADE_VERSIONS=("24.0." "23.2." )
 
@@ -458,7 +458,7 @@ function prompt_press_any_key_to_continue() {
 # check OCP version
 ############################
 function check_platform_version(){
-    currentver=$(oc get nodes | awk 'NR==2{print $5}')
+    currentver=$(${CLI_CMD} get nodes | awk 'NR==2{print $5}')
     requiredver="v1.17.1"
     if [ "$(printf '%s\n' "$requiredver" "$currentver" | sort -V | head -n1)" = "$requiredver" ]; then
         PLATFORM_VERSION="4.4OrLater"  
@@ -471,22 +471,20 @@ function check_platform_version(){
 }
 
 ## <https://jsw.ibm.com/browse/DBACLD-161428> - Create a common function to check cluster login for all related scripts.
+## <https://jsw.ibm.com/browse/DBACLD-187651> - Simplified check_cluster_login()
 #############################
 # Check Cluster Login
 #############################
 function check_cluster_login() {
     if [[ "$CLI_CMD" == "oc" ]]; then
-        oc whoami >/dev/null 2>&1
-        if [ $? -gt 0 ]; then
-            error "Not logged in to a cluster. Please login to a cluster before running this script."
-            exit 1
-        fi
-    elif [[ "$CLI_CMD" == "kubectl" ]]; then
-        kubectl auth whoami >/dev/null 2>&1
-        if [ $? -gt 0 ]; then
-            error "Not logged in to a cluster. Please login to a cluster before running this script.."
-            exit 1
-        fi
+        ${CLI_CMD} whoami >/dev/null 2>&1
+    else
+        ${CLI_CMD} auth whoami >/dev/null 2>&1
+    fi
+    
+    if [ $? -gt 0 ]; then
+        error "Not logged in to a cluster. Please login to a cluster before running this script."
+        exit 1
     fi
 }
 
@@ -793,8 +791,9 @@ function check_ssl_cert() {
                 FAILING_CERTS+=("$config_name|$cert_path")
             fi
         else
-            #openssl pkcs8 -in "$key_path" -inform PEM -nocrypt -noout
-            if openssl pkcs8 -in "$cert_path" -inform PEM -nocrypt >/dev/null 2>&1; then
+            #https://jsw.ibm.com/browse/DBACLD-194329
+            # Updated command that will tackle all types of formats of a private key
+            if openssl rsa -in "$cert_path" -check -noout >/dev/null 2>&1 || openssl ec -in "$cert_path" -check -noout >/dev/null 2>&1 || openssl pkcs8 -in "$cert_path" -inform PEM -nocrypt -noout >/dev/null 2>&1; then
                 success "$valid_msg"
             else
                 error "$invalid_msg"
@@ -921,15 +920,41 @@ function validate_ssl_certificates() {
 # These optional parameters are skipped in validate_property_file_required_fields()
 function mark_optional() {
   if grep -q '^OPTIONAL_PARAMETERS:' "$TEMPORARY_PROPERTY_FILE"; then
+    # Get the existing line and remove SSL parameters from it
+    local existing_line=$(grep '^OPTIONAL_PARAMETERS:' "$TEMPORARY_PROPERTY_FILE")
+    local existing_params=$(echo "$existing_line" | sed 's/^OPTIONAL_PARAMETERS://')
+    
+    # Remove SSL parameters from existing params
+    local cleaned_params=$(echo "$existing_params" | sed 's/,LDAP_SSL_SECRET_NAME//g' | sed 's/LDAP_SSL_SECRET_NAME,//g' | sed 's/LDAP_SSL_SECRET_NAME//g')
+    cleaned_params=$(echo "$cleaned_params" | sed 's/,LDAP_SSL_CERT_FILE_FOLDER//g' | sed 's/LDAP_SSL_CERT_FILE_FOLDER,//g' | sed 's/LDAP_SSL_CERT_FILE_FOLDER//g')
+    cleaned_params=$(echo "$cleaned_params" | sed 's/,EXT_LDAP_SSL_SECRET_NAME//g' | sed 's/EXT_LDAP_SSL_SECRET_NAME,//g' | sed 's/EXT_LDAP_SSL_SECRET_NAME//g')
+    cleaned_params=$(echo "$cleaned_params" | sed 's/,EXT_LDAP_SSL_CERT_FILE_FOLDER//g' | sed 's/EXT_LDAP_SSL_CERT_FILE_FOLDER,//g' | sed 's/EXT_LDAP_SSL_CERT_FILE_FOLDER//g')
+    
+    # Remove the old line
+    sed -i '/^OPTIONAL_PARAMETERS:/d' "$TEMPORARY_PROPERTY_FILE"
+    
+    # Add new parameters to the cleaned list
+    local final_params="$cleaned_params"
     for key in "${OPTIONAL_PARAMETERS_LIST[@]}"; do
-      sed "/^OPTIONAL_PARAMETERS:/ s|$|,${key}|" "$TEMPORARY_PROPERTY_FILE" > "$TEMPORARY_PROPERTY_FILE.tmp" && 
-      mv "$TEMPORARY_PROPERTY_FILE.tmp" "$TEMPORARY_PROPERTY_FILE"
+      if [[ -n "$final_params" ]]; then
+        final_params="$final_params,$key"
+      else
+        final_params="$key"
+      fi
     done
+    
+    # Remove leading/trailing commas and write the new line
+    final_params=$(echo "$final_params" | sed 's/^,//' | sed 's/,$//')
+    if [[ -n "$final_params" ]]; then
+      printf 'OPTIONAL_PARAMETERS:%s\n' "$final_params" >> "$TEMPORARY_PROPERTY_FILE"
+    fi
   else
-    local joined_keys
-    joined_keys=$(printf '%s,' "${OPTIONAL_PARAMETERS_LIST[@]}")
-    joined_keys=${joined_keys%,}
-    printf 'OPTIONAL_PARAMETERS:%s\n' "$joined_keys" >> "$TEMPORARY_PROPERTY_FILE"
+    if [[ ${#OPTIONAL_PARAMETERS_LIST[@]} -gt 0 ]]; then
+      local joined_keys
+      joined_keys=$(printf '%s,' "${OPTIONAL_PARAMETERS_LIST[@]}")
+      joined_keys=${joined_keys%,}
+      printf 'OPTIONAL_PARAMETERS:%s\n' "$joined_keys" >> "$TEMPORARY_PROPERTY_FILE"
+    fi
   fi
 }
 
@@ -1013,5 +1038,83 @@ function validate_property_file_required_fields() {
         else
             success "All required properties in $property_file have valid values."
         fi
+    fi
+}
+
+# This function is to patch the kafka strimzi podset for an upgrade to a version having Events Operator 5.2 or higher
+# The function checks if events operator subscription is on channel 5.2 and if so gets the kafka strimzi podset and replaces an annotation which will allow the zen upgrade to complete
+# The subscription for events operator is updated after the new CR is applied and the foundation-operator applies the new operand request, so this function is called during upgradeDeploymentStatus
+# For https://jsw.ibm.com/browse/DBACLD-199163 https://jsw.ibm.com/browse/DBACLD-199093
+function patch_strimzi_podset(){
+    local operator_namespace=$1
+    local services_namespace=$2
+
+    echo "Checking ibm-events-operator subscription channel..."
+    # Check if the subscription exists
+    events_operator_subscription_exists=$(${CLI_CMD} get subscription ibm-events-operator -n $operator_namespace -o name --no-headers 2>/dev/null || echo "")
+
+    if [[ -z "$events_operator_subscription_exists" ]]; then
+        echo "Subscription 'ibm-events-operator' not found, skipping"
+        strimzi_patched=true
+        return
+    fi
+
+    # Get the subscription channel - YQ 3.3 compatible syntax
+    events_operator_channel=$(${CLI_CMD} get subscription ibm-events-operator -n $operator_namespace -o yaml | ${YQ_CMD} read - spec.channel)
+
+    echo "Current channel: $events_operator_channel"
+
+    # Check if channel is v5.2
+    if [[ "$events_operator_channel" == "v5.2" ]]; then
+        echo "Events Operator Channel is v5.2, proceeding to check if the events operator is running..."
+
+        # Find the operator pod that starts with ibm-events-operator-v5.2
+        events_operator_pod=$(${CLI_CMD} get pods --no-headers -n $operator_namespace -o custom-columns=":metadata.name" | grep "^ibm-events-operator-v5.2" || echo "")
+
+        if [[ -z "$events_operator_pod" ]]; then
+            echo "'ibm-events-operator-v5.2' pod is not found"
+            return
+        fi
+
+        echo "Found operator pod: $events_operator_pod"
+
+        # Check if the pod is in Ready state
+        events_operator_pod_ready=$(${CLI_CMD} get pod "$events_operator_pod" -n $operator_namespace -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}')
+
+        if [[ "$events_operator_pod_ready" != "True" ]]; then
+            echo "Operator pod '$events_operator_pod' is not in Ready state"
+            return
+        fi
+
+        # Get the StrimziPodSet resource
+        kafka_podset_exists=$(${CLI_CMD} get strimzipodset iaf-system-kafka -n $services_namespace -o name --no-headers 2>/dev/null || echo "")
+
+        if [[ -z "$kafka_podset_exists" ]]; then
+            echo "StrimziPodSet 'iaf-system-kafka' not found"
+            return
+        fi
+
+        echo "Found StrimziPodSet 'iaf-system-kafka'"
+
+        # Get the current kafka version from the annotation - YQ 3.3 compatible syntax
+        kafka_annotation_value=$(${CLI_CMD} get strimzipodset iaf-system-kafka -n $services_namespace -o yaml | ${YQ_CMD} read - "metadata.annotations[strimzi.io/kafka-version]" 2>/dev/null || echo "")
+
+        if [[ -z "$kafka_annotation_value" || "$kafka_annotation_value" == "null" ]]; then
+            strimzi_patched=true
+            return
+        fi
+
+        echo "Current kafka version: $kafka_annotation_value"
+
+        # Apply the patch directly
+        echo "Applying patch to update annotations..."
+        ${CLI_CMD} patch strimzipodset iaf-system-kafka -n $services_namespace --type=merge -p "{\"metadata\":{\"annotations\":{\"strimzi.io/kafka-version\":null,\"ibmevents.ibm.com/kafka-version\":\"$kafka_annotation_value\"}}}"
+
+        echo "Successfully updated annotations:"
+        echo "- Removed: strimzi.io/kafka-version"
+        echo "- Added: ibmevents.ibm.com/kafka-version: $kafka_annotation_value"
+        strimzi_patched=true
+    else
+        echo "Events operator is not at channel v5.2"
     fi
 }

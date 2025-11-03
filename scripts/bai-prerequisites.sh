@@ -382,6 +382,33 @@ function check_property_file(){
     # Check for empty values in the user profile property file
     validate_property_file_required_fields "${USER_PROFILE_PROPERTY_FILE}"
 
+    # Conditionally mark LDAP SSL params optional BEFORE validating LDAP files
+    # so the validator will skip them when SSL is disabled
+    
+    # First, remove any existing SSL parameters from the optional list to handle toggling
+    OPTIONAL_PARAMETERS_LIST=($(printf '%s\n' "${OPTIONAL_PARAMETERS_LIST[@]}" | grep -v "^LDAP_SSL_SECRET_NAME$" | grep -v "^LDAP_SSL_CERT_FILE_FOLDER$" | grep -v "^EXT_LDAP_SSL_SECRET_NAME$" | grep -v "^EXT_LDAP_SSL_CERT_FILE_FOLDER$"))
+    
+    if [[ $SELECTED_LDAP == "Yes" ]]; then
+        tmp_flag=$(sed -e 's/^"//' -e 's/"$//' <<<"$(prop_ldap_property_file LDAP_SSL_ENABLED)")
+        tmp_flag=$(echo $tmp_flag | tr '[:upper:]' '[:lower:]')
+        if [[ ${tmp_flag} =~ ^(no|n|false)$ ]]; then
+            OPTIONAL_PARAMETERS_LIST+=("LDAP_SSL_SECRET_NAME")
+            OPTIONAL_PARAMETERS_LIST+=("LDAP_SSL_CERT_FILE_FOLDER")
+        fi
+    fi
+
+    if [[ $SET_EXT_LDAP == "Yes" ]]; then
+        tmp_ext_flag=$(sed -e 's/^"//' -e 's/"$//' <<<"$(prop_ext_ldap_property_file LDAP_SSL_ENABLED)")
+        tmp_ext_flag=$(echo $tmp_ext_flag | tr '[:upper:]' '[:lower:]')
+        if [[ ${tmp_ext_flag} =~ ^(no|n|false)$ ]]; then
+            OPTIONAL_PARAMETERS_LIST+=("EXT_LDAP_SSL_SECRET_NAME")
+            OPTIONAL_PARAMETERS_LIST+=("EXT_LDAP_SSL_CERT_FILE_FOLDER")
+        fi
+    fi
+
+    # Persist optional list before any LDAP validations
+    mark_optional
+
     # Check <Required> values for cp4ba_LDAP.property
     if [[ $SELECTED_LDAP == "Yes" ]]; then 
         check_required_values "<Required>" "${LDAP_PROPERTY_FILE}"
@@ -1368,7 +1395,7 @@ function select_project() {
             echo -e "\x1B[1;31mEnter a valid project name, project name should not be 'kube' or start with 'kube' \x1B[0m"
             TARGET_PROJECT_NAME=""
         else
-            isProjExists=`kubectl get project $TARGET_PROJECT_NAME --ignore-not-found | wc -l`  >/dev/null 2>&1
+            isProjExists=`${CLI_CMD} get project $TARGET_PROJECT_NAME --ignore-not-found | wc -l`  >/dev/null 2>&1
 
             if [ "$isProjExists" -ne 2 ] ; then
                 echo -e "\x1B[1;31mInvalid project name, please enter a existing project name ...\x1B[0m"
@@ -1382,7 +1409,7 @@ function select_project() {
 
 function select_fips_enable(){
     select_project
-    all_fips_enabled_flag=$(kubectl get configmap bai-fips-status --no-headers --ignore-not-found -n $TARGET_PROJECT_NAME -o jsonpath={.data.all-fips-enabled})
+    all_fips_enabled_flag=$(${CLI_CMD} get configmap bai-fips-status --no-headers --ignore-not-found -n $TARGET_PROJECT_NAME -o jsonpath={.data.all-fips-enabled})
     if [ -z $all_fips_enabled_flag ]; then
         warning "Configmap \"bai-fips-status\" not found in project \"$TARGET_PROJECT_NAME\". setting BAI_STANDALONE.ENABLE_FIPS as \"false\" by default in the \"BAI_user_profile.property\""
         FIPS_ENABLED="false"
@@ -1642,7 +1669,7 @@ function generate_create_secret_script(){
         echo "echo \"****************************************************************************\"" >> ${CREATE_SECRET_SCRIPT_FILE_TMP}
         echo "echo \"******************************* START **************************************\"" >> ${CREATE_SECRET_SCRIPT_FILE_TMP}
         echo "echo \"[INFO] Applying YAML template file:$item\"">> ${CREATE_SECRET_SCRIPT_FILE_TMP}
-        echo "kubectl apply -f \"$item\"" >> ${CREATE_SECRET_SCRIPT_FILE_TMP}
+        echo "${CLI_CMD} apply -f \"$item\"" >> ${CREATE_SECRET_SCRIPT_FILE_TMP}
         echo "echo \"******************************** END ***************************************\"" >> ${CREATE_SECRET_SCRIPT_FILE_TMP}
         echo "echo \"****************************************************************************\"" >> ${CREATE_SECRET_SCRIPT_FILE_TMP}
         echo "printf \"\\n\"" >> ${CREATE_SECRET_SCRIPT_FILE_TMP}
@@ -1681,7 +1708,7 @@ function validate_secret_in_cluster(){
             secret_name_tmp=$(sed -e 's/^"//' -e 's/"$//' <<<"$secret_name_tmp")
             # need to check ibm-zen-metastore-edb-cm/im-datastore-edb-cm for Zen/IM and ibm-bts-config-extension external postgresql db support
             if [[ $secret_name_tmp != "ibm-zen-metastore-edb-cm" && $secret_name_tmp != "im-datastore-edb-cm" && $secret_name_tmp != "ibm-bts-config-extension" ]]; then
-                secret_exists=`kubectl get secret $secret_name_tmp -n $bai_services_namespace --ignore-not-found | wc -l`  >/dev/null 2>&1
+                secret_exists=`${CLI_CMD} get secret $secret_name_tmp -n $BAI_SERVICES_NS --ignore-not-found | wc -l`  >/dev/null 2>&1
                 if [ "$secret_exists" -ne 2 ] ; then
                     error "Secret \"$secret_name_tmp\" not found in Kubernetes cluster! Please create it before deploying BAI Standalone."
                     SECRET_CREATE_PASSED="false"
@@ -1689,7 +1716,7 @@ function validate_secret_in_cluster(){
                     success "Secret \"$secret_name_tmp\" found in Kubernetes cluster, PASSED!"              
                 fi
             else
-                secret_exists=`kubectl get configmap $secret_name_tmp -n $bai_services_namespace --ignore-not-found | wc -l`  >/dev/null 2>&1
+                secret_exists=`${CLI_CMD} get configmap $secret_name_tmp -n $BAI_SERVICES_NS --ignore-not-found | wc -l`  >/dev/null 2>&1
                 if [ "$secret_exists" -ne 2 ] ; then
                     error "ConfigMap \"$secret_name_tmp\" not found in Kubernetes cluster! Please create it before deploying BAI Standalone"
                     SECRET_CREATE_PASSED="false"
@@ -1724,7 +1751,7 @@ function validate_secret_in_cluster(){
             exit 1
         else
             secret_name_tmp=$(sed -e 's/^"//' -e 's/"$//' <<<"$secret_name_tmp")
-            secret_exists=`kubectl get secret $secret_name_tmp -n $bai_services_namespace --ignore-not-found | wc -l`  >/dev/null 2>&1
+            secret_exists=`${CLI_CMD} get secret $secret_name_tmp -n $BAI_SERVICES_NS --ignore-not-found | wc -l`  >/dev/null 2>&1
             if [ "$secret_exists" -ne 2 ] ; then
                 error "Secret \"$secret_name_tmp\" not found in Kubernetes cluster! Please create it before deploying BAI Standalone."
                 SECRET_CREATE_PASSED="false"
@@ -1771,7 +1798,7 @@ function validate_prerequisites(){
     verify_storage_class_valid $tmp_storage_classname "ReadWriteOnce" $sample_pvc_name
 
     if [[ $verification_sc_passed == "No" ]]; then
-        kubectl delete pvc -l bai=test-only >/dev/null 2>&1
+        ${CLI_CMD} delete pvc -l bai=test-only >/dev/null 2>&1
         exit 0
     fi
     # Validate Secret for BAI stand-alone
@@ -1785,10 +1812,10 @@ function validate_prerequisites(){
         tmp_serverport="$(prop_ldap_property_file LDAP_PORT)"
         tmp_basdn="$(prop_ldap_property_file LDAP_BASE_DN)"
         tmp_ldapssl="$(prop_ldap_property_file LDAP_SSL_ENABLED)"
-        tmp_user=$( ${CLI_CMD} get secret -l name=ldap-bind-secret -o yaml | ${YQ_CMD} r - items.[0].data.ldapUsername | base64 --decode )
+        tmp_user=$( ${CLI_CMD} get secret -l name=ldap-bind-secret -o yaml -n "$BAI_SERVICES_NS" | ${YQ_CMD} r - items.[0].data.ldapUsername | base64 --decode )
         ## <https://jsw.ibm.com/browse/DBACLD-172803> - We are now asking user to use {xor} for special characters in password, so we need to use decode_xor_password to get the password decoded before validation.
-        bai_operator=$( ${CLI_CMD} get pods -l name=ibm-bai-insights-engine-operator --no-headers --ignore-not-found -n "$bai_operators_namespace" | awk '{print $1}' )
-        tmp_userpwd=$( decode_xor_password "$( ${CLI_CMD} get secret -n "$TARGET_PROJECT_NAME" -l name=ldap-bind-secret -o yaml | ${YQ_CMD} r - items.[0].data.ldapPassword | base64 --decode )" "$bai_operators_namespace" "$bai_operator" | sed  's/\$/\\$/g' )
+        bai_operator=$( ${CLI_CMD} get pods -l name=ibm-bai-insights-engine-operator --no-headers --ignore-not-found -n "$BAI_OPERATORS_NS" | awk '{print $1}' )
+        tmp_userpwd=$( decode_xor_password "$( ${CLI_CMD} get secret -n "$BAI_SERVICES_NS" -l name=ldap-bind-secret -o yaml | ${YQ_CMD} r - items.[0].data.ldapPassword | base64 --decode )" "$BAI_OPERATORS_NS" "$bai_operator" | sed  's/\$/\\$/g' )
 
         tmp_servername=$(sed -e 's/^"//' -e 's/"$//' <<<"$tmp_servername")
         tmp_serverport=$(sed -e 's/^"//' -e 's/"$//' <<<"$tmp_serverport")
@@ -1972,7 +1999,7 @@ function parse_arguments() {
                 # Check cluster login
                 check_cluster_login
                 # Check project name
-                isProjExists=`kubectl get project $TARGET_PROJECT_NAME --ignore-not-found | wc -l`  >/dev/null 2>&1
+                isProjExists=`${CLI_CMD} get project $TARGET_PROJECT_NAME --ignore-not-found | wc -l`  >/dev/null 2>&1
                 if [ $isProjExists -ne 2 ] ; then
                     echo -e "\x1B[1;31mInvalid project name \"$TARGET_PROJECT_NAME\", please set a existing project name.\x1B[0m"
                     exit 1
@@ -2020,7 +2047,11 @@ info "The bai-prerequisite script is currently being executed in the ${RUNTIME_M
 printf "\n"
 
 # Import common utilities and environment variables
+# Preserve OPTIONAL_PARAMETERS_LIST before sourcing common.sh to avoid resetting it
+SAVED_OPTIONAL_PARAMETERS_LIST=("${OPTIONAL_PARAMETERS_LIST[@]}")
 source ${CUR_DIR}/helper/common.sh $TARGET_PROJECT_NAME
+# Restore OPTIONAL_PARAMETERS_LIST after sourcing common.sh
+OPTIONAL_PARAMETERS_LIST=("${SAVED_OPTIONAL_PARAMETERS_LIST[@]}")
 
 clear
 

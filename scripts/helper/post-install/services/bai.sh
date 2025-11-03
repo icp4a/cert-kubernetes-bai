@@ -19,7 +19,7 @@ BAIStatus()
   rm ${LOG_DIR}/bai-status.log 2> /dev/null
   echo '' > ${LOG_DIR}/bai-status.log
 
-  kubectl get InsightsEngine ${BAI_DEPLOYMENT_NAME} -n ${BAI_AUTO_NAMESPACE} -o jsonpath='{.status.insightsEngineStatus}' 2> /dev/null   &> ${LOG_DIR}/bai-status.log
+  ${CLI_CMD} get InsightsEngine ${BAI_DEPLOYMENT_NAME} -n ${BAI_AUTO_NAMESPACE} -o jsonpath='{.status.insightsEngineStatus}' 2> /dev/null   &> ${LOG_DIR}/bai-status.log
 
   #################################################
   #BAI InsightsEngine Status and Version
@@ -30,14 +30,14 @@ BAIStatus()
   fi
   echo "InsightsEngine:                               :  ${BAI_BAI_INSIGHT_ENGINE_STATUS}"
 
-  kubectl get InsightsEngine ${BAI_DEPLOYMENT_NAME} -n ${BAI_AUTO_NAMESPACE} -o jsonpath='{.status.currentVersion}' 2> /dev/null   &> ${LOG_DIR}/bai-version.log
+  ${CLI_CMD} get InsightsEngine ${BAI_DEPLOYMENT_NAME} -n ${BAI_AUTO_NAMESPACE} -o jsonpath='{.status.currentVersion}' 2> /dev/null   &> ${LOG_DIR}/bai-version.log
   BAI_BAI_INSIGHT_ENGINE_VERSION=`cat ${LOG_DIR}/bai-version.log`
   echo "InsightsEngine Version:                       :  ${BAI_BAI_INSIGHT_ENGINE_VERSION}"
 }
 BAIConsole()
 {
   printHeaderMessage "BAI - Business Automation Insights Console"
-  oc get cm bai-bai-access-info -o jsonpath='{.data.bai-access-info}' 2> /dev/null &> ${LOG_DIR}/bai-console.yaml
+  ${CLI_CMD} get cm bai-bai-access-info -o jsonpath='{.data.bai-access-info}' 2> /dev/null &> ${LOG_DIR}/bai-console.yaml
 
   BPC_URL=`cat  ${LOG_DIR}/bai-console.yaml | grep "Business Performance Center URL"  | awk '{print $5}'| head -n 1`
   echo "Business Performance Center URL               : ${BPC_URL}"

@@ -46,8 +46,8 @@ cat << EOF > ${CP4A_LDAP_SSL_SECRET_FILE}
 #!/bin/bash
 # Shell template for ibm-cp4a-ldap-ssl-cert-secret.sh 
 if [[ -f "<cp4a-ldap-crt-file-in-local>/ldap-cert.crt" ]]; then
-  kubectl delete secret generic "<cp4a-ldap_ssl_secret_name>" -n ${bai_services_namespace} >/dev/null 2>&1
-  kubectl create secret generic "<cp4a-ldap_ssl_secret_name>" --from-file=tls.crt="<cp4a-ldap-crt-file-in-local>/ldap-cert.crt" -n ${bai_services_namespace}
+  ${CLI_CMD} delete secret generic "<cp4a-ldap_ssl_secret_name>" -n ${bai_services_namespace} >/dev/null 2>&1
+  ${CLI_CMD} create secret generic "<cp4a-ldap_ssl_secret_name>" --from-file=tls.crt="<cp4a-ldap-crt-file-in-local>/ldap-cert.crt" -n ${bai_services_namespace}
 else
   echo -e "\x1B[1;31m[FAILED]:\x1B[0m Please copy \"ldap-cert.crt\" into \"<cp4a-ldap-crt-file-in-local>\" firstly."
   exit 1
@@ -76,8 +76,8 @@ if [[ -f "<cp4a-db-crt-file-in-local>/root.crt" && -f "<cp4a-db-crt-file-in-loca
 
   openssl x509 -in <cp4a-db-crt-file-in-local>/root.crt -outform PEM -out <cp4a-db-crt-file-in-local>/root.pem >/dev/null 2>&1
 
-  kubectl delete secret generic "ibm-zen-metastore-edb-secret" -n ${bai_services_namespace} >/dev/null 2>&1
-  kubectl create secret generic "ibm-zen-metastore-edb-secret" --from-file=ca.crt="<cp4a-db-crt-file-in-local>/root.pem"\
+  ${CLI_CMD} delete secret generic "ibm-zen-metastore-edb-secret" -n ${bai_services_namespace} >/dev/null 2>&1
+  ${CLI_CMD} create secret generic "ibm-zen-metastore-edb-secret" --from-file=ca.crt="<cp4a-db-crt-file-in-local>/root.pem"\
   --from-file=tls.crt="<cp4a-db-crt-file-in-local>/client.pem"\
   --from-file=tls.key="<cp4a-db-crt-file-in-local>/client_key.pem"\
   --type=kubernetes.io/tls -n ${bai_services_namespace}
@@ -130,8 +130,8 @@ if [[ -f "<cp4a-db-crt-file-in-local>/root.crt" && -f "<cp4a-db-crt-file-in-loca
   openssl rsa -in <cp4a-db-crt-file-in-local>/client.key -outform PEM -out <cp4a-db-crt-file-in-local>/client_key.pem >/dev/null 2>&1
   openssl x509 -in <cp4a-db-crt-file-in-local>/client.crt -outform PEM -out <cp4a-db-crt-file-in-local>/client.pem >/dev/null 2>&1
   openssl x509 -in <cp4a-db-crt-file-in-local>/root.crt -outform PEM -out <cp4a-db-crt-file-in-local>/root.pem >/dev/null 2>&1
-  kubectl delete secret generic "im-datastore-edb-secret" -n ${bai_services_namespace}  >/dev/null 2>&1
-  kubectl create secret generic "im-datastore-edb-secret" --from-file=ca.crt="<cp4a-db-crt-file-in-local>/root.pem"\
+  ${CLI_CMD} delete secret generic "im-datastore-edb-secret" -n ${bai_services_namespace}  >/dev/null 2>&1
+  ${CLI_CMD} create secret generic "im-datastore-edb-secret" --from-file=ca.crt="<cp4a-db-crt-file-in-local>/root.pem"\
   --from-file=tls.crt="<cp4a-db-crt-file-in-local>/client.pem"\
   --from-file=tls.key="<cp4a-db-crt-file-in-local>/client_key.pem"\
   --type=kubernetes.io/tls -n ${bai_services_namespace}
@@ -183,8 +183,8 @@ if [[ -f "<cp4a-db-crt-file-in-local>/root.crt" && -f "<cp4a-db-crt-file-in-loca
   openssl x509 -in <cp4a-db-crt-file-in-local>/client.crt -outform PEM -out <cp4a-db-crt-file-in-local>/client.pem >/dev/null 2>&1
   openssl x509 -in <cp4a-db-crt-file-in-local>/root.crt -outform PEM -out <cp4a-db-crt-file-in-local>/root.pem >/dev/null 2>&1
   openssl pkcs8 -topk8 -inform PEM -in <cp4a-db-crt-file-in-local>/client_key.pem -outform DER -nocrypt -out <cp4a-db-crt-file-in-local>/tls_key.pk8
-  kubectl delete secret generic "bts-datastore-edb-secret" -n ${bai_services_namespace} >/dev/null 2>&1
-  kubectl create secret generic "bts-datastore-edb-secret" --from-file=ca.crt="<cp4a-db-crt-file-in-local>/root.pem"\
+  ${CLI_CMD} delete secret generic "bts-datastore-edb-secret" -n ${bai_services_namespace} >/dev/null 2>&1
+  ${CLI_CMD} create secret generic "bts-datastore-edb-secret" --from-file=ca.crt="<cp4a-db-crt-file-in-local>/root.pem"\
   --from-file=tls.crt="<cp4a-db-crt-file-in-local>/client.pem"\
   --from-file=tls.key="<cp4a-db-crt-file-in-local>/tls_key.pk8" -n ${bai_services_namespace}
 else

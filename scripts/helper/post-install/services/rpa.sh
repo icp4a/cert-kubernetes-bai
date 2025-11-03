@@ -12,7 +12,7 @@
 cp4baRPAConsole()
 {
     printHeaderMessage "Robotic Process Automation Server Console"
-    local RPA_HOST=`oc get routes -n ${CP4BA_RPA_SERVER_NAMESPACE} | grep cpd | awk '{print $2}'`
+    local RPA_HOST=`${CLI_CMD} get routes -n ${CP4BA_RPA_SERVER_NAMESPACE} | grep cpd | awk '{print $2}'`
     if [ -n "${RPA_HOST}" ]; then
       local RPA_URL="https://${RPA_HOST}/rpa/ui/#/en-US/home"
     fi
@@ -23,10 +23,10 @@ cp4baRPAConsole()
 }
 cp4baRPAServerStatus()
 {
-  OCP_SERVER_VERSION=`oc version | grep Server | awk '{print $3}'`
+  OCP_SERVER_VERSION=`${CLI_CMD} version | grep Server | awk '{print $3}'`
   printHeaderMessage "CP4BA Service Status - RPA Server"
-  RPA_SERVER_STATUS=`oc get RoboticProcessAutomation ${CP4BA_RPA_SERVER_NAME} -n ${CP4BA_RPA_SERVER_NAMESPACE} -o jsonpath='{.status.conditions[0].message}' 2> /dev/null | head -n 1`
-  RPA_SERVER_VERSION=`oc get RoboticProcessAutomation ${CP4BA_RPA_SERVER_NAME} -n ${CP4BA_RPA_SERVER_NAMESPACE} -o jsonpath='{.spec.version}' 2> /dev/null`
+  RPA_SERVER_STATUS=`${CLI_CMD} get RoboticProcessAutomation ${CP4BA_RPA_SERVER_NAME} -n ${CP4BA_RPA_SERVER_NAMESPACE} -o jsonpath='{.status.conditions[0].message}' 2> /dev/null | head -n 1`
+  RPA_SERVER_VERSION=`${CLI_CMD} get RoboticProcessAutomation ${CP4BA_RPA_SERVER_NAME} -n ${CP4BA_RPA_SERVER_NAMESPACE} -o jsonpath='{.spec.version}' 2> /dev/null`
   echo "Status                                      :  ${RPA_SERVER_STATUS}"
   if [ -z "${RPA_SERVER_VERSION}" ]; then
     RPA_SERVER_VERSION="NotInstalled"

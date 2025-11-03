@@ -19,7 +19,7 @@ cp4baBaStudioStatus()
   rm ${LOG_DIR}/bai-status.log 2> /dev/null
   echo '' > ${LOG_DIR}/bastudio-status.log
 
-  kubectl get ICP4ACluster ${CP4BA_DEPLOYMENT_NAME} -n ${CP4BA_AUTO_NAMESPACE} -o jsonpath='{.status.components.bastudio}' 2> /dev/null  | jq  . |  sed 's/\"//g' | sed 's/,//g'  | sed 's/://g' | sed 's/{//g' | sed 's/}//g'  &> ${LOG_DIR}/bastudio-status.log
+  ${CLI_CMD} get ICP4ACluster ${CP4BA_DEPLOYMENT_NAME} -n ${CP4BA_AUTO_NAMESPACE} -o jsonpath='{.status.components.bastudio}' 2> /dev/null  | jq  . |  sed 's/\"//g' | sed 's/,//g'  | sed 's/://g' | sed 's/{//g' | sed 's/}//g'  &> ${LOG_DIR}/bastudio-status.log
 
   #################################################
   #BAI
@@ -34,18 +34,18 @@ cp4baBaStudioStatus()
 cp4baBaStudioConsole()
 {
   local CP4BA_DEPLOYMENT_TYPE=${1}
-    BAW_USERNAME=`oc get secret platform-auth-idp-credentials -n ibm-common-services 2> /dev/null -o go-template --template="{{.data.admin_username|base64decode}}"`
+    BAW_USERNAME=`${CLI_CMD} get secret platform-auth-idp-credentials -n ibm-common-services 2> /dev/null -o go-template --template="{{.data.admin_username|base64decode}}"`
   if [ -z $BAW_USERNAME ]; then
-    BAW_USERNAME=`oc get secret platform-auth-idp-credentials -n $CP4BA_AUTO_NAMESPACE 2> /dev/null -o go-template --template="{{.data.admin_username|base64decode}}"`
+    BAW_USERNAME=`${CLI_CMD} get secret platform-auth-idp-credentials -n $CP4BA_AUTO_NAMESPACE 2> /dev/null -o go-template --template="{{.data.admin_username|base64decode}}"`
   fi
 
-  BAW_PASSWORD=`oc get secret platform-auth-idp-credentials -n ibm-common-services 2> /dev/null -o go-template --template="{{.data.admin_password|base64decode}}"`
+  BAW_PASSWORD=`${CLI_CMD} get secret platform-auth-idp-credentials -n ibm-common-services 2> /dev/null -o go-template --template="{{.data.admin_password|base64decode}}"`
   if [ -z $BAW_PASSWORD ]; then
-      BAW_PASSWORD=`oc get secret platform-auth-idp-credentials -n $CP4BA_AUTO_NAMESPACE 2> /dev/null -o go-template --template="{{.data.admin_password|base64decode}}"`
+      BAW_PASSWORD=`${CLI_CMD} get secret platform-auth-idp-credentials -n $CP4BA_AUTO_NAMESPACE 2> /dev/null -o go-template --template="{{.data.admin_password|base64decode}}"`
   fi
 
   printHeaderMessage "Business Automation Studio Console"
-  oc get cm ${CP4BA_DEPLOYMENT_NAME}-cp4ba-access-info -n ${CP4BA_AUTO_NAMESPACE} -o jsonpath='{.data.bastudio-access-info}' &> ${LOG_DIR}/bastudio-access-info.log
+  ${CLI_CMD} get cm ${CP4BA_DEPLOYMENT_NAME}-cp4ba-access-info -n ${CP4BA_AUTO_NAMESPACE} -o jsonpath='{.data.bastudio-access-info}' &> ${LOG_DIR}/bastudio-access-info.log
 
   DEPLOYMENT_TYPE_TO_LOWER=`echo $CP4BA_DEPLOYMENT_TYPE | awk '{print tolower($0)}'`
 
