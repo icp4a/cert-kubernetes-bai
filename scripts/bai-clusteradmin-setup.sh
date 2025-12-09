@@ -133,6 +133,7 @@ else
 fi
 
 OLM_CATALOG_TMP=${TEMP_FOLDER}/.catalog_source.yaml
+OLM_CATALOG_TMP_BAK=${TEMP_FOLDER}/.catalog_source_bak.yaml
 OLM_OPT_GROUP_TMP=${TEMP_FOLDER}/.operator_group.yaml
 OLM_SUBSCRIPTION_TMP=${TEMP_FOLDER}/.subscription.yaml
 
@@ -198,25 +199,30 @@ function install_cert_license_operator(){
     # fail "Unable to locate the yq CLI. You must install latest one from https://github.com/mikefarah/yq/ manually" && \
     # exit 1
     
-    # Checking ibm-cert-manager/ibm-licensing catalog soure pod
+    # Checking ibm-cert-manager/ibm-licensing catalog source pod
     maxRetry=10
     for ((retry=0;retry<=${maxRetry};retry++)); do
         if [[ $PRIVATE_CATALOG == "No" ]]; then
-            cert_catalog_pod_name=$(${CLI_CMD} get pod -l=olm.catalogSource=ibm-cert-manager-catalog -n openshift-marketplace -o 'custom-columns=NAME:.metadata.name,PHASE:.status.phase,READY:.status.containerStatuses[0].ready,DELETED:.metadata.deletionTimestamp' --no-headers | grep 'Running' | grep 'true' | grep '<none>' | head -1 | awk '{print $1}')
+            if [[ "$CERT_MANAGER_ALREADY_INSTALLED" == "false" ]]; then
+                cert_catalog_pod_name=$(${CLI_CMD} get pod -l=olm.catalogSource=ibm-cert-manager-catalog -n openshift-marketplace -o 'custom-columns=NAME:.metadata.name,PHASE:.status.phase,READY:.status.containerStatuses[0].ready,DELETED:.metadata.deletionTimestamp' --no-headers | grep 'Running' | grep 'true' | grep '<none>' | head -1 | awk '{print $1}')
+            fi
             license_catalog_pod_name=$(${CLI_CMD} get pod -l=olm.catalogSource=ibm-licensing-catalog -n openshift-marketplace -o 'custom-columns=NAME:.metadata.name,PHASE:.status.phase,READY:.status.containerStatuses[0].ready,DELETED:.metadata.deletionTimestamp' --no-headers | grep 'Running' | grep 'true' | grep '<none>' | head -1 | awk '{print $1}')
         else
-            cert_catalog_pod_name=$(${CLI_CMD} get pod -l=olm.catalogSource=ibm-cert-manager-catalog -n ibm-cert-manager -o 'custom-columns=NAME:.metadata.name,PHASE:.status.phase,READY:.status.containerStatuses[0].ready,DELETED:.metadata.deletionTimestamp' --no-headers | grep 'Running' | grep 'true' | grep '<none>' | head -1 | awk '{print $1}')
+            if [[ "$CERT_MANAGER_ALREADY_INSTALLED" == "false" ]]; then
+                cert_catalog_pod_name=$(${CLI_CMD} get pod -l=olm.catalogSource=ibm-cert-manager-catalog -n ibm-cert-manager -o 'custom-columns=NAME:.metadata.name,PHASE:.status.phase,READY:.status.containerStatuses[0].ready,DELETED:.metadata.deletionTimestamp' --no-headers | grep 'Running' | grep 'true' | grep '<none>' | head -1 | awk '{print $1}')
+            fi
             license_catalog_pod_name=$(${CLI_CMD} get pod -l=olm.catalogSource=ibm-licensing-catalog -n ibm-licensing -o 'custom-columns=NAME:.metadata.name,PHASE:.status.phase,READY:.status.containerStatuses[0].ready,DELETED:.metadata.deletionTimestamp' --no-headers | grep 'Running' | grep 'true' | grep '<none>' | head -1 | awk '{print $1}')
         fi
-        if [[ ( -z $cert_catalog_pod_name) || (-z $license_catalog_pod_name) ]]; then
+        
+        #checking for ibm-cert-manager-catalog pod
+        if [[ (-z $cert_catalog_pod_name) &&  $CERT_MANAGER_ALREADY_INSTALLED == "false" ]]; then
             if [[ $retry -eq ${maxRetry} ]]; then
                 printf "\n"
                 if [[ $PRIVATE_CATALOG == "Yes" && -z $cert_catalog_pod_name ]]; then
-                    warning "Timeout while waiting for the ibm-cert-manager-catalog pod to be ready under the project.  \"ibm-cert-manager\""
-                elif [[ $PRIVATE_CATALOG == "Yes" && -z $license_catalog_pod_name ]]; then
-                    warning "Timeout while waiting for the ibm-licensing-catalog pod to be ready under the project.  \"ibm-licensing\""
+                    warning "Timeout reached while waiting for the ibm-cert-manager-catalog pod to become ready in the project.  \"ibm-cert-manager\""
+
                 elif [[ $PRIVATE_CATALOG == "No" ]]; then
-                    warning "Timeout while waiting for the ibm-licensing-catalog/ibm-cert-manager-catalog pod to be ready under the project.  \"openshift-marketplace\""
+                    warning "Timeout reached while waiting for the ibm-cert-manager-catalog catalog pods to become ready in the project.  \"openshift-marketplace\""
                 fi
                 exit 1
             else
@@ -225,7 +231,27 @@ function install_cert_license_operator(){
                 continue
             fi
         else
-            success "The ibm-licensing-catalog/ibm-cert-manager-catalog pod is ready!"
+            success "ibm-cert-manager-catalog pod is ready!"
+            break
+        fi
+        
+        #Checking for ibm-licensing-catalog pod
+        if [[ (-z $license_catalog_pod_name) ]]; then
+            if [[ $retry -eq ${maxRetry} ]]; then
+                printf "\n"
+                if [[ $PRIVATE_CATALOG == "Yes" && -z $license_catalog_pod_name ]]; then
+                    warning "Timeout reached while waiting for the ibm-licensing-catalog pod to become ready in the project.  \"ibm-licensing\""
+                elif [[ $PRIVATE_CATALOG == "No" ]]; then
+                    warning "Timeout reached while waiting for the ibm-licensing-catalog catalog pods to become ready in the project.  \"openshift-marketplace\""
+                fi
+                exit 1
+            else
+                sleep 30
+                echo -n "..."
+                continue
+            fi
+        else
+            success "ibm-licensing-catalog pod is ready!"
             break
         fi
     done
@@ -391,8 +417,11 @@ function select_project(){
             verify_existing_csv $project_name
             create_project $project_name
             if [[ ! ("$RUNTIME_MODE" == "baw" || $RUNTIME_MODE == "baw-dev" || "$RUNTIME_MODE" == "process-flow" || $RUNTIME_MODE == "process-flow-dev") ]]; then
-                ${CLI_CMD} create namespace ibm-cert-manager > /dev/null 2>&1
-                ${CLI_CMD} create namespace ibm-licensing > /dev/null 2>&1
+                if [[ $CERT_MANAGER_ALREADY_INSTALLED == "false" ]]; then #DBACLD-187443: Skip the creation of `ibm-cert-manager` project if cert-manager is already installed
+                    ${CLI_CMD} create namespace "$CERT_MANAGER_PROJECT" > /dev/null 2>&1
+                fi
+
+                ${CLI_CMD} create namespace "$LICENSE_MANAGER_PROJECT" > /dev/null 2>&1
             fi
             
         fi
@@ -402,11 +431,26 @@ function select_project(){
         sed "s/REPLACE_CATALOG_SOURCE_NAMESPACE/$CATALOG_NAMESPACE/g" ${OLM_CATALOG} > ${OLM_CATALOG_TMP}
         # replace all other catalogs with <BAI NS> namespaces 
         ${SED_COMMAND} "s|namespace: .*|namespace: $PROJ_NAME|g" ${OLM_CATALOG_TMP}
-        # replace openshift-marketplace for ibm-cert-manager-catalog with ibm-cert-manager
-        ${SED_COMMAND} "/name: ibm-cert-manager-catalog/{n;s/namespace: .*/namespace: ibm-cert-manager/;}" ${OLM_CATALOG_TMP}
+
+        # DBACLD-187443:replace openshift-marketplace for ibm-cert-manager-catalog with ibm-cert-manager when cert-manager is not installed
+        if [[ "$CERT_MANAGER_ALREADY_INSTALLED" == "false" ]]; then
+            # replace openshift-marketplace for ibm-cert-manager-catalog with ibm-cert-manager
+            ${SED_COMMAND} "/name: ibm-cert-manager-catalog/{n;s/namespace: .*/namespace: $CERT_MANAGER_PROJECT/;}" ${OLM_CATALOG_TMP}
+        else # Cert-manager is already installed.  Removing ibm-cert-manager-catalog from the catalog source
+            remove_item_from_cs "${OLM_CATALOG_TMP}" "${OLM_CATALOG_TMP_BAK}" "ibm-cert-manager-catalog"
+            if [[ $? -ne 0 ]]; then
+                warning "Failed to remove ibm-cert-manager-catalog from the catalog source."
+            else
+                success "Removed ibm-cert-manager-catalog from the catalog source."
+                printf "\n"
+                cp ${OLM_CATALOG_TMP_BAK} ${OLM_CATALOG_TMP} > /dev/null 2>&1
+            fi
+
+        fi
+
         # replace openshift-marketplace for ibm-licensing-catalog with ibm-licensing
-        ${SED_COMMAND} "/name: ibm-licensing-catalog/{n;s/namespace: .*/namespace: ibm-licensing/;}" ${OLM_CATALOG_TMP}
-    fi    
+        ${SED_COMMAND} "/name: ibm-licensing-catalog/{n;s/namespace: .*/namespace: $LICENSE_MANAGER_PROJECT/;}" ${OLM_CATALOG_TMP}
+    fi
 }
 
 
@@ -440,8 +484,10 @@ function set_separate_operator_project(){
             verify_existing_csv $project_name_operator
             create_project $project_name_operator
             if [[ ! ("$RUNTIME_MODE" == "baw" || $RUNTIME_MODE == "baw-dev" || "$RUNTIME_MODE" == "process-flow" || $RUNTIME_MODE == "process-flow-dev") ]]; then
-                ${CLI_CMD} create namespace ibm-cert-manager > /dev/null 2>&1
-                ${CLI_CMD} create namespace ibm-licensing > /dev/null 2>&1
+                if [[ $CERT_MANAGER_ALREADY_INSTALLED == "false" ]]; then #DBACLD-187443: Skip the creation of `ibm-cert-manager` project if cert-manager is already installed
+                    ${CLI_CMD} create namespace "$CERT_MANAGER_PROJECT" > /dev/null 2>&1
+                fi
+                ${CLI_CMD} create namespace "$LICENSE_MANAGER_PROJECT" > /dev/null 2>&1
             fi
         fi
     done
@@ -450,10 +496,25 @@ function set_separate_operator_project(){
         sed "s/REPLACE_CATALOG_SOURCE_NAMESPACE/$CATALOG_NAMESPACE/g" ${OLM_CATALOG} > ${OLM_CATALOG_TMP}
         # replace all other catalogs with <BAI NS> namespaces 
         ${SED_COMMAND} "s|namespace: .*|namespace: $PROJ_NAME|g" ${OLM_CATALOG_TMP}
-        # replace openshift-marketplace for ibm-cert-manager-catalog with ibm-cert-manager
-        ${SED_COMMAND} "/name: ibm-cert-manager-catalog/{n;s/namespace: .*/namespace: ibm-cert-manager/;}" ${OLM_CATALOG_TMP}
+        
+        # DBACLD-187443:replace openshift-marketplace for ibm-cert-manager-catalog with ibm-cert-manager when cert-manager is not installed and removing ibm-cert-manager-catalog from the catalog source if cert-manager is already installed
+        if [[ "$CERT_MANAGER_ALREADY_INSTALLED" == "false" ]]; then
+            # replace openshift-marketplace for ibm-cert-manager-catalog with ibm-cert-manager
+            ${SED_COMMAND} "/name: ibm-cert-manager-catalog/{n;s/namespace: .*/namespace: $CERT_MANAGER_PROJECT/;}" ${OLM_CATALOG_TMP}
+        else # Cert-manager is already installed.  Removing ibm-cert-manager-catalog from the catalog source
+            remove_item_from_cs "${OLM_CATALOG_TMP}" "${OLM_CATALOG_TMP_BAK}" "ibm-cert-manager-catalog"
+            if [[ $? -ne 0 ]]; then
+                warning "Failed to remove ibm-cert-manager-catalog from the catalog source."
+            else
+                success "Removed ibm-cert-manager-catalog from the catalog source."
+                printf "\n"
+                cp ${OLM_CATALOG_TMP_BAK} ${OLM_CATALOG_TMP} > /dev/null 2>&1
+            fi
+
+        fi
+
         # replace openshift-marketplace for ibm-licensing-catalog with ibm-licensing
-        ${SED_COMMAND} "/name: ibm-licensing-catalog/{n;s/namespace: .*/namespace: ibm-licensing/;}" ${OLM_CATALOG_TMP}
+        ${SED_COMMAND} "/name: ibm-licensing-catalog/{n;s/namespace: .*/namespace: $LICENSE_MANAGER_PROJECT/;}" ${OLM_CATALOG_TMP}
     fi
     project_name=$project_name_operator
 }
@@ -2519,6 +2580,16 @@ else
     CS_INSTALL="NO"
     CNCF_DEV="No"
 
+fi
+
+# DBACLD-187443: Check cert-manager installation status once and store in variable
+info "Checking cert-manager installation status..."
+if is_cert_manager_installed; then
+    CERT_MANAGER_ALREADY_INSTALLED=true
+    info "Pre-existing cert-manager found on the cluster."
+else
+    CERT_MANAGER_ALREADY_INSTALLED=false
+    info "No pre-existing cert-manager detected on the cluster."
 fi
 
 clear

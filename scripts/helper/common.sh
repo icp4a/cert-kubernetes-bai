@@ -18,6 +18,10 @@
 TEMP_FOLDER=${CUR_DIR}/.tmp
 mkdir -p $TEMP_FOLDER
 
+# Define the required Java version based on CP4BA release
+REQUIRED_JAVA_MAJOR_VERSION=17  # Semeru 17 is required for BAI S 
+
+
 # Directory for common service script
 COMMON_SERVICES_SCRIPT_FOLDER=${CUR_DIR}/cpfs/installer_scripts/cp3pt0-deployment
 
@@ -36,12 +40,15 @@ OLM_VERSION=v0.27.0
 #Licensing service related variables that required during the creation of subscription and the checks.
 # NEED TO BE UPDATED WHEN WE UPDATE THE VERSIONS
 LICENSING_SERVICE_CHANNEL=v4.2
-LICENSING_SERVICE_TARGET_VERSION="4.2.17"
+LICENSING_SERVICE_TARGET_VERSION="4.2.18"
 
 #Cert Manager related variables that required during the creation of subscription and the checks.
 # NEED TO BE UPDATED WHEN WE UPDATE THE VERSIONS
 CERT_MANAGER_CHANNEL=v4.2
-CERT_MANAGER_TARGET_VERSION="4.2.17"
+CERT_MANAGER_TARGET_VERSION="4.2.18"
+#Cert manager owner.
+CERT_MANAGER_V1ALPHA1_OWNER="operator.ibm.com/v1alpha1"
+CERT_MANAGER_V1_OWNER="operator.ibm.com/v1"
 
 # CATALOG SOURCE file name
 CATALOG_SOURCE_FILENAME=${PARENT_DIR}/descriptors/op-olm/catalog_source.yaml
@@ -62,7 +69,11 @@ cs_maximal_version_for_ifix="5.0.0" # Maximal supported Common Service version b
 BAI_S_FC_CR=${PARENT_DIR}/descriptors/patterns/ibm_cp4a_cr_production_FC_bai.yaml
 
 #Change required each sprint for using dev mode
-CURRENT_SPRINT_TAG="25.0.0-IF002"
+CURRENT_SPRINT_TAG="25.0.1"
+
+#DBACLD-194974: This variable is used to specify the version that will block EDB option for IM ZEN BTS.The user will HAVE to use external postgres for this. It should be in the format of ${BAI_RELEASE_BASE}_${BAI_PATCH_VERSION}
+# For 25.0.1_GA we will remove the Starter option and EDB option.
+VERSION_TO_SKIP_EDB="25.0.1_GA"
 
 
 # End of Section for BAI Rancher specific variables
@@ -93,8 +104,8 @@ ZEN_SECRET_FILE=${ZEN_SECRET_FOLDER}/ibm-zen-metastore-edb-secret.sh
 ZEN_CONFIGMAP_FILE=${ZEN_SECRET_FOLDER}/ibm-zen-metastore-edb-cm.yaml
 
 IM_SECRET_FOLDER=${SECRET_FILE_FOLDER}/im_external_db
-IM_SECRET_FILE=${IM_SECRET_FOLDER}/ibm-im-metastore-edb-secret.sh
-IM_CONFIGMAP_FILE=${IM_SECRET_FOLDER}/ibm-im-metastore-edb-cm.yaml
+IM_SECRET_FILE=${IM_SECRET_FOLDER}/ibm-im-datastore-edb-secret.sh
+IM_CONFIGMAP_FILE=${IM_SECRET_FOLDER}/ibm-im-datastore-edb-cm.yaml
 
 BTS_SECRET_FOLDER=${SECRET_FILE_FOLDER}/bts_external_db
 BTS_SSL_SECRET_FILE=${BTS_SECRET_FOLDER}/ibm-bts-metastore-edb-ssl-secret.sh
@@ -108,14 +119,14 @@ LDAP_SECRET_FILE=${SECRET_FILE_FOLDER}/ldap-bind-secret.yaml
 
 # Release/Patch version for CP4BA
 # BAI_RELEASE_BASE is for fetch content/foundation operator pod, only need to change for major release.
-BAI_RELEASE_BASE="25.0.0"
-BAI_PATCH_VERSION="IF002"
+BAI_RELEASE_BASE="25.0.1"
+BAI_PATCH_VERSION="GA"
 # BAI_RELEASE_BASE_MAJOR_VERSION is used in certain checks where we used to hardcode to see if a upgrade is not ifix to ifix,change this only for major release
-BAI_RELEASE_BASE_MAJOR_VERSION="25.0"
+BAI_RELEASE_BASE_MAJOR_VERSION="25.1"
 # BAI_CSV_VERSION is for checking CP4BA operator upgrade status, need to update for each IFIX
-BAI_CSV_VERSION="v25.0.2"
+BAI_CSV_VERSION="v25.1.0"
 # BAI_CHANNEL_VERSION is for switch CP4BA operator upgrade status, need to update for major release
-BAI_CHANNEL_VERSION="v25.0"
+BAI_CHANNEL_VERSION="v25.1"
 # CS_OPERATOR_VERSION is for checking CPFS operator upgrade status, need to update for each IFIX
 CS_OPERATOR_VERSION="v4.15.0"
 # CS_CHANNEL_VERSION is for for CPFS script -c option, need to update for each IFIX
@@ -123,7 +134,7 @@ CS_CHANNEL_VERSION="v4.15"
 # CS CHANNEL VERSION that is used in the KC
 CS_CHANNEL_KC="4.x_cd"
 # CERT_LICENSE_OPERATOR_VERSION is for checking IBM cert-manager/licensing operator upgrade status, need to update for each IFIX
-CERT_LICENSE_OPERATOR_VERSION="v4.2.17"
+CERT_LICENSE_OPERATOR_VERSION="v4.2.18"
 # CERT_LICENSE_CHANNEL_VERSION is for for IBM cert-manager/licensing script -c option, need to update for each IFIX
 CERT_LICENSE_CHANNEL_VERSION="v4.2"
 # CS_CATALOG_VERSION is for CPFS script -s option, need to update for each IFIX
@@ -137,11 +148,12 @@ BTS_CATALOG_VERSION="ibm-bts-operator-catalog-v3-35"
 # REQUIREDVER_BTS is for checking bts operator upgrade status before run removal_iaf.sh, need to update for each IFIX
 REQUIREDVER_BTS="3.35.6"
 # REQUIREDVER_POSTGRESQL is for checking postgresql operator upgrade status before run removal_iaf.sh, need to update for each IFIX
-REQUIREDVER_POSTGRESQL="1.25.3"
+REQUIREDVER_POSTGRESQL="1.25.2"
 # EVENTS_OPERATOR_VERSION is for checking IBM Events operator upgrade status, need to update for each IFIX
-EVENTS_OPERATOR_VERSION="v5.2.1"
+EVENTS_OPERATOR_VERSION="v5.1.2"
 # List of BAI versions that are supported for upgrade to $BAI_CSV_VERSION
-MINIMUM_SUPPORTED_UPGRADE_VERSIONS=("24.1.2" "25.0.0")
+# When setting to an empty array, only fresh installation is supported.
+MINIMUM_SUPPORTED_UPGRADE_VERSIONS=()
 
 
 
@@ -286,38 +298,6 @@ function install_yq_cli(){
     printf "\n"
 }
 
-function install_ibm_jre(){
-    if [[ ${machine} = "Linux" ]]; then
-        local JRE_VERSION=""
-        local JRE_VERSION_TMP=""
-        JRE_VERSION=$(curl -s https://public.dhe.ibm.com/ibmdl/export/pub/systems/cloud/runtimes/java/  | grep -o '[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}' | tail -n 1)
-        if [[ -z $JRE_VERSION ]]; then
-            fail "Can NOT access official IBM JRE Repository https://public.dhe.ibm.com/ibmdl/export/pub/systems/cloud/runtimes/java, Please install IBM JRE manually."
-            exit 1
-        else
-            JRE_VERSION_TMP=$(echo "$JRE_VERSION" | sed 's/\./-/2')
-            local tmp_file="/tmp/ibm-java.tgz"
-            local download_url=https://public.dhe.ibm.com/ibmdl/export/pub/systems/cloud/runtimes/java/${JRE_VERSION}/linux/$(uname -m)/ibm-java-jre-${JRE_VERSION_TMP}-linux-$(uname -m).tgz
-            echo -n "Downloading $download_url";
-            echo ""
-            curl -o $tmp_file -f $download_url
-            if [ ! -e $tmp_file ]; then
-                fail "Can NOT access official IBM JRE Repository https://public.dhe.ibm.com/ibmdl/export/pub/systems/cloud/runtimes/java, Please install IBM JRE manually."
-                exit 1
-            fi
-            mkdir -p /opt/ibm/java
-            tar -xzf $tmp_file --strip-components=1 -C /opt/ibm/java
-            #  add keytool to system PATH.
-            echo -n "Add keytool to system environment variable PATH..."; sudo -s export PATH="/opt/ibm/java/jre/bin/:$PATH"; export PATH="/opt/ibm/java/jre/bin/:$PATH"; echo "PATH=$PATH:/opt/ibm/java/jre/bin/" >> ~/.bashrc;echo "done."
-            info "IBM JRE has been installed and system enviroment variable PATH was configured. Please run command \"source ~/.bashrc\" before running the validate command again. Exiting this script."
-            exit 1
-        fi
-    elif [[ ${machine} = "Mac" ]]; then
-        echo -n "IBM's Java JRE is not available for Mac OS X. Install valid JRE for Mac OS X manually refer to MacOS document"; echo "done.";
-    fi
-    printf "\n"
-}
-
 function install_kubectl_cli(){
     if [[ ${machine} = "Linux" ]]; then
         echo -n "Downloading..."
@@ -345,6 +325,111 @@ function install_openssl(){
     fi
     printf "\n"
 }
+# DBACLD-198782: Validate Java runtime and set JAVA_CMD and KEYTOOL_CMD
+# $1 - (Optional) Custom Java path
+function validate_java_runtime() {
+    local CUSTOM_JAVA_PATH=$1
+    
+    # Build example command with actual namespace if available
+    local EXAMPLE_NS="${TARGET_PROJECT_NAME:-bais-ns}"
+    local EXAMPLE_CMD="./bai-prerequisites.sh -m validate -n ${EXAMPLE_NS} --java-path=/custom/java/path"
+    
+    # Step 1: Set JAVA_CMD and KEYTOOL_CMD based on CUSTOM_JAVA_PATH
+    if [[ -n "$CUSTOM_JAVA_PATH" ]]; then
+        # Normalize path - ensure it points to bin directory
+        if [[ "$CUSTOM_JAVA_PATH" != */bin ]]; then
+            CUSTOM_JAVA_PATH="${CUSTOM_JAVA_PATH}/bin"
+        fi
+        
+        JAVA_CMD="${CUSTOM_JAVA_PATH}/java"
+        KEYTOOL_CMD="${CUSTOM_JAVA_PATH}/keytool"
+        
+        # Verify the custom Java path exists and is executable
+        if [[ ! -x "$JAVA_CMD" ]]; then
+            echo -e "\x1B[1;31mError: Java executable not found at specified path: $JAVA_CMD\x1B[0m"
+            echo -e "\x1B[1;31mPlease provide a valid path to Java (JRE) $REQUIRED_JAVA_MAJOR_VERSION or higher installation.\x1B[0m"
+            exit 1
+        fi
+        
+        # Verify keytool exists and is executable
+        if [[ ! -x "$KEYTOOL_CMD" ]]; then
+            echo -e "\x1B[1;31mError: keytool executable not found at specified path: $KEYTOOL_CMD\x1B[0m"
+            echo -e "\x1B[1;31mPlease provide a valid path to Java (JRE) $REQUIRED_JAVA_MAJOR_VERSION or higher installation.\x1B[0m"
+            exit 1
+        fi
+        
+        echo -e "\x1B[1;32mUsing Java from custom path: ${CUSTOM_JAVA_PATH}\x1B[0m"
+    else
+        JAVA_CMD="java"
+        KEYTOOL_CMD="keytool"
+        
+        # Verify that default Java is available
+        if ! command -v java &> /dev/null; then
+            echo -e "\x1B[1;31mUnable to locate a Java Runtime. Java (JRE) $REQUIRED_JAVA_MAJOR_VERSION or higher must be installed to run this script.\x1B[0m"
+            echo -e "\x1B[1;31mPlease install Java (JRE) $REQUIRED_JAVA_MAJOR_VERSION or higher manually before continuing.\x1B[0m"
+            echo -e "\x1B[1;33mInstallation instructions:\x1B[0m"
+            echo -e "  - Install any compatible Java (JRE) $REQUIRED_JAVA_MAJOR_VERSION or higher distribution (e.g., IBM Semeru, Oracle JDK, or OpenJDK)"
+            echo -e "  - Ensure the new Java version is added to your PATH environment variable"
+            echo -e "  - Re-run this script"
+            echo -e "\x1B[1;33mAlternatively, you can specify the path to an existing Java (JRE) $REQUIRED_JAVA_MAJOR_VERSION or higher installation:\x1B[0m"
+            echo -e "  - Re-run this script with the Java (JRE) path parameter, using --java-path <path_to_java>; e.g., ${EXAMPLE_CMD}"
+            exit 1
+        fi
+        
+        # Verify that default keytool is available
+        if ! command -v keytool &> /dev/null; then
+            echo -e "\x1B[1;31mUnable to locate keytool. Java (JRE) $REQUIRED_JAVA_MAJOR_VERSION or higher must be installed to run this script.\x1B[0m"
+            echo -e "\x1B[1;31mPlease install Java (JRE) $REQUIRED_JAVA_MAJOR_VERSION or higher manually before continuing.\x1B[0m"
+            exit 1
+        fi
+    fi
+    
+    # Step 2: Validate Java version
+    "$JAVA_CMD" -version &>/dev/null
+    if [[ $? -ne 0 ]]; then
+        echo -e "\x1B[1;31mUnable to execute Java. Please check your Java (JRE) installation.\x1B[0m"
+        exit 1
+    fi
+    
+    # Extract the full version string
+    local CURRENT_JAVA_VERSION=$("$JAVA_CMD" -version 2>&1 | grep -i version | head -n 1 | awk -F '"' '{print $2}')
+    
+    # Extract just the major version for comparison
+    local CURRENT_MAJOR_VERSION=$(echo "$CURRENT_JAVA_VERSION" | awk -F '.' '{print $1}')
+    
+    # If version starts with "1.", use the second number (e.g., 1.8 -> 8)
+    if [[ "$CURRENT_JAVA_VERSION" == 1.* ]]; then
+        CURRENT_MAJOR_VERSION=$(echo "$CURRENT_JAVA_VERSION" | awk -F '.' '{print $2}')
+    fi
+    
+    # Check if current version is less than the required version
+    if [[ -n "$CURRENT_MAJOR_VERSION" && "$CURRENT_MAJOR_VERSION" -lt "$REQUIRED_JAVA_MAJOR_VERSION" ]]; then
+        echo -e "\x1B[1;31mJava version $CURRENT_JAVA_VERSION is installed but does not meet the minimum requirement (version $REQUIRED_JAVA_MAJOR_VERSION).\x1B[0m"
+        echo -e "\x1B[1;31mPlease upgrade to Java (JRE) $REQUIRED_JAVA_MAJOR_VERSION or higher manually before continuing.\x1B[0m"
+        echo -e "\x1B[1;33mJava (JRE) $REQUIRED_JAVA_MAJOR_VERSION or higher upgrade instructions:\x1B[0m"
+        echo -e "  - Install any compatible Java (JRE) $REQUIRED_JAVA_MAJOR_VERSION or higher distribution (e.g., IBM Semeru, Oracle JDK, or OpenJDK)"
+        echo -e "  - Ensure the new Java version is added to your PATH environment variable"
+        echo -e "  - Re-run this script"
+        echo -e "\x1B[1;33mAlternatively, you can specify the path to an existing Java (JRE) $REQUIRED_JAVA_MAJOR_VERSION or higher installation:\x1B[0m"
+        echo -e "  - Re-run this script with the Java (JRE) path parameter, using --java-path <path_to_java>; e.g., ${EXAMPLE_CMD}"
+        exit 1
+    fi
+    
+    echo -e "\x1B[1;32mJava version: $CURRENT_JAVA_VERSION\x1B[0m"
+    
+    # Step 3: Validate keytool
+    "$KEYTOOL_CMD" -help &>/dev/null
+    if [[ $? -ne 0 ]]; then
+        echo -e "\x1B[1;31mUnable to execute keytool. Keytool is required and should be part of your Java (JRE) installation.\x1B[0m"
+        echo -e "\x1B[1;31mPlease ensure you have a complete Java (JRE) $REQUIRED_JAVA_MAJOR_VERSION or higher installation that includes keytool.\x1B[0m"
+        exit 1
+    fi
+    
+    # Step 4: Export the commands so they're available to child scripts
+    export JAVA_CMD
+    export KEYTOOL_CMD
+}
+
 
 ###################
 # Echoing utilities
@@ -513,6 +598,19 @@ function check_cluster_login() {
     if [ $? -gt 0 ]; then
         error "Not logged in to a cluster. Please login to a cluster before running this script."
         exit 1
+    fi
+}
+
+
+#DBACLD-194974: Version to remove EDB and make external postgres mandatory for IM ZEN BTS by checking the version $BAI_PATCH_VERSION and $BAI_RELEASE_BASE 
+function skip_edb_for_2501() {
+    local _existing_cp4ba_version=${BAI_RELEASE_BASE}_${BAI_PATCH_VERSION}
+    local _version_to_skip="$VERSION_TO_SKIP_EDB"
+
+    if [[ "$_existing_cp4ba_version" == "$_version_to_skip" ]]; then
+        return 0  # Make external Postgres mandatory
+    else
+        return 1  # Give the option to use externa Postgres
     fi
 }
 
@@ -1463,6 +1561,96 @@ function validate_property_file_required_fields() {
     fi
 }
 
+#DBACLD-187443: Skip the creation of `ibm-cert-manager` project if cert-manager is already installed
+# This function will detect if there's an existing cert-manager (eg: Redhat Openshift cert-manger or Helm cert-manager) installed in the cluster.  If it is, we'll skip creating the ibm-cert-manager ns.
+# this function should return 0 if cert-manager is found, 1 otherwise
+function is_cert_manager_installed(){
+
+    info "Checking to see if any cert-manager is installed\n"
+    "$CLI_CMD" get subscriptions -A |grep  "cert-manager"  >  /dev/null 2>&1 # this will catch the packagenames of all cert-manager-operators
+    if [ $? -eq 0 ]; then
+        warning "There is a cert-manager Subscription already existed\n"
+    fi
+
+    local webhook_ns=$("$CLI_CMD" get deployments -A | grep cert-manager-webhook | cut -d ' ' -f1)
+    if [ ! -z "$webhook_ns" ]; then
+        warning "There is a cert-manager-webhook pod Running, so most likely another cert-manager is already installed\n"
+        info "Continue to check further\n"
+
+        # Check if the cert-manager-webhook is owned by ibm-cert-manager-operator
+        local api_version=$("$CLI_CMD" get deployments -n "$webhook_ns" cert-manager-webhook -o jsonpath='{.metadata.ownerReferences[*].apiVersion}' --ignore-not-found)
+        if [ ! -z "$api_version" ]; then
+            if [ "$api_version" == "$CERT_MANAGER_V1ALPHA1_OWNER" ]; then
+                error "Cluster has not deactivated LTSR ibm-cert-manager-operator yet.  Please do so before proceeding."
+                return 0
+                exit 1
+            fi
+
+            if [ "$api_version" != "$CERT_MANAGER_V1_OWNER" ]; then
+                warning "Cluster has a non ibm-cert-manager-operator already installed, skipping"
+                return 0
+            fi
+
+            # IBM cert-manager is installed (regardless of namespace)
+            if [[ "$webhook_ns" != "$CERT_MANAGER_PROJECT" ]]; then
+                warning "IBM cert-manager is installed but in namespace: $webhook_ns (expected: $CERT_MANAGER_PROJECT)"
+            else
+                info "IBM cert-manager is already installed in the correct namespace: $webhook_ns"
+            fi
+            return 0
+        else
+            warning "Cluster has a RedHat cert-manager or Helm cert-manager, skipping"
+            return 0
+        fi
+    else
+        info "There is no cert-manager-webhook pod running\n"
+        return 1
+    fi
+}
+#DBACLD-187443: Skip the creation of `ibm-cert-manager` project if cert-manager is already installed
+# This function will remove the any catalog entry out of the catalog source list if it exists
+# There are three parameters:
+# 1. input_file: The input YAML file containing the catalog sources
+# 2. output_file: The output YAML file to write the modified catalog sources
+# 3. name_to_be_removed: The name of the catalog source to be removed. (eg: ibm-cert-manager-catalog)
+function remove_item_from_cs() {
+    local input_file="$1"
+    local output_file="$2"
+    local name_to_be_removed="$3"
+
+
+    # Create an empty output file
+    > "$output_file"
+
+    # Process documents one by one (yq v3.3.0 approach)
+    doc_index=0
+    first_doc=true
+
+    while true; do
+        # Try to read the document at current index
+        doc_content=$($YQ_CMD r "$input_file" --doc $doc_index 2>/dev/null)
+        if [ $? -ne 0 ] || [ -z "$doc_content" ]; then
+            break
+        fi
+
+        # Get the catalog name
+        catalog_name=$($YQ_CMD r "$input_file" --doc $doc_index metadata.name 2>/dev/null)
+
+        # If this is not the cert-manager catalog, include it
+        if [ "$catalog_name" != "$name_to_be_removed" ]; then
+            if [ "$first_doc" = true ]; then
+                echo "$doc_content" >> "$output_file"
+                first_doc=false
+            else
+                echo "---" >> "$output_file"
+                echo "$doc_content" >> "$output_file"
+            fi
+        fi
+
+        ((doc_index++))
+    done
+}
+
 # This function is to patch the kafka strimzi podset for an upgrade to a version having Events Operator 5.2 or higher
 # The function checks if events operator subscription is on channel 5.2 and if so gets the kafka strimzi podset and replaces an annotation which will allow the zen upgrade to complete
 # The subscription for events operator is updated after the new CR is applied and the foundation-operator applies the new operand request, so this function is called during upgradeDeploymentStatus
@@ -1471,9 +1659,9 @@ function patch_strimzi_podset(){
     local operator_namespace=$1
     local services_namespace=$2
 
-    echo "Checking ibm-events-operator subscription and channel..."
+    echo "Checking ibm-events-operator subscription channel..."
     # Check if the subscription exists
-    events_operator_subscription_exists=$(${CLI_CMD} get subscription.operators.coreos.com ibm-events-operator -n $operator_namespace -o name --no-headers 2>/dev/null || echo "")
+    events_operator_subscription_exists=$(${CLI_CMD} get subscription ibm-events-operator -n $operator_namespace -o name --no-headers 2>/dev/null || echo "")
 
     if [[ -z "$events_operator_subscription_exists" ]]; then
         echo "Subscription 'ibm-events-operator' not found, skipping"
@@ -1482,7 +1670,7 @@ function patch_strimzi_podset(){
     fi
 
     # Get the subscription channel - YQ 3.3 compatible syntax
-    events_operator_channel=$(${CLI_CMD} get subscription.operators.coreos.com ibm-events-operator -n $operator_namespace -o yaml | ${YQ_CMD} read - spec.channel)
+    events_operator_channel=$(${CLI_CMD} get subscription ibm-events-operator -n $operator_namespace -o yaml | ${YQ_CMD} read - spec.channel)
 
     echo "Current channel: $events_operator_channel"
 

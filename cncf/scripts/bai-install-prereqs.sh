@@ -83,12 +83,14 @@ function check_cncf_rancher_prereqs() {
     #check_command kubectl
 
     is_openshift=false
+
     oc_version=$($CLI_CMD get clusterversion version -o=jsonpath={.status.desired.version} 2>/dev/null)
     if [[ ! -z ${oc_version} ]]; then
         info "Openshift version ${oc_version} detected."
         is_openshift=true
     fi
-
+    
+    
     ## Check OLM
     if [[ "$is_openshift" == true ]]; then
         olm_namespace="openshift-marketplace"
@@ -113,7 +115,7 @@ function check_cncf_rancher_prereqs() {
 
             if [[ "$ans" == "yes" ]]; then
 
-                # The OLM install script and related files have been pulled and included in "cert-kubernetes-bai" repository so that it can be run even during an airgap based deployment.
+                # Saving the OLM install script locally so that it can be run even during an airgap based deployment.
                 # IF we are bumping up the OLM_VERSION we need to run a few commands to get the necessary files
                 # Install Script -> curl -L "https://github.com/operator-framework/operator-lifecycle-manager/releases/download/${OLM_VERSION}/install.sh" -o install.sh 
                 # olm.yaml -> https://github.com/operator-framework/operator-lifecycle-manager/releases/download/${OLM_VERSION}/olm.yaml

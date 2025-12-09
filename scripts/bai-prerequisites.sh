@@ -22,6 +22,9 @@ source ${CUR_DIR}/helper/bai-property.sh
 # Import function for secret
 source ${CUR_DIR}/helper/bai-secret.sh
 
+# Import function for storage and performance validation
+source "${CUR_DIR}/bai-storage-validation.sh"
+
 JDBC_DRIVER_DIR=${CUR_DIR}/jdbc
 PLATFORM_SELECTED=""
 PATTERN_SELECTED=""
@@ -35,11 +38,12 @@ optional_component_arr=()
 optional_component_cr_arr=()
 
 function show_help() {
-    echo -e "\nUsage: bai-prerequisites.sh -m [modetype] -n [BAI-NAMESPACE] \n"
+    echo -e "\nUsage: bai-prerequisites.sh -m [modetype] -n [BAI-NAMESPACE] [options]\n"
     echo "Options:"
     echo "  -h  Display help"
     echo "  -m  The valid mode types are: [property], [generate], or [validate]"
     echo "  -n  The target namespace of the BAI deployment."
+    echo " --java-path Optional path to Java (JRE) $REQUIRED_JAVA_MAJOR_VERSION or higher installation directory"
     echo ""
     echo "  STEP1: Run the script in [property] mode. It creates property files (LDAP property file) with default values (BASE DN/BIND DN ...)."
     echo "  STEP2: Modify the LDAP/user property files with your values."
@@ -127,42 +131,45 @@ function show_help() {
 
 # This function helps parse arguments that are passed to the script, checks and assigns runtime mode and target namespace variables based on the -m and -n parameters passed
 function parse_arguments() {
-    # process options
-    while [[ "$@" != "" ]]; do
-        case "$1" in
+    local args=("$@")
+    local i=0
+    
+    while [ $i -lt ${#args[@]} ]; do
+        local key="${args[$i]}"
+        case $key in
         -m)
-            shift
-            if [ -z $1 ]; then
+            ((i++))
+            if [ $i -ge ${#args[@]} ] || [ -z "${args[$i]}" ]; then
                 echo "Invalid option: -m requires an argument"
                 exit 1
             fi
-            RUNTIME_MODE=$1
+            RUNTIME_MODE="${args[$i]}"
             if [[ $RUNTIME_MODE == "property" || $RUNTIME_MODE == "generate" || $RUNTIME_MODE == "validate" ]]; then
                 echo
             else
                 msg "Use a valid value: -m [property] or [generate] or [validate]"
-                exit -1
+                exit 1
             fi
             ;;
         -n)
-            shift
-            if [ -z $1 ]; then
+            ((i++))
+            if [ $i -ge ${#args[@]} ] || [ -z "${args[$i]}" ]; then
                 echo "Invalid option: -n requires an argument"
                 exit 1
             fi
-            TARGET_PROJECT_NAME=$1
+            TARGET_PROJECT_NAME="${args[$i]}"
             case "$TARGET_PROJECT_NAME" in
             "")
                 echo -e "\x1B[1;31mEnter a valid namespace name, namespace name can not be blank\x1B[0m"
-                exit -1
+                exit 1
                 ;;
             "openshift"*)
                 echo -e "\x1B[1;31mEnter a valid project name, project name should not be 'openshift' or start with 'openshift' \x1B[0m"
-                exit -1
+                exit 1
                 ;;
             "kube"*)
                 echo -e "\x1B[1;31mEnter a valid project name, project name should not be 'kube' or start with 'kube' \x1B[0m"
-                exit -1
+                exit 1
                 ;;
             *)
                 # Check cluster login
@@ -177,17 +184,42 @@ function parse_arguments() {
                 ;;
             esac
             ;;
-        -h | --help | \?)
+        -h|--help|\?)
             show_help
             exit 0
             ;;
+        --java-path)
+            ((i++))
+            if [ $i -ge ${#args[@]} ] || [ -z "${args[$i]}" ]; then
+                echo "Invalid option: --java-path requires an argument"
+                exit 1
+            fi
+            CUSTOM_JAVA_PATH="${args[$i]}"
+            # Verify the path exists
+            if [ ! -d "$CUSTOM_JAVA_PATH" ]; then
+                echo -e "\x1B[1;31mThe specified Java (JRE) path does not exist: ${CUSTOM_JAVA_PATH}\x1B[0m"
+                exit 1
+            fi
+            ;;
+        --java-path=*)
+            CUSTOM_JAVA_PATH="${key#*=}"
+            if [ -z "$CUSTOM_JAVA_PATH" ]; then
+                echo "Invalid option: --java-path requires a value"
+                exit 1
+            fi
+            # Verify the path exists
+            if [ ! -d "$CUSTOM_JAVA_PATH" ]; then
+                echo -e "\x1B[1;31mThe specified Java (JRE) path does not exist: ${CUSTOM_JAVA_PATH}\x1B[0m"
+                exit 1
+            fi
+            ;;
         *)
-            echo "Invalid option"
+            echo "Invalid option: $key"
             show_help
             exit 1
             ;;
         esac
-        shift
+        ((i++))
     done
 }
 
@@ -249,7 +281,7 @@ if [[ $RUNTIME_MODE == "property" ]]; then
     # Check for separation of duties
     check_bai_separate_operand $TARGET_PROJECT_NAME # Function Definition can be found in helper/common.sh
 
-    prompt_license "Starting the script to generate the IBM Business Automation Insights standalone property files..." "https://www.ibm.com/support/customer/csol/terms/?id=L-ACQV-MS7LQZ&lc=en" # Function Definition can be found in helper/common.sh
+    prompt_license "Starting the script to generate the IBM Business Automation Insights standalone property files..." "https://www.ibm.com/support/customer/csol/terms/?id=L-UXBF-EQ4UGB" # Function Definition can be found in helper/common.sh
     input_information # Function Definition can be found in helper/bai-prerequisites-modes/property-mode.sh
     create_property_file # Function Definition can be found in helper/bai-prerequisites-modes/property-mode.sh
     clean_up_temp_file # Function Definition can be found in helper/common.sh
@@ -311,6 +343,7 @@ if [[ $RUNTIME_MODE == "validate" ]]; then
     validate_utility_tools_for_validate_mode # Function Definition can be found in helper/bai-prerequisites-modes/validate-mode.sh
     load_properties_from_temp_file # Function Definition can be found in helper/common.sh
     validate_prerequisites # Function Definition can be found in helper/bai-prerequisites-modes/validate-mode.sh
+    storage_and_performance_validation_tests $TARGET_PROJECT_NAME 
 fi
 
 ###################################################################################

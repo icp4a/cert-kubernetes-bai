@@ -11,7 +11,6 @@
 #
 ###############################################################################
 
-
 # This file is a helper script used to store all functions that are used by the bai-prerequistes.sh in the validate mode
 
     # Set default values if variables are not set DBACLD-170075 (Allow customers to customize the country and language being passed to the jar files being used for validation in cp4a-prerequisites.sh)
@@ -47,60 +46,10 @@ function validate_utility_tools_for_validate_mode(){
             esac
         done
     fi
-    which java &>/dev/null
-    if [[ $? -ne 0 ]]; then
-        echo -e  "\x1B[1;31mUnable to locate java. You must install it to run this script.\x1B[0m" && \
-        while true; do
-            printf "\x1B[1mDo you want install the IBM JRE by the bai-prerequisites.sh script? (Yes/No): \x1B[0m"
-            read -rp "" ans
-            case "$ans" in
-            "y"|"Y"|"yes"|"Yes"|"YES")
-                install_ibm_jre
-                break
-                ;;
-            "n"|"N"|"no"|"No"|"NO")
-                info "IBM JRE or other JRE must be installed for the next validation"
-                exit 1
-                ;;
-            *)
-                echo -e "Answer must be \"Yes\" or \"No\"\n"
-                ;;
-            esac
-        done
-    else
-        java -version &>/dev/null
-        if [[ $? -ne 0 ]]; then
-            echo -e  "\x1B[1;31mUnable to locate a Java Runtime. You must install JRE to run this script.\x1B[0m" && \
-            while true; do
-                printf "\x1B[1mDo you want install the IBM JRE by the bai-prerequisites.sh script? (Yes/No): \x1B[0m"
-                read -rp "" ans
-                case "$ans" in
-                "y"|"Y"|"yes"|"Yes"|"YES")
-                    install_ibm_jre
-                    break
-                    ;;
-                "n"|"N"|"no"|"No"|"NO")
-                    info "Must install the IBM JRE or other JRE to continue next validation"
-                    exit 1
-                    ;;
-                *)
-                    echo -e "Answer must be \"Yes\" or \"No\"\n"
-                    ;;
-                esac
-            done    
-        fi
-    fi
-    which keytool &>/dev/null
-    if [[ $? -ne 0 ]]; then
-        echo -e  "\x1B[1;31mUnable to locate keytool. You must add it in \"\$PATH\" to run this script.\x1B[0m" && \
-        exit 1
-    else
-        keytool -help &>/dev/null
-        if [[ $? -ne 0 ]]; then
-            echo -e  "\x1B[1;31mUnable to locate keytool. You must install the IBM JRE or other JRE and add keytool in \"\$PATH\" to run this script\x1B[0m" && \
-            exit 1     
-        fi
-    fi
+    # DBACLD-198782: Check if Java is installed and meets the minimum version requirement
+    # Priority: --java-path > JAVA_HOME > system PATH
+    JAVA_PATH="${CUSTOM_JAVA_PATH:-$JAVA_HOME}"
+    validate_java_runtime "$JAVA_PATH"
 
     which openssl &>/dev/null
     if [[ $? -ne 0 ]]; then
@@ -295,13 +244,11 @@ function verify_ldap_connection(){
 
         rm -rf /tmp/ldap.der 2>&1 </dev/null
         rm -rf /tmp/ldap-truststore.jks 2>&1 </dev/null
-        #  add keytool to system PATH.
-        sudo -s export PATH="/opt/ibm/java/jre/bin/:$PATH"; export PATH="/opt/ibm/java/jre/bin/:$PATH"; echo "PATH=$PATH:/opt/ibm/java/jre/bin/" >> ~/.bashrc; source ~/.bashrc
 
         openssl x509 -outform der -in $tmp_cert_folder/ldap-cert.crt -out /tmp/ldap.der 2>&1 </dev/null
-        keytool -import -alias cp4baLdapCerts -keystore /tmp/ldap-truststore.jks -file /tmp/ldap.der -storepass "$ldap_truststore_password" -storetype JKS -noprompt 2>&1 </dev/null
+        $KEYTOOL_CMD -import -alias cp4baLdapCerts -keystore /tmp/ldap-truststore.jks -file /tmp/ldap.der -storepass "$ldap_truststore_password" -storetype JKS -noprompt 2>&1 </dev/null
         msg "Checking connection for LDAP server \"$ldap_server\" using BindDN \"$ldap_binddn\".."
-        output=$(java -Dsemeru.fips=$fips_flag -Djavax.net.ssl.trustStore=/tmp/ldap-truststore.jks -Djavax.net.ssl.trustStorePassword=$ldap_truststore_password -jar ${LDAP_TEST_JAR_PATH}/LdapTest.jar -u "ldaps://$ldap_server:$ldap_port" -b "$ldap_basedn" -D "$ldap_binddn" -w "$ldap_binddn_pwd" 2>&1)
+        output=$($JAVA_CMD -Dsemeru.fips=$fips_flag -Djavax.net.ssl.trustStore=/tmp/ldap-truststore.jks -Djavax.net.ssl.trustStorePassword=$ldap_truststore_password -jar ${LDAP_TEST_JAR_PATH}/LdapTest.jar -u "ldaps://$ldap_server:$ldap_port" -b "$ldap_basedn" -D "$ldap_binddn" -w "$ldap_binddn_pwd" 2>&1)
 
         # https://jsw.ibm.com/browse/DBACLD-192983 Check for successful connection - ONLY consider it successful if:
         # The output contains "Connected to: ldaps://$ldap_server:$ldap_port" (indicating successful connection)
@@ -313,13 +260,13 @@ function verify_ldap_connection(){
               display_latency_warning $connection_time "LDAP"
             fi
         else
-            warning "Execute: java -Dsemeru.fips=$fips_flag -Djavax.net.ssl.trustStore=/tmp/ldap-truststore.jks -Djavax.net.ssl.trustStorePassword=$ldap_truststore_password -jar ${LDAP_TEST_JAR_PATH}/LdapTest.jar -u \"ldaps://$ldap_server:$ldap_port\" -b \"$ldap_basedn\" -D \"$ldap_binddn\" -w \"******\"" && \
-            fail "Unable to connect to LDAP server \"$ldap_server\" using BindDN \"$ldap_binddn\", please check configuration in LDAP property again."
+          warning "Execute: $JAVA_CMD -Dsemeru.fips=$fips_flag -Djavax.net.ssl.trustStore=/tmp/ldap-truststore.jks -Djavax.net.ssl.trustStorePassword=$ldap_truststore_password -jar ${LDAP_TEST_JAR_PATH}/LdapTest.jar -u \"ldaps://$ldap_server:$ldap_port\" -b \"$ldap_basedn\" -D \"$ldap_binddn\" -w \"******\"" && \
+          fail "Unable to connect to LDAP server \"$ldap_server\" using BindDN \"$ldap_binddn\", please check configuration in LDAP property again."
         fi
     else
-        msg "Checking connection for LDAP server \"$ldap_server\" using Bind DN \"$ldap_binddn\".."
-        output=$(java -Dsemeru.fips=$fips_flag -jar ${LDAP_TEST_JAR_PATH}/LdapTest.jar -u "ldap://$ldap_server:$ldap_port" -b "$ldap_basedn" -D "$ldap_binddn" -w "$ldap_binddn_pwd" 2>&1)
-        
+        msg "Checking connection for LDAP server \"$ldap_server\" using BindDN \"$ldap_binddn\".."
+        output=$($JAVA_CMD -Dsemeru.fips=$fips_flag -jar ${LDAP_TEST_JAR_PATH}/LdapTest.jar -u "ldap://$ldap_server:$ldap_port" -b "$ldap_basedn" -D "$ldap_binddn" -w "$ldap_binddn_pwd" 2>&1)
+
         # https://jsw.ibm.com/browse/DBACLD-192983 Check for successful connection - ONLY consider it successful if:
         # The output contains "Connected to: ldap://$ldap_server:$ldap_port" (indicating successful connection)
         if [[ "$output" == *"Connected to: ldap://$ldap_server:$ldap_port"* ]]; then
@@ -330,10 +277,10 @@ function verify_ldap_connection(){
               display_latency_warning $connection_time "LDAP"
             fi
         else
-            warning "Execution: java -Dsemeru.fips=$fips_flag -jar ${LDAP_TEST_JAR_PATH}/LdapTest.jar -u \"ldap://$ldap_server:$ldap_port\" -b \"$ldap_basedn\" -D \"$ldap_binddn\" -w \"******\"" && \
-            fail "Unable to connect to LDAP server \"$ldap_server\" using BindDN \"$ldap_binddn\", please check configuration in LDAP property again."
+          warning "Execution: $JAVA_CMD -Dsemeru.fips=$fips_flag -jar ${LDAP_TEST_JAR_PATH}/LdapTest.jar -u \"ldap://$ldap_server:$ldap_port\" -b \"$ldap_basedn\" -D \"$ldap_binddn\" -w \"******\"" && \
+          fail "Unable to connect to LDAP server \"$ldap_server\" using BindDN \"$ldap_binddn\", please check configuration in LDAP property again."
         fi
-    fi 
+    fi
 }
 
 # Function to validate the external postgres connection for IM
@@ -361,7 +308,7 @@ function validate_external_postgres_connection_for_im() {
     rm -rf ${im_external_db_cert_folder}/clientkey.pk8 2>&1 </dev/null
     openssl pkcs8 -topk8 -outform DER -in $postgres_clientkeyfile -out ${im_external_db_cert_folder}/clientkey.pk8 -nocrypt 2>&1 </dev/null
 
-    output=$(java -Dsemeru.fips=$fips_flag -Duser.language=$BAI_AUTO_LANGUAGE -Duser.country=$BAI_AUTO_REGION -Dcom.ibm.jsse2.overrideDefaultTLS=true -Djavax.net.ssl.trustStoreType=PKCS12 -cp "${DB_JDBC_NAME}/postgresql-42.7.2.jar:${DB_CONNECTION_JAR_PATH}/PostgresJDBCConnection.jar" PostgresConnection -h $dbserver -p $dbport -db $dbname -u $dbuser -pwd $dbuserpwd -sslmode verify-ca -ca $postgres_cafile -clientkey ${im_external_db_cert_folder}/clientkey.pk8 -clientcert $postgres_clientcertfile 2>&1)
+    output=$($JAVA_CMD -Dsemeru.fips=$fips_flag -Duser.language=$BAI_AUTO_LANGUAGE -Duser.country=$BAI_AUTO_REGION -Dcom.ibm.jsse2.overrideDefaultTLS=true -Djavax.net.ssl.trustStoreType=PKCS12 -cp "${DB_JDBC_NAME}/postgresql-42.7.2.jar:${DB_CONNECTION_JAR_PATH}/PostgresJDBCConnection.jar" PostgresConnection -h $dbserver -p $dbport -db $dbname -u $dbuser -pwd $dbuserpwd -sslmode verify-ca -ca $postgres_cafile -clientkey ${im_external_db_cert_folder}/clientkey.pk8 -clientcert $postgres_clientcertfile 2>&1)
     retVal_verify_db_tmp=$?
     connection_time=$(echo $output | awk -F 'Round Trip time: ' '{print $2}' | awk '{print $1}')
     if [[ ! -z $connection_time ]]; then
@@ -369,7 +316,7 @@ function validate_external_postgres_connection_for_im() {
     fi
 
     [[ retVal_verify_db_tmp -ne 0 ]] && \
-    warning "Execute: java -Dsemeru.fips=$fips_flag -Duser.language=$BAI_AUTO_LANGUAGE -Duser.country=$BAI_AUTO_REGION -Dcom.ibm.jsse2.overrideDefaultTLS=true -Djavax.net.ssl.trustStoreType=PKCS12 -cp \"${DB_JDBC_NAME}/postgresql-42.7.2.jar:${DB_CONNECTION_JAR_PATH}/PostgresJDBCConnection.jar\" PostgresConnection -h $dbserver -p $dbport -db $dbname -u $dbuser -pwd ****** -sslmode verify-ca -ca $postgres_cafile -clientkey ${im_external_db_cert_folder}/clientkey.pk8 -clientcert $postgres_clientcertfile" && \
+    warning "Execute: $JAVA_CMD -Dsemeru.fips=$fips_flag -Duser.language=$BAI_AUTO_LANGUAGE -Duser.country=$BAI_AUTO_REGION -Dcom.ibm.jsse2.overrideDefaultTLS=true -Djavax.net.ssl.trustStoreType=PKCS12 -cp \"${DB_JDBC_NAME}/postgresql-42.7.2.jar:${DB_CONNECTION_JAR_PATH}/PostgresJDBCConnection.jar\" PostgresConnection -h $dbserver -p $dbport -db $dbname -u $dbuser -pwd ****** -sslmode verify-ca -ca $postgres_cafile -clientkey ${im_external_db_cert_folder}/clientkey.pk8 -clientcert $postgres_clientcertfile" && \
     fail "Unable to connect to database \"$dbname\" on database server \"$dbserver\", please check the configuration again."
     [[ retVal_verify_db_tmp -eq 0 ]] && \
     success "The DB connection check for \"$dbname\" on database server \"$dbserver\" PASSED!"
@@ -400,7 +347,7 @@ function validate_external_postgres_connection_for_zen(){
     rm -rf ${zen_external_db_cert_folder}/clientkey.pk8 2>&1 </dev/null
     openssl pkcs8 -topk8 -outform DER -in $postgres_clientkeyfile -out ${zen_external_db_cert_folder}/clientkey.pk8 -nocrypt 2>&1 </dev/null
 
-    output=$(java -Dsemeru.fips=$fips_flag -Duser.language=$BAI_AUTO_LANGUAGE -Duser.country=$BAI_AUTO_REGION -Dcom.ibm.jsse2.overrideDefaultTLS=true -Djavax.net.ssl.trustStoreType=PKCS12 -cp "${DB_JDBC_NAME}/postgresql-42.7.2.jar:${DB_CONNECTION_JAR_PATH}/PostgresJDBCConnection.jar" PostgresConnection -h $dbserver -p $dbport -db $dbname -u $dbuser -pwd $dbuserpwd -sslmode verify-ca -ca $postgres_cafile -clientkey ${zen_external_db_cert_folder}/clientkey.pk8 -clientcert $postgres_clientcertfile 2>&1)
+    output=$($JAVA_CMD -Dsemeru.fips=$fips_flag -Duser.language=$BAI_AUTO_LANGUAGE -Duser.country=$BAI_AUTO_REGION -Dcom.ibm.jsse2.overrideDefaultTLS=true -Djavax.net.ssl.trustStoreType=PKCS12 -cp "${DB_JDBC_NAME}/postgresql-42.7.2.jar:${DB_CONNECTION_JAR_PATH}/PostgresJDBCConnection.jar" PostgresConnection -h $dbserver -p $dbport -db $dbname -u $dbuser -pwd $dbuserpwd -sslmode verify-ca -ca $postgres_cafile -clientkey ${zen_external_db_cert_folder}/clientkey.pk8 -clientcert $postgres_clientcertfile 2>&1)
     retVal_verify_db_tmp=$?
     connection_time=$(echo $output | awk -F 'Round Trip time: ' '{print $2}' | awk '{print $1}')
     if [[ ! -z $connection_time ]]; then
@@ -408,7 +355,7 @@ function validate_external_postgres_connection_for_zen(){
     fi
 
     [[ retVal_verify_db_tmp -ne 0 ]] && \
-    warning "Execute: java -Dsemeru.fips=$fips_flag -Duser.language=$BAI_AUTO_LANGUAGE -Duser.country=$BAI_AUTO_REGION -Dcom.ibm.jsse2.overrideDefaultTLS=true -Djavax.net.ssl.trustStoreType=PKCS12 -cp \"${DB_JDBC_NAME}/postgresql-42.7.2.jar:${DB_CONNECTION_JAR_PATH}/PostgresJDBCConnection.jar\" PostgresConnection -h $dbserver -p $dbport -db $dbname -u $dbuser -pwd ****** -sslmode verify-ca -ca $postgres_cafile -clientkey ${zen_external_db_cert_folder}/clientkey.pk8 -clientcert $postgres_clientcertfile" && \
+    warning "Execution: $JAVA_CMD -Dsemeru.fips=$fips_flag -Duser.language=$BAI_AUTO_LANGUAGE -Duser.country=$BAI_AUTO_REGION -Dcom.ibm.jsse2.overrideDefaultTLS=true -Djavax.net.ssl.trustStoreType=PKCS12 -cp \"${DB_JDBC_NAME}/postgresql-42.7.2.jar:${DB_CONNECTION_JAR_PATH}/PostgresJDBCConnection.jar\" PostgresConnection -h $dbserver -p $dbport -db $dbname -u $dbuser -pwd ****** -sslmode verify-ca -ca $postgres_cafile -clientkey ${zen_external_db_cert_folder}/clientkey.pk8 -clientcert $postgres_clientcertfile" && \
     fail "Unable to connect to database \"$dbname\" on database server \"$dbserver\", please check the configuration again."
     [[ retVal_verify_db_tmp -eq 0 ]] && \
     success "The DB connection check for \"$dbname\" on database server \"$dbserver\" PASSED!"
@@ -439,7 +386,7 @@ function validate_external_postgres_connection_for_bts(){
     rm -rf ${bts_external_db_cert_folder}/clientkey.pk8 2>&1 </dev/null
     openssl pkcs8 -topk8 -outform DER -in $postgres_clientkeyfile -out ${bts_external_db_cert_folder}/clientkey.pk8 -nocrypt 2>&1 </dev/null
 
-    output=$(java -Dsemeru.fips=$fips_flag -Duser.language=$BAI_AUTO_LANGUAGE -Duser.country=$BAI_AUTO_REGION -Dcom.ibm.jsse2.overrideDefaultTLS=true -Djavax.net.ssl.trustStoreType=PKCS12 -cp "${DB_JDBC_NAME}/postgresql-42.7.2.jar:${DB_CONNECTION_JAR_PATH}/PostgresJDBCConnection.jar" PostgresConnection -h $dbserver -p $dbport -db $dbname -u $dbuser -pwd $dbuserpwd -sslmode verify-ca -ca $postgres_cafile -clientkey ${bts_external_db_cert_folder}/clientkey.pk8 -clientcert $postgres_clientcertfile 2>&1)
+    output=$($JAVA_CMD -Dsemeru.fips=$fips_flag -Duser.language=$BAI_AUTO_LANGUAGE -Duser.country=$BAI_AUTO_REGION -Dcom.ibm.jsse2.overrideDefaultTLS=true -Djavax.net.ssl.trustStoreType=PKCS12 -cp "${DB_JDBC_NAME}/postgresql-42.7.2.jar:${DB_CONNECTION_JAR_PATH}/PostgresJDBCConnection.jar" PostgresConnection -h $dbserver -p $dbport -db $dbname -u $dbuser -pwd $dbuserpwd -sslmode verify-ca -ca $postgres_cafile -clientkey ${bts_external_db_cert_folder}/clientkey.pk8 -clientcert $postgres_clientcertfile 2>&1)
     retVal_verify_db_tmp=$?
     connection_time=$(echo $output | awk -F 'Round Trip time: ' '{print $2}' | awk '{print $1}')
     if [[ ! -z $connection_time ]]; then
@@ -447,7 +394,7 @@ function validate_external_postgres_connection_for_bts(){
     fi
 
     [[ retVal_verify_db_tmp -ne 0 ]] && \
-    warning "Execute: java -Dsemeru.fips=$fips_flag -Duser.language=$BAI_AUTO_LANGUAGE -Duser.country=$BAI_AUTO_REGION -Dcom.ibm.jsse2.overrideDefaultTLS=true -Djavax.net.ssl.trustStoreType=PKCS12 -cp \"${DB_JDBC_NAME}/postgresql-42.7.2.jar:${DB_CONNECTION_JAR_PATH}/PostgresJDBCConnection.jar\" PostgresConnection -h $dbserver -p $dbport -db $dbname -u $dbuser -pwd ****** -sslmode verify-ca -ca $postgres_cafile -clientkey ${bts_external_db_cert_folder}/clientkey.pk8 -clientcert $postgres_clientcertfile" && \
+    warning "Execute: $JAVA_CMD -Dsemeru.fips=$fips_flag -Duser.language=$BAI_AUTO_LANGUAGE -Duser.country=$BAI_AUTO_REGION -Dcom.ibm.jsse2.overrideDefaultTLS=true -Djavax.net.ssl.trustStoreType=PKCS12 -cp \"${DB_JDBC_NAME}/postgresql-42.7.2.jar:${DB_CONNECTION_JAR_PATH}/PostgresJDBCConnection.jar\" PostgresConnection -h $dbserver -p $dbport -db $dbname -u $dbuser -pwd ****** -sslmode verify-ca -ca $postgres_cafile -clientkey ${bts_external_db_cert_folder}/clientkey.pk8 -clientcert $postgres_clientcertfile" && \
     fail "Unable to connect to database \"$dbname\" on database server \"$dbserver\", please check the configuration again."
     [[ retVal_verify_db_tmp -eq 0 ]] && \
     success "The DB connection check for \"$dbname\" on database server \"$dbserver\" PASSED!"

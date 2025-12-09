@@ -129,6 +129,11 @@ function check_bai_minimum_version(){
 function check_bai_operator_version(){
     local project_name=$1
     local maxRetry=5
+    #DBACLD-202417: Update logic to check for the MINIMUM_SUPPORTED_UPGRADE_VERSIONS array before proceeding with the upgrade checks. If it's empty then we will exit with a message indicating that only refresh installation is supported.
+    if [[ ${#MINIMUM_SUPPORTED_UPGRADE_VERSIONS[@]} -eq 0 ]]; then
+        info "NOTE: Only fresh installation of BAI "$BAI_CSV_VERSION" is supported. Upgrading from any previous releases to BAI "$BAI_CSV_VERSION" is not supported as it is a Limited Support Release (LSR)"
+        exit 1
+    fi
     info "Checking the version of IBM Business Automation Insights Operator"
     bai_operator_csv_name=$(${CLI_CMD} get csv -n $project_name --no-headers --ignore-not-found | grep "IBM Business Automation Insights" | awk '{print $1}')
     if [[ -z $bai_operator_csv_name ]]; then

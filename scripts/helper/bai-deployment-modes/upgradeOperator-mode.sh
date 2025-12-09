@@ -514,6 +514,7 @@ function apply_new_catalog_sources(){
                 #${CLI_CMD} delete catalogsource "$pre_upgrade_bts_catalog_name" -n "$TARGET_PROJECT_NAME"
             fi
         done
+
         if [[ "$PLATFORM_SELECTED" == "other" && "$SCRIPT_MODE" == "dev" ]]; then
             source $BAI_CNCF_FOLDER/bai-utils.sh
             create_all_catalog_sources "$TARGET_PROJECT_NAME" true "$OLM_CATALOG_TMP" "upgrade"
@@ -662,8 +663,6 @@ function upgrade_cpfs_operator(){
         # Upgrading Cert-Manager and Licensing Service
         msg "All arguments passed into the CPfs script: $COMMON_SERVICES_SCRIPT_FOLDER/setup_singleton.sh --license-accept --enable-licensing --enable-private-catalog --yq \"$CPFS_YQ_PATH\" -c $CERT_LICENSE_CHANNEL_VERSION"
         $COMMON_SERVICES_SCRIPT_FOLDER/setup_singleton.sh --license-accept --enable-licensing --enable-private-catalog --yq "$CPFS_YQ_PATH" -c $CERT_LICENSE_CHANNEL_VERSION
-
-        
         if [ $? -ne 0 ]; then
             TMP_MESSAGE="Failed to execute command: $COMMON_SERVICES_SCRIPT_FOLDER/setup_singleton.sh --license-accept --enable-licensing --enable-private-catalog --yq \"$CPFS_YQ_PATH\" -c $CERT_LICENSE_CHANNEL_VERSION"
             displayUpgradeOperatorMessage "$TMP_MESSAGE" $TARGET_PROJECT_NAME $bai_operator_csv_version
@@ -679,10 +678,8 @@ function upgrade_cpfs_operator(){
         fi
         # switch catalog from GCN to private when it's seperation of duty.
         # Upgrading CPFS
-
         msg "All arguments passed into the CPfs script: $COMMON_SERVICES_SCRIPT_FOLDER/setup_tenant.sh --license-accept --enable-licensing --operator-namespace $TARGET_PROJECT_NAME --services-namespace $TMP_SERVICES_NAMESPACE --yq \"$CPFS_YQ_PATH\" -c $CS_CHANNEL_VERSION -s $CS_CATALOG_VERSION --enable-private-catalog -v 1"
         $COMMON_SERVICES_SCRIPT_FOLDER/setup_tenant.sh --license-accept --enable-licensing --operator-namespace $TARGET_PROJECT_NAME --services-namespace $TMP_SERVICES_NAMESPACE --yq "$CPFS_YQ_PATH" -c $CS_CHANNEL_VERSION -s $CS_CATALOG_VERSION --enable-private-catalog -v 1
-
         if [ $? -ne 0 ]; then
             TMP_MESSAGE="Failed to execute command: $COMMON_SERVICES_SCRIPT_FOLDER/setup_tenant.sh --license-accept --enable-licensing --operator-namespace $TARGET_PROJECT_NAME --services-namespace $TMP_SERVICES_NAMESPACE --yq \"$CPFS_YQ_PATH\" -c $CS_CHANNEL_VERSION -s $CS_CATALOG_VERSION --enable-private-catalog -v 1"
             displayUpgradeOperatorMessage "$TMP_MESSAGE" $TARGET_PROJECT_NAME  $bai_operator_csv_version
@@ -1096,7 +1093,7 @@ function upgradeoperator_mode(){
         exit 1
     fi
 
-
+    
     ############## Start - Create ibm-bai-shared-info configMap ##############
     check_and_created_sharedinfo_configmap
     ############## End - Create ibm-bai-shared-info configMap ##############
@@ -1196,7 +1193,6 @@ function upgradeoperator_mode(){
         info "Checking if the Business Automation Insights operator catalog pod is ready in the namespace \"$TEMP_CATALOG_PROJECT_NAME\""
         check_catalog_pod_status
     fi
-
     
     #  Patch BAI channel to latest version, wait for all the operators are upgraded before applying operandRequest.
     patch_channel_version
@@ -1219,22 +1215,21 @@ function upgradeoperator_mode(){
         fi
     fi
 
+
     success "Completed the switch of channels for all subscriptions of BAI Standalone operators"
 
-    if [[ "$PLATFORM_SELECTED" != "other" ]]; then
-        ############## BEGIN - Apply new catalog sources for the BAI Standalone Operators ##############
-        # Apply the new catalog source and creating new namespaces for cert manager and license manager
-        if [[ ($CATALOG_FOUND == "Yes" && $PINNED == "Yes") || $PRIVATE_CATALOG_FOUND == "Yes" ]]; then
-        
-            apply_new_catalog_sources
+    ############## BEGIN - Apply new catalog sources for the BAI Standalone Operators ##############
+    # Apply the new catalog source and creating new namespaces for cert manager and license manager
+    if [[ ($CATALOG_FOUND == "Yes" && $PINNED == "Yes") || $PRIVATE_CATALOG_FOUND == "Yes" ]]; then
+    
+        apply_new_catalog_sources
 
-            # Checking if BAI Standalone catalog source pods are ready
-            info "Checking if the Business Automation Insights operator catalog pod is ready in the namespace \"$TEMP_CATALOG_PROJECT_NAME\""
-            check_catalog_pod_status
-        else
-            fail "IBM Business Automation Insights catalog source not found!"
-            exit 1
-        fi
+        # Checking if BAI Standalone catalog source pods are ready
+        info "Checking if the Business Automation Insights operator catalog pod is ready in the namespace \"$TEMP_CATALOG_PROJECT_NAME\""
+        check_catalog_pod_status
+    else
+        fail "IBM Business Automation Insights catalog source not found!"
+        exit 1
     fi
     ############## END - Apply new catalog sources for the BAI Standalone Operators ##############
 
@@ -1294,7 +1289,7 @@ function upgradeoperator_mode(){
         else
             upgrade_cpfs_operator
         fi
-        
+
     fi
 
     # Check IBM Cloud Pak foundational services Operator $CS_OPERATOR_VERSION
@@ -1335,6 +1330,7 @@ function upgradeoperator_mode(){
         fi
     done
     echo "****************************************************************************"
+
     ############## END - upgrading the CPFS operators ##############
     
     # Function to check the csv version after upgrade
@@ -1366,5 +1362,4 @@ function upgradeoperator_mode(){
         step_num=$((step_num + 1))
         echo "  - STEP ${step_num} ${RED_TEXT}(Required)${RESET_TEXT}: You can run ${GREEN_TEXT}\"./bai-deployment.sh -m upgradeDeploymentStatus -n $TARGET_PROJECT_NAME\"${RESET_TEXT} to check whether the upgrade of the IBM Business Automation Insights deployment was successful."
     fi
-
 }

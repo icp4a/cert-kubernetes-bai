@@ -275,77 +275,77 @@ function generate_sample_network_policies(){
     done
 }
 
-# Function to ask if external postgresdb is to be used for IM
-# This function is called by the input_information function
-function select_external_postgresdb_for_im(){
+# Function that asks the user if they want to enable Instana monitoring
+function enable_instana_monitoring(){
     printf "\n"
     echo ""
     while true; do
-        printf "\x1B[1mDo you want to use an external Postgres DB \x1B[0m${RED_TEXT}[YOU NEED TO CREATE THIS POSTGRESQL DB BY YOURSELF FIRST BEFORE YOU APPLY THE BAI CUSTOM RESOURCE]${RESET_TEXT}${GREEN_TEXT}PLEASE REFER THE KNOWLEDGE CENTER: https://www.ibm.com/docs/en/cloud-paks/foundational-services/$CS_CHANNEL_KC?topic=im-setting-up-external-edb-postgresql-database-server#dbcreate ${RESET_TEXT}]\x1B[1mas IM metastore DB for this BAI deployment?\x1B[0m ${YELLOW_TEXT}(Notes: IM service can use an external Postgres DB to store IM data. If you select \"Yes\", IM service uses an external Postgres DB as IM metastore DB. If you select \"No\", IM service uses an embedded cloud native postgresql DB as IM metastore DB.)${RESET_TEXT} (Yes/No, default: No):  "
+        printf "\x1B[1mDo you want to enable the Instana Monitoring for this BAI stand-alone deployment?\x1B[0m ${YELLOW_TEXT}(Notes: If you want the operators to enable the Instana monitoring for this bai deployment, select Yes.)${RESET_TEXT} (Yes/No, default: No):" 
         read -rp "" ans
         case "$ans" in
         "y"|"Y"|"yes"|"Yes"|"YES")
+            ENABLE_INSTANA_MONITORING="true"
+            break
+            ;;
+        "n"|"N"|"no"|"No"|"NO"|"")
+            ENABLE_INSTANA_MONITORING="false"
+            break
+            ;;
+        *)
+            echo -e "Answer must be \"Yes\" or \"No\"\n"
+            ;;
+        esac
+    done
+}
+
+
+
+#IM ZEN and BTS should be asked at the same time
+#DBACLD-194974
+function select_external_postgresdb_for_im_zen_bts(){
+    printf "\n"
+    echo ""
+    while true; do
+        #DBACLD-194974: Since there no EDB, we won't ask customer whether they want to use external Postgres DB for IM/Zen/BTS.  They must use external Postgres DB if they want to install IM/Zen for 25.0.1-GA
+        # Display Knowledge Center link once
+        echo "${GREEN_TEXT}Please refer to the Knowledge Center links listed below to create databases required for IM, Zen & BTS: ${RESET_TEXT}"
+        echo "    - https://www.ibm.com/docs/en/cloud-paks/foundational-services/$CS_CHANNEL_KC?topic=im-setting-up-external-edb-postgresql-database-server#dbcreate${RESET_TEXT}"
+        echo "    - https://www.ibm.com/docs/en/cloud-paks/foundational-services/$CS_CHANNEL_KC?topic=service-external-database#configuring-an-external-database-with-the-bts-custom-resource${RESET_TEXT}"
+        echo
+        
+        if skip_edb_for_2501; then
+            printf "\x1B[1m${YELLOW_TEXT}ATTENTION:${RESET_TEXT} For the version "$BAI_RELEASE_BASE"-"$BAI_PATCH_VERSION", you must use an external Postgres DB \x1B[0m[${RED_TEXT}YOU NEED TO CREATE THE POSTGRESQL DBs BY YOURSELF FIRST BEFORE APPLYING THE BAI Standalone CUSTOM RESOURCE${RESET_TEXT}] \x1B[1mfor IM, Zen and BTS services in this BAI Standalone deployment.\x1B[0m"
+            printf "\n"
+            ans="Yes"
             EXTERNAL_POSTGRESDB_FOR_IM="true"
-            break
-            ;;
-        "n"|"N"|"no"|"No"|"NO"|"")
-            EXTERNAL_POSTGRESDB_FOR_IM="false"
-            break
-            ;;
-        *)
-            echo -e "Answer must be \"Yes\" or \"No\"\n"
-            ;;
-        esac
-    done
-}
-
-# Function to ask if external postgresdb is to be used for ZEN
-# This function is called by the input_information function
-function select_external_postgresdb_for_zen(){
-    printf "\n"
-    echo ""
-    while true; do
-        # Updating this question to reflect zen instead of BTS
-        # DBACLD-166156
-        printf "\x1B[1mDo you want to use an external Postgres DB \x1B[0m${RED_TEXT}[YOU NEED TO CREATE THIS POSTGRESQL DB BY YOURSELF FIRST BEFORE YOU APPLY THE BAI CUSTOM RESOURCE]${RESET_TEXT}${GREEN_TEXT}PLEASE REFER THE KNOWLEDGE CENTER: https://www.ibm.com/docs/en/cloud-paks/foundational-services/$CS_CHANNEL_KC?topic=im-setting-up-external-edb-postgresql-database-server#dbcreate ${RESET_TEXT}]\x1B[1m as Zen metastore DB for this BAI deployment?\x1B[0m ${YELLOW_TEXT}(Notes: Zen stores all metadata such as users, groups, service instances, vault integration and secret references in metastore DB. If you select \"Yes\", Zen service uses an external Postgres DB as Zen metastore DB.. If you select \"No\", Zen service uses an embedded cloud native postgresql DB as Zen metastore DB )${RESET_TEXT} (Yes/No, default: No): "
-        read -rp "" ans
-        case "$ans" in
-        "y"|"Y"|"yes"|"Yes"|"YES")
             EXTERNAL_POSTGRESDB_FOR_ZEN="true"
-            break
-            ;;
-        "n"|"N"|"no"|"No"|"NO"|"")
-            EXTERNAL_POSTGRESDB_FOR_ZEN="false"
-            break
-            ;;
-        *)
-            echo -e "Answer must be \"Yes\" or \"No\"\n"
-            ;;
-        esac
-    done
-}
-
-# Function to ask if external postgresdb is to be used for BTS
-# This function is called by the input_information function
-function select_external_postgresdb_for_bts(){
-    printf "\n"
-    echo ""
-    while true; do
-        printf "\x1B[1mDo you want to use an external Postgres DB \x1B[0m${RED_TEXT}[YOU NEED TO CREATE THIS POSTGRESQL DB BY YOURSELF FIRST BEFORE APPLY BAI CUSTOM RESOURCE]${RESET_TEXT}${GREEN_TEXT}PLEASE REFER THE KNOWLEDGE CENTER: https://www.ibm.com/docs/en/cloud-paks/foundational-services/$CS_CHANNEL_KC?topic=im-setting-up-external-edb-postgresql-database-server#dbcreate ${RESET_TEXT}]\x1B[1m as BTS metastore DB for this BAI deployment?\x1B[0m ${YELLOW_TEXT}(Notes: BTS service can use an external Postgres DB to store meta data. If select \"Yes\", BTS service uses an external Postgres DB as BTS metastore DB. If select \"No\", BTS service uses an embedded cloud native postgresql DB as BTS metastore DB )${RESET_TEXT} (Yes/No, default: No): "
-        read -rp "" ans
-        case "$ans" in
-        "y"|"Y"|"yes"|"Yes"|"YES")
             EXTERNAL_POSTGRESDB_FOR_BTS="true"
+            prompt_press_any_key_to_continue
             break
-            ;;
-        "n"|"N"|"no"|"No"|"NO"|"")
-            EXTERNAL_POSTGRESDB_FOR_BTS="false"
-            break
-            ;;
-        *)
-            echo -e "Answer must be \"Yes\" or \"No\"\n"
-            ;;
-        esac
+        else
+            printf "\x1B[1mDo you want to use an external Postgres DB for IM , Zen and BTS \x1B[0m[${RED_TEXT}YOU NEED TO CREATE THE POSTGRESQL DBs BY YOURSELF FIRST BEFORE APPLYING THE BAI Standalone CUSTOM RESOURCE${RESET_TEXT}] \x1B[1m for the IM, Zen and BTS services in this BAI Standalone deployment?\x1B[0m (Yes/No, default: No): "
+            read -rp "" ans
+
+            ans=$(echo "$ans" | tr '[:upper:]' '[:lower:]')
+
+            case "$ans" in
+            "y"|"yes")
+                EXTERNAL_POSTGRESDB_FOR_IM="true"
+                EXTERNAL_POSTGRESDB_FOR_ZEN="true"
+                EXTERNAL_POSTGRESDB_FOR_BTS="true"
+                break
+                ;;
+            "n"|"no"|"")
+                EXTERNAL_POSTGRESDB_FOR_IM="false"
+                EXTERNAL_POSTGRESDB_FOR_ZEN="false"
+                EXTERNAL_POSTGRESDB_FOR_BTS="false"
+                break
+                ;;
+            *)
+                echo -e "Answer must be \"Yes\" or \"No\"\n"
+                ;;
+            esac
+        fi
     done
 }
 
@@ -570,11 +570,8 @@ function input_information(){
     select_profile_type
     select_iam_default_admin
     generate_sample_network_policies
-        
-    select_external_postgresdb_for_im
-    select_external_postgresdb_for_zen
-    select_external_postgresdb_for_bts
-    
+    enable_instana_monitoring
+    select_external_postgresdb_for_im_zen_bts
     select_flink_job
     create_temp_property_file
 }
@@ -715,6 +712,12 @@ function create_user_property_file(){
     # The below code will capture the GENERATE_SAMPLE_NETWORK_POLICIES value for the bai-deployment script  
     echo "BAI_STANDALONE.ENABLE_GENERATE_SAMPLE_NETWORK_POLICIES=\"$GENERATE_SAMPLE_NETWORK_POLICIES\"" >> ${USER_PROFILE_PROPERTY_FILE}
     echo "" >> ${USER_PROFILE_PROPERTY_FILE}
+
+    # The below code will capture the ENABLE_INSTANA_MONITORING value for the bai-deployment script
+    echo "## Enable or disable Instana instrumentation for bai deployment." >> ${USER_PROFILE_PROPERTY_FILE}
+    echo "BAI_STANDALONE.ENABLE_INSTANA_MONITORING=\"$ENABLE_INSTANA_MONITORING\"" >> ${USER_PROFILE_PROPERTY_FILE}
+    echo "" >> ${USER_PROFILE_PROPERTY_FILE}
+
     # For other type of platform we also need the DOMAIN_NAME
     # We are getting this value from the ibm-cpp-config map which is created during the execution of bai-clusteradmin-setup.sh
     # DBACLD-168151
@@ -962,13 +965,13 @@ function create_property_file(){
     msgRed   "The value in the property file must be within double quotes."
     msgRed   "The value for User/Password in [bai_user_profile.property] file should NOT include special characters: single quotation \"'\""
     echo
+
     if [[ $SELECTED_LDAP == "Yes" ]]; then
         msgRed   "The value in [bai_LDAP.property] [bai_user_profile.property] file should NOT include special character '\"'"
         echo -e  "\x1b[32m* [bai_LDAP.property]:\x1B[0m"
         echo -e  "  - Contains Properties for the LDAP server that is used by the BAI stand-alone deployment, such as LDAP_SERVER/LDAP_PORT/LDAP_BASE_DN/LDAP_BIND_DN/LDAP_BIND_DN_PASSWORD.\n"
-        echo -e " - $RED_TEXT[REQUIRED]$RESET_TEXT If you plan to enable SSL-based connections for your LDAP server, retrieve the server certificate file from your remote LDAP server and copy it into the folder \"$LDAP_SSL_CERT_FOLDER\" before running the bai-prerequisites.sh script in \"generate\" mode.$RED_TEXT The certificate must be named ldap-cert.crt. $RESET_TEXT"
+        echo -e " - $RED_TEXT[REQUIRED]$RESET_TEXT If you plan to enable SSL-based connections for your LDAP server, retrieve the server certificate file from your remote LDAP server and copy it into the folder \"$LDAP_SSL_CERT_FOLDER\" before running bai-prerequisites.sh script in \"generate\" mode.$RED_TEXT The certificate must be named ldap-cert.crt. $RESET_TEXT"
     fi
-
     echo
     echo -e  "\x1b[32m* [bai_user_profile.property]:\x1B[0m"
     echo -e  "  - Contains Properties for the global value used by the BAI stand-alone deployment, such as \"sc_deployment_license\".\n"

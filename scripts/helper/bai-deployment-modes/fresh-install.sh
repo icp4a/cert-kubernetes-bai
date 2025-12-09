@@ -592,6 +592,20 @@ function sync_property_into_final_cr(){
         ${YQ_CMD} w -i ${BAI_PATTERN_FILE_TMP} spec.shared_configuration.sc_generate_sample_network_policies "false"
     fi
 
+    # Set the Instana monitroing eanble/disable flag.
+    enable_instana_monitoring_flag="$(prop_user_profile_property_file BAI_STANDALONE.ENABLE_INSTANA_MONITORING)"
+    enable_instana_monitoring_flag=$(sed -e 's/^"//' -e 's/"$//' <<<"$enable_instana_monitoring_flag")
+    enable_instana_monitoring_flag=$(echo $enable_instana_monitoring_flag | tr '[:upper:]' '[:lower:]')
+    if [[ ! -z $enable_instana_monitoring_flag ]]; then
+        if [[ $enable_instana_monitoring_flag == "true" ]]; then
+            ${YQ_CMD} w -i ${BAI_PATTERN_FILE_TMP} spec.shared_configuration.sc_enable_instana_metric_collection "true"
+        else
+            ${YQ_CMD} w -i ${BAI_PATTERN_FILE_TMP} spec.shared_configuration.sc_enable_instana_metric_collection "false"
+        fi
+    else
+        ${YQ_CMD} w -i ${BAI_PATTERN_FILE_TMP} spec.shared_configuration.sc_enable_instana_metric_collection "true"
+    fi 
+
     # echo "FAST_STORAGE_CLASS_NAME: $FAST_STORAGE_CLASS_NAME, STORAGE_CLASS_NAME=$STORAGE_CLASS_NAME, MEDIUM_STORAGE_CLASS_NAME=$MEDIUM_STORAGE_CLASS_NAME, BLOCK_STORAGE_CLASS_NAME=$BLOCK_STORAGE_CLASS_NAME, BAI_PATTERN_FILE_TMP=$BAI_PATTERN_FILE_TMP"
     # Set sc_dynamic_storage_classname
     if [[ "$PLATFORM_SELECTED" == "ROKS" ]]; then
@@ -838,7 +852,7 @@ function apply_bai_final_cr(){
 function fresh_install(){
     
     # This function definition is in common.sh
-    prompt_license "Starting the script to generate the IBM Business Automation Insights standalone custom resource file..." "https://www.ibm.com/support/customer/csol/terms/?id=L-ACQV-MS7LQZ&lc=en"
+    prompt_license "Starting the script to generate the IBM Business Automation Insights standalone custom resource file..." "https://www.ibm.com/support/customer/csol/terms/?id=L-UXBF-EQ4UGB"
 
 
     DEPLOYMENT_WITH_PROPERTY="Yes"

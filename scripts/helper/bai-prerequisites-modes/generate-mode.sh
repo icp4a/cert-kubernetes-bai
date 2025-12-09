@@ -453,6 +453,7 @@ function generate_secrets() {
     tips
     msgB "* Enter the <Required> values in the YAML templates for the secrets under $SECRET_FILE_FOLDER"
 
+
     msgB "* You can use this shell script to create the secret automatically: $CREATE_SECRET_SCRIPT_FILE"
     msgB "* Create the Kubernetes secrets manually based on your modified \"YAML template for secret\".\n* And then run the  \"bai-prerequisites.sh -m validate\" command to verify that the secrets are created correctly"
 

@@ -674,6 +674,7 @@ if [[ $CLEAN_CPFS == "true" ]]; then
 	fi
 fi
 
+### <https://jsw.ibm.com/browse/DBACLD-185523> - Check if shared CPfs and update common-service-maps accordingly
 # Update/delete configmaps in kube-public
 if [[ $IS_SHARED_CPFS == "true" ]]; then
 	INFO "Remove mapping from ${COMMON_SERVICES_CM_NAMESPACE} namespace"

@@ -194,6 +194,11 @@ if [ "$RUNTIME_MODE" == "install" ]; then
     len="${#netpol_targ_template_path_list[@]}"
     # Loop through each potential local template folder to install the network policies
     for (( i=0; i<len; i++ )); do
+        # In separation of duties scenario, only check operand namespace path
+        # Skip operator namespace path as network policies are only generated in operand namespace
+        if [[ "$separation_of_duties_flag" == true && $i -eq 1 ]]; then
+            continue
+        fi
 
         if [[ -d "${netpol_targ_template_path_list[$i]}" ]]; then
             echo "${GREEN_TEXT}---------------------------------${RESET_TEXT}"
