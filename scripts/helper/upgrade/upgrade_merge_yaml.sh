@@ -277,7 +277,7 @@ function dryrun(){
     FILE=$1
     projectname=$2
     # Run kubectl apply with dry-run
-    output=$(kubectl apply -f "$FILE" --dry-run=server 2>&1)
+    output=$(${CLI_CMD} apply -f "$FILE" --dry-run=server 2>&1)
     exit_code=$?
     info "Validating the BAI Standalone Custom Resource file by executing a dry run..."
     printf "\n"
@@ -328,8 +328,8 @@ function upgrade_deployment(){
     if [ ! -z $insightsengine_cr_name ]; then
         info "Retrieving the existing BAI InsightsEngine (Kind: insightsengine.ibm.com) Custom Resource"
         cr_type="insightsengine"
-        cr_metaname=$(kubectl get insightsengine $insightsengine_cr_name -n $deployment_project_name -o yaml | ${YQ_CMD} r - metadata.name)
-        cr_version=$(kubectl get insightsengine $insightsengine_cr_name -n $deployment_project_name -o yaml | ${YQ_CMD} r - spec.appVersion)
+        cr_metaname=$(${CLI_CMD} get insightsengine $insightsengine_cr_name -n $deployment_project_name -o yaml | ${YQ_CMD} r - metadata.name)
+        cr_version=$(${CLI_CMD} get insightsengine $insightsengine_cr_name -n $deployment_project_name -o yaml | ${YQ_CMD} r - spec.appVersion)
 
         ${CLI_CMD} get $cr_type $insightsengine_cr_name -n $deployment_project_name -o yaml > ${UPGRADE_DEPLOYMENT_BAI_CR_TMP}
         convert_olm_cr "${UPGRADE_DEPLOYMENT_BAI_CR_TMP}"
@@ -374,7 +374,7 @@ function upgrade_deployment(){
         #Validate the CR by performing a dry run
         dryrun $UPGRADE_DEPLOYMENT_BAI_CR_TMP $deployment_project_name
         #applying the latest tmp CR so that we can update the kubectl.kubernetes.io/last-applied-configuration section to include any potential user edits
-        kubectl apply -f ${UPGRADE_DEPLOYMENT_BAI_CR_TMP} -n $deployment_project_name >/dev/null 2>&1
+        ${CLI_CMD} apply -f ${UPGRADE_DEPLOYMENT_BAI_CR_TMP} -n $deployment_project_name >/dev/null 2>&1
 
         # replace release/appVersion
         ${SED_COMMAND} "s|release: .*|release: ${BAI_RELEASE_BASE}|g" ${UPGRADE_DEPLOYMENT_BAI_CR_TMP}

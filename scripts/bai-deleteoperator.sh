@@ -22,7 +22,7 @@ OLM_SUBSCRIPTION_TMP=${TEMP_FOLDER}/.subscription.yaml
 function select_uninstall_type(){
     local returnValue
     # Check whether the subscription exists in the specified namespace.
-    kubectl get subscription -n $NAMESPACE | grep ibm-bai-operator-catalog-subscription >/dev/null 2>&1
+    ${CLI_CMD} get subscription.operators.coreos.com -n $NAMESPACE | grep ibm-bai-operator-catalog-subscription >/dev/null 2>&1
     returnValue=$?
     if [ "$returnValue" == 0 ] ; then
         # If the subscription exists, call the OLM-based uninstall function
@@ -37,10 +37,10 @@ function select_uninstall_type(){
 function uninstall_bai(){
     printf "\n"
     printf "\x1B[1mUninstall BAI Operator...\n\x1B[0m"
-    kubectl delete -f ${CUR_DIR}/../descriptors/operator.yaml -n $NAMESPACE >/dev/null 2>&1
-    kubectl delete -f ${CUR_DIR}/../descriptors/role_binding.yaml -n $NAMESPACE >/dev/null 2>&1
-    kubectl delete -f ${CUR_DIR}/../descriptors/role.yaml -n $NAMESPACE >/dev/null 2>&1
-    kubectl delete -f ${CUR_DIR}/../descriptors/service_account.yaml -n $NAMESPACE >/dev/null 2>&1
+    ${CLI_CMD} delete -f ${CUR_DIR}/../descriptors/operator.yaml -n $NAMESPACE >/dev/null 2>&1
+    ${CLI_CMD} delete -f ${CUR_DIR}/../descriptors/role_binding.yaml -n $NAMESPACE >/dev/null 2>&1
+    ${CLI_CMD} delete -f ${CUR_DIR}/../descriptors/role.yaml -n $NAMESPACE >/dev/null 2>&1
+    ${CLI_CMD} delete -f ${CUR_DIR}/../descriptors/service_account.yaml -n $NAMESPACE >/dev/null 2>&1
     echo "All descriptors have been successfully deleted."
 }
 
@@ -53,11 +53,11 @@ function uninstall_olm_bai(){
         local subName=$1
         local csvName
         # Get the CSV name from the subscription
-        csvName=$(kubectl get subscription "$subName" -n $NAMESPACE -o=jsonpath='{.status.installedCSV}')
+        csvName=$(${CLI_CMD} get subscription.operators.coreos.com "$subName" -n $NAMESPACE -o=jsonpath='{.status.installedCSV}')
         
         # Remove the subscription
         echo "Removing the subscription for $subName"
-        kubectl delete subscription "$subName" -n $NAMESPACE
+        ${CLI_CMD} delete subscription.operators.coreos.com "$subName" -n $NAMESPACE
         if [[ $? -eq 0 ]]; then
             echo "Subscription deletion successful."
         else
@@ -66,7 +66,7 @@ function uninstall_olm_bai(){
 
         # Remove the CSV 
         echo "Removing the CSV for $csvName"
-        kubectl delete clusterserviceversion "$csvName" -n $NAMESPACE
+        ${CLI_CMD} delete clusterserviceversion "$csvName" -n $NAMESPACE
         if [[ $? -eq 0 ]]; then
             echo "CSV deletion successful."
         else
@@ -74,7 +74,7 @@ function uninstall_olm_bai(){
         fi
     }
 
-    kubectl get subscription.operators.coreos.com -n $NAMESPACE -o=jsonpath='{range .items[*]}{.metadata.name}{" "}{.spec.source}{"\n"}{end}' | while read -r line; do
+    ${CLI_CMD} get subscription.operators.coreos.com -n $NAMESPACE -o=jsonpath='{range .items[*]}{.metadata.name}{" "}{.spec.source}{"\n"}{end}' | while read -r line; do
         subName=$(echo $line | awk '{print $1}')
         source=$(echo $line | awk '{print $2}')
         echo "***********************************"

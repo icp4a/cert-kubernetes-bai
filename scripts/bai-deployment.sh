@@ -72,7 +72,7 @@ function parse_arguments() {
                 # Check cluster login
                 check_cluster_login
                 # Check project name
-                isProjExists=`kubectl get project $TARGET_PROJECT_NAME --ignore-not-found | wc -l`  >/dev/null 2>&1
+                isProjExists=`${CLI_CMD} get project $TARGET_PROJECT_NAME --ignore-not-found | wc -l`  >/dev/null 2>&1
                 if [ $isProjExists -ne 2 ] ; then
                     echo -e "\x1B[1;31mInvalid project name \"$TARGET_PROJECT_NAME\", set a valid name...\x1B[0m"
                     exit 1
@@ -1109,28 +1109,6 @@ function select_upgrade_mode(){
     done
 }
 
-function select_restricted_internet_access(){
-    printf "\n"
-    echo ""
-    while true; do
-        printf "\x1B[1mDo you want to restrict network egress to unknown external destination for this BAI standalone deployment?\x1B[0m ${YELLOW_TEXT}(Notes: BAI standalone $BAI_RELEASE_BASE prevents all network egress to unknown destinations by default. You can either (1) enable all egress or (2) accept the new default and create network policies to allow your specific communication targets as documented in the knowledge center.)${RESET_TEXT} (Yes/No, default: Yes): "
-        read -rp "" ans
-        case "$ans" in
-        "y"|"Y"|"yes"|"Yes"|"YES"|"")
-            RESTRICTED_INTERNET_ACCESS="true"
-            break
-            ;;
-        "n"|"N"|"no"|"No"|"NO")
-            RESTRICTED_INTERNET_ACCESS="false"
-            break
-            ;;
-        *)
-            echo -e "Answer must be \"Yes\" or \"No\"\n"
-            ;;
-        esac
-    done
-}
-
 function select_ldap_type(){
     printf "\n"
     while true; do
@@ -1229,7 +1207,7 @@ function set_ldap_type_content_pattern(){
 
 function select_fips_enable(){
     select_project
-    all_fips_enabled_flag=$(kubectl get configmap bai-fips-status --no-headers --ignore-not-found -n $TARGET_PROJECT_NAME -o jsonpath={.data.all-fips-enabled})
+    all_fips_enabled_flag=$(${CLI_CMD} get configmap bai-fips-status --no-headers --ignore-not-found -n $TARGET_PROJECT_NAME -o jsonpath={.data.all-fips-enabled})
     if [ -z $all_fips_enabled_flag ]; then
         warning "Not found configmap \"bai-fips-status\" in project \"$TARGET_PROJECT_NAME\". setting shared_configuration.enable_fips as \"false\" by default in final custom resource file"
         sleep 3
@@ -1330,7 +1308,7 @@ function input_information(){
                 BLOCK_STORAGE_CLASS_NAME=$(prop_user_profile_property_file BAI_STANDALONE.BLOCK_STORAGE_CLASS_NAME)
 
                 select_project
-                select_restricted_internet_access
+                #select_restricted_internet_access
                 flink_job_cr_arr=()
                 for i in $(cat $USER_PROFILE_PROPERTY_FILE | grep BAI_STANDALONE.FLINK_JOB_  | grep "True" | tr '[:upper:]' '[:lower:]' | sed 's/.*\.//; s/=.*//')
                 do
@@ -1361,7 +1339,7 @@ function input_information(){
             select_iam_default_admin
 
             select_project
-            select_restricted_internet_access
+            #select_restricted_internet_access
             select_flink_job
         fi
         check_ocp_version
@@ -1440,7 +1418,7 @@ function sync_property_into_final_cr(){
         fi
 
         # set lc_bind_secret
-        tmp_secret_name=`kubectl get secret -l name=ldap-bind-secret -o yaml | ${YQ_CMD} r - items.[0].metadata.name`
+        tmp_secret_name=`${CLI_CMD} get secret -l name=ldap-bind-secret -o yaml | ${YQ_CMD} r - items.[0].metadata.name`
         ${YQ_CMD} w -i ${BAI_PATTERN_FILE_TMP} spec.ldap_configuration.lc_bind_secret "\"$tmp_secret_name\""
     else
         ${YQ_CMD} d -i ${BAI_PATTERN_FILE_TMP} spec.ldap_configuration
@@ -1786,7 +1764,7 @@ function startup_operator(){
     local project_name=$1
     local run_mode=$2  # silent
     info "Scaling up \"IBM Business Automation Insights standalone\" operator"
-    kubectl scale --replicas=1 deployment ibm-bai-insights-engine-operator -n $project_name >/dev/null 2>&1
+    ${CLI_CMD} scale --replicas=1 deployment ibm-bai-insights-engine-operator -n $project_name >/dev/null 2>&1
     if [ $? -eq 0 ]; then
         sleep 1
         if [[ -z "$run_mode" ]]; then
@@ -1798,7 +1776,7 @@ function startup_operator(){
 
 
     info "Scaling up \"IBM BAI standalone Foundation\" operator"
-    kubectl scale --replicas=1 deployment ibm-bai-foundation-operator -n $project_name >/dev/null 2>&1
+    ${CLI_CMD} scale --replicas=1 deployment ibm-bai-foundation-operator -n $project_name >/dev/null 2>&1
     if [ $? -eq 0 ]; then
         sleep 1
         if [[ -z "$run_mode" ]]; then
@@ -1813,11 +1791,11 @@ function shutdown_operator(){
     # scale down BAI standalone operators
     local project_name=$1
     info "Scaling down \"IBM BAI standalone Insights Engine\" operator"
-    kubectl scale --replicas=0 deployment ibm-bai-insights-engine-operator -n $project_name >/dev/null 2>&1
+    ${CLI_CMD} scale --replicas=0 deployment ibm-bai-insights-engine-operator -n $project_name >/dev/null 2>&1
     sleep 1
     echo "Done!"
     info "Scaling down \"IBM BAI standalone Foundation\" operator"
-    kubectl scale --replicas=0 deployment ibm-bai-foundation-operator -n $project_name >/dev/null 2>&1
+    ${CLI_CMD} scale --replicas=0 deployment ibm-bai-foundation-operator -n $project_name >/dev/null 2>&1
     sleep 1
     echo "Done!"
 }
@@ -1829,7 +1807,7 @@ function create_project() {
     isProjExists=`${CLI_CMD} get project $project_name --ignore-not-found | wc -l`  >/dev/null 2>&1
 
     if [ $isProjExists -ne 2 ] ; then
-        oc new-project ${project_name} >/dev/null 2>&1
+        ${CLI_CMD} new-project ${project_name} >/dev/null 2>&1
         returnValue=$?
         if [ "$returnValue" == 1 ]; then
             if [ -z "$BAI_AUTO_NAMESPACE" ]; then
@@ -1870,10 +1848,10 @@ function cncf_install(){
   else
       sed -e '/imagePullSecrets:/{N;d;}' ${CUR_DIR}/../upgradeOperator.yaml > ${CUR_DIR}/../upgradeOperatorsav.yaml ;  mv ${CUR_DIR}/../upgradeOperatorsav.yaml ${CUR_DIR}/../upgradeOperator.yaml
   fi
-  kubectl apply -f ${CUR_DIR}/../descriptors/service_account.yaml --validate=false
-  kubectl apply -f ${CUR_DIR}/../descriptors/role.yaml --validate=false
-  kubectl apply -f ${CUR_DIR}/../descriptors/role_binding.yaml --validate=false
-  kubectl apply -f ${CUR_DIR}/../upgradeOperator.yaml --validate=false
+  ${CLI_CMD} apply -f ${CUR_DIR}/../descriptors/service_account.yaml --validate=false
+  ${CLI_CMD} apply -f ${CUR_DIR}/../descriptors/role.yaml --validate=false
+  ${CLI_CMD} apply -f ${CUR_DIR}/../descriptors/role_binding.yaml --validate=false
+  ${CLI_CMD} apply -f ${CUR_DIR}/../upgradeOperator.yaml --validate=false
 }
 
 function patch_edb_configmap(){
@@ -2143,7 +2121,7 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
         done
     fi
 
-    PLATFORM_SELECTED=$(eval echo $(kubectl get insightsengine $(kubectl get insightsengine --no-headers --ignore-not-found -n $BAI_SERVICES_NS | grep NAME -v | awk '{print $1}') --no-headers --ignore-not-found -n $BAI_SERVICES_NS -o yaml | grep sc_deployment_platform | tail -1 | cut -d ':' -f 2))
+    PLATFORM_SELECTED=$(eval echo $(${CLI_CMD} get insightsengine $(${CLI_CMD} get insightsengine --no-headers --ignore-not-found -n $BAI_SERVICES_NS | grep NAME -v | awk '{print $1}') --no-headers --ignore-not-found -n $BAI_SERVICES_NS -o yaml | grep sc_deployment_platform | tail -1 | cut -d ':' -f 2))
     if [[ -z $PLATFORM_SELECTED ]]; then
         fail "No custom resource found for BAI Standalone under project \"$BAI_SERVICES_NS\", exiting"
         exit 1
@@ -2288,7 +2266,7 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
         ############## Start - Decide whether to create savepoint for Flink job ##############
         # NOTES: No need to create save point for upgrade IFIX by IFIX
         # Checking CSV for bai-operator to decide whether to do BAI save point during IFIX to IFIX upgrade
-        sub_inst_list=$(${CLI_CMD} get subscriptions.operators.coreos.com -n $TEMP_OPERATOR_PROJECT_NAME|grep ibm-bai-operator-catalog|awk '{if(NR>0){if(NR==1){ arr=$1; }else{ arr=arr" "$1; }} } END{ print arr }')
+        sub_inst_list=$(${CLI_CMD} get subscription.operators.coreos.com -n $TEMP_OPERATOR_PROJECT_NAME|grep ibm-bai-operator-catalog|awk '{if(NR>0){if(NR==1){ arr=$1; }else{ arr=arr" "$1; }} } END{ print arr }')
         if [[ -z $sub_inst_list ]]; then
             info "No existing BAI Standalone subscriptions have been found, continuing ..."
             # exit 1
@@ -2298,8 +2276,8 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
         for i in ${!sub_array[@]}; do
             if [[ ! -z "${sub_array[i]}" ]]; then
                 if [[ ${sub_array[i]} = ibm-bai-operator-catalog* || ${sub_array[i]} = ibm-bai-foundation-operator* ]]; then
-                    current_version=$(${CLI_CMD} get subscriptions.operators.coreos.com ${sub_array[i]} --no-headers --ignore-not-found -n $TEMP_OPERATOR_PROJECT_NAME -o 'jsonpath={.status.currentCSV}') >/dev/null 2>&1
-                    installed_version=$(${CLI_CMD} get subscriptions.operators.coreos.com ${sub_array[i]} --no-headers --ignore-not-found -n $TEMP_OPERATOR_PROJECT_NAME -o 'jsonpath={.status.installedCSV}') >/dev/null 2>&1
+                    current_version=$(${CLI_CMD} get subscription.operators.coreos.com ${sub_array[i]} --no-headers --ignore-not-found -n $TEMP_OPERATOR_PROJECT_NAME -o 'jsonpath={.status.currentCSV}') >/dev/null 2>&1
+                    installed_version=$(${CLI_CMD} get subscription.operators.coreos.com ${sub_array[i]} --no-headers --ignore-not-found -n $TEMP_OPERATOR_PROJECT_NAME -o 'jsonpath={.status.installedCSV}') >/dev/null 2>&1
                     if [[ -z $current_version || -z $installed_version ]]; then
                         error "Failed to retrieve installed or current CSV. Aborting the upgrade procedure. Check the subscription status of ${sub_array[i]}."
                         exit 1
@@ -2508,7 +2486,7 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
         ############## Start - Migration CPfs mode and upgrade BAI Standalone Operators ##############
         #  Switch BAI Operator to private catalog source
         if [ $ENABLE_PRIVATE_CATALOG -eq 1 ]; then
-            sub_inst_list=$(${CLI_CMD} get subscriptions.operators.coreos.com -n $TARGET_PROJECT_NAME|grep ibm-bai-operator-catalog|awk '{if(NR>0){if(NR==1){ arr=$1; }else{ arr=arr" "$1; }} } END{ print arr }')
+            sub_inst_list=$(${CLI_CMD} get subscription.operators.coreos.com -n $TARGET_PROJECT_NAME|grep ibm-bai-operator-catalog|awk '{if(NR>0){if(NR==1){ arr=$1; }else{ arr=arr" "$1; }} } END{ print arr }')
             if [[ -z $sub_inst_list ]]; then
                 info "No existing BAI Standalone subscriptions found, continuing ..."
                 # exit 1
@@ -2518,7 +2496,7 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
             for i in ${!sub_array[@]}; do
                 if [[ ! -z "${sub_array[i]}" ]]; then
                     if [[ ${sub_array[i]} = ibm-bai-operator-catalog* || ${sub_array[i]} = ibm-bai-foundation-operator* ]]; then
-                        ${CLI_CMD} patch subscriptions.operators.coreos.com ${sub_array[i]} -n $TARGET_PROJECT_NAME -p '{"spec":{"sourceNamespace":"'"$TARGET_PROJECT_NAME"'"}}' --type=merge >/dev/null 2>&1
+                        ${CLI_CMD} patch subscription.operators.coreos.com ${sub_array[i]} -n $TARGET_PROJECT_NAME -p '{"spec":{"sourceNamespace":"'"$TARGET_PROJECT_NAME"'"}}' --type=merge >/dev/null 2>&1
                         if [ $? -eq 0 ]
                         then
                             sleep 1
@@ -2537,7 +2515,7 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
         fi
 
         #  Patch BAI channel to latest version, wait for all the operators are upgraded before applying operandRequest.
-        sub_inst_list=$(${CLI_CMD} get subscriptions.operators.coreos.com -n $TARGET_PROJECT_NAME|grep ibm-bai-operator-catalog|awk '{if(NR>0){if(NR==1){ arr=$1; }else{ arr=arr" "$1; }} } END{ print arr }')
+        sub_inst_list=$(${CLI_CMD} get subscription.operators.coreos.com -n $TARGET_PROJECT_NAME|grep ibm-bai-operator-catalog|awk '{if(NR>0){if(NR==1){ arr=$1; }else{ arr=arr" "$1; }} } END{ print arr }')
         if [[ -z $sub_inst_list ]]; then
             info "No existing BAI Standalone subscriptions found, continuing ..."
             # exit 1
@@ -2547,7 +2525,7 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
         for i in ${!sub_array[@]}; do
             if [[ ! -z "${sub_array[i]}" ]]; then
                 if [[ ${sub_array[i]} = ibm-bai-operator-catalog* || ${sub_array[i]} = ibm-bai-foundation-operator* ]]; then
-                    ${CLI_CMD} patch subscriptions.operators.coreos.com ${sub_array[i]} -n $TARGET_PROJECT_NAME -p '{"spec":{"channel":"v24.1"}}' --type=merge >/dev/null 2>&1
+                    ${CLI_CMD} patch subscription.operators.coreos.com ${sub_array[i]} -n $TARGET_PROJECT_NAME -p '{"spec":{"channel":"v24.1"}}' --type=merge >/dev/null 2>&1
                     if [ $? -eq 0 ]
                     then
                         success "Updated the channel of subscription '${sub_array[i]}' to $BAI_CHANNEL_VERSION"
@@ -2771,14 +2749,14 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
             cloud_native_postgresql_ready="Yes"
         fi
 
-        #ibm_bai_foundation_operator_flag=$(${CLI_CMD} get subscriptions.operators.coreos.com -l=operators.coreos.com/ibm-bai-foundation-operator.$TEMP_OPERATOR_PROJECT_NAME --no-headers --ignore-not-found -n $TEMP_OPERATOR_PROJECT_NAME | wc -l)
+        #ibm_bai_foundation_operator_flag=$(${CLI_CMD} get subscription.operators.coreos.com -l=operators.coreos.com/ibm-bai-foundation-operator.$TEMP_OPERATOR_PROJECT_NAME --no-headers --ignore-not-found -n $TEMP_OPERATOR_PROJECT_NAME | wc -l)
         #if [ $ibm_bai_foundation_operator_flag -ne 0 ]; then
-        #    ibm_bai_foundation_sub_name=$(${CLI_CMD} get subscriptions.operators.coreos.com -l=operators.coreos.com/ibm-bai-foundation-operator.$TEMP_OPERATOR_PROJECT_NAME --no-headers --ignore-not-found -n $TEMP_OPERATOR_PROJECT_NAME | awk '{print $1}')
+        #    ibm_bai_foundation_sub_name=$(${CLI_CMD} get subscription.operators.coreos.com -l=operators.coreos.com/ibm-bai-foundation-operator.$TEMP_OPERATOR_PROJECT_NAME --no-headers --ignore-not-found -n $TEMP_OPERATOR_PROJECT_NAME | awk '{print $1}')
 
         #    info "Checking the version of subscription '$ibm_bai_foundation_sub_name' in the project \"$TEMP_OPERATOR_PROJECT_NAME\""
         #    for ((retry=0;retry<=${maxRetry};retry++)); do
-        #        current_version_foundation=$(${CLI_CMD} get subscriptions.operators.coreos.com $ibm_bai_foundation_sub_name --no-headers --ignore-not-found -n $TEMP_OPERATOR_PROJECT_NAME -o 'jsonpath={.status.currentCSV}') >/dev/null 2>&1
-        #        installed_version_foundation=$(${CLI_CMD} get subscriptions.operators.coreos.com $ibm_bai_foundation_sub_name --no-headers --ignore-not-found -n $TEMP_OPERATOR_PROJECT_NAME -o 'jsonpath={.status.installedCSV}') >/dev/null 2>&1
+        #        current_version_foundation=$(${CLI_CMD} get subscription.operators.coreos.com $ibm_bai_foundation_sub_name --no-headers --ignore-not-found -n $TEMP_OPERATOR_PROJECT_NAME -o 'jsonpath={.status.currentCSV}') >/dev/null 2>&1
+        #        installed_version_foundation=$(${CLI_CMD} get subscription.operators.coreos.com $ibm_bai_foundation_sub_name --no-headers --ignore-not-found -n $TEMP_OPERATOR_PROJECT_NAME -o 'jsonpath={.status.installedCSV}') >/dev/null 2>&1
         #        prefix_bts="ibm-bai-foundation-operator.v"
         #        current_version_foundation=${current_version_foundation#"$prefix_bts"}
         #        installed_version_foundation=${installed_version_foundation#"$prefix_bts"}
@@ -3002,7 +2980,7 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
         echo "****************************************************************************"
 
         # Checking BAI operator CSV
-        sub_inst_list=$(${CLI_CMD} get subscriptions.operators.coreos.com -n $TEMP_OPERATOR_PROJECT_NAME|grep ibm-bai-operator-catalog|awk '{if(NR>0){if(NR==1){ arr=$1; }else{ arr=arr" "$1; }} } END{ print arr }')
+        sub_inst_list=$(${CLI_CMD} get subscription.operators.coreos.com -n $TEMP_OPERATOR_PROJECT_NAME|grep ibm-bai-operator-catalog|awk '{if(NR>0){if(NR==1){ arr=$1; }else{ arr=arr" "$1; }} } END{ print arr }')
         if [[ -z $sub_inst_list ]]; then
             fail "No existing BAI Standalone subscriptions found (version $BAI_CSV_VERSION), exiting ..."
             exit 1
@@ -3013,15 +2991,15 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
             if [[ ! -z "${sub_array[i]}" ]]; then
                 if [[ ${sub_array[i]} = ibm-bai-insights-engine-operator* || ${sub_array[i]} = ibm-bai-foundation-operator* ]]; then
                 info "Checking the channel of subscription '${sub_array[i]}'!"
-                currentChannel=$(${CLI_CMD} get subscriptions.operators.coreos.com ${sub_array[i]} -n $TEMP_OPERATOR_PROJECT_NAME -o 'jsonpath={.spec.channel}') >/dev/null 2>&1
+                currentChannel=$(${CLI_CMD} get subscription.operators.coreos.com ${sub_array[i]} -n $TEMP_OPERATOR_PROJECT_NAME -o 'jsonpath={.spec.channel}') >/dev/null 2>&1
                     if [[ "$currentChannel" == "$BAI_CHANNEL_VERSION" ]];then
                         success "The channel of subscription '${sub_array[i]}' is $currentChannel!"
                         printf "\n"
                         maxRetry=40
                         info "Waiting for the \"${sub_array[i]}\" subscription be upgraded to the ClusterServiceVersions(CSV) \"v$target_csv_version\""
                         for ((retry=0;retry<=${maxRetry};retry++)); do
-                            current_version=$(${CLI_CMD} get subscriptions.operators.coreos.com ${sub_array[i]} --no-headers --ignore-not-found -n $TEMP_OPERATOR_PROJECT_NAME -o 'jsonpath={.status.currentCSV}') >/dev/null 2>&1
-                            installed_version=$(${CLI_CMD} get subscriptions.operators.coreos.com ${sub_array[i]} --no-headers --ignore-not-found -n $TEMP_OPERATOR_PROJECT_NAME -o 'jsonpath={.status.installedCSV}') >/dev/null 2>&1
+                            current_version=$(${CLI_CMD} get subscription.operators.coreos.com ${sub_array[i]} --no-headers --ignore-not-found -n $TEMP_OPERATOR_PROJECT_NAME -o 'jsonpath={.status.currentCSV}') >/dev/null 2>&1
+                            installed_version=$(${CLI_CMD} get subscription.operators.coreos.com ${sub_array[i]} --no-headers --ignore-not-found -n $TEMP_OPERATOR_PROJECT_NAME -o 'jsonpath={.status.installedCSV}') >/dev/null 2>&1
                             if [[ -z $current_version || -z $installed_version ]]; then
                                 error "Failed to retrieve installed or current CSV, abort the upgrade procedure. Check the subscription status of ${sub_array[i]}."
                                 exit 1
@@ -3256,7 +3234,7 @@ if [ "$RUNTIME_MODE" == "upgradeDeployment" ]; then
 
     insightsengine_cr_name=$(${CLI_CMD} get insightsengine -n $project_name --no-headers --ignore-not-found | awk '{print $1}')
     if [ ! -z $insightsengine_cr_name ]; then
-        cr_version=$(kubectl get insightsengine $insightsengine_cr_name -n $project_name -o yaml | ${YQ_CMD} r - spec.appVersion)
+        cr_version=$(${CLI_CMD} get insightsengine $insightsengine_cr_name -n $project_name -o yaml | ${YQ_CMD} r - spec.appVersion)
         if [[ $cr_version == "${BAI_RELEASE_BASE}" ]]; then
             warning "The release version of insightsengine custom resource \"$insightsengine_cr_name\" is already \"$cr_version\"."
             printf "\n"
@@ -3362,6 +3340,9 @@ if [[ "$RUNTIME_MODE" == "upgradeDeploymentStatus" ]]; then
             exit 1
         fi
     fi
+
+    # The control variable used to detect if the strimzi patch function has to be executed.
+    strimzi_patched=false
     # check for zenStatus and currentverison for zen
 
     zen_service_name=$(${CLI_CMD} get zenService --no-headers --ignore-not-found -n $BAI_SERVICES_NS |awk '{print $1}')
@@ -3447,6 +3428,13 @@ if [[ "$RUNTIME_MODE" == "upgradeDeploymentStatus" ]]; then
 
     while true
     do
+        # Each refresh of the zen upgrade , we check if we need to update the kafka strimzi podset
+        # The function patch_strimzi_podset which is defined in common.sh will set strimzi_patched  to true once the patch is completed
+        # For upgrades to 24.0.1 or newer, kafka tasks in the foundation-operator happen after zen is upgraded so this block is after zen upgrade completes
+        # For upgrades to 24.0.0, kafka tasks in the foundation-operator happen before zen is upgraded
+        if [[ $strimzi_patched == "false" ]]; then
+            patch_strimzi_podset $bai_operators_namespace $bai_services_namespace
+        fi
         printf '%s\n' "$(show_bai_upgrade_status)"
         sleep 30
     done

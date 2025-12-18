@@ -17,6 +17,9 @@
 
 DIR="$( cd "$( dirname "$0" )" && pwd )"
 
+# Import common utilities and environment variables
+source ${DIR}/helper/common.sh
+
 source $DIR/helper/post-install/env.sh
 source $DIR/helper/post-install/services/functions.sh
 

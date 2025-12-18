@@ -38,11 +38,12 @@ optional_component_arr=()
 optional_component_cr_arr=()
 
 function show_help() {
-    echo -e "\nUsage: bai-prerequisites.sh -m [modetype] -n [BAI-NAMESPACE] \n"
+    echo -e "\nUsage: bai-prerequisites.sh -m [modetype] -n [BAI-NAMESPACE] [options]\n"
     echo "Options:"
     echo "  -h  Display help"
     echo "  -m  The valid mode types are: [property], [generate], or [validate]"
     echo "  -n  The target namespace of the BAI deployment."
+    echo " --java-path Optional path to Java (JRE) installation directory"
     echo ""
     echo "  STEP1: Run the script in [property] mode. It creates property files (LDAP property file) with default values (BASE DN/BIND DN ...)."
     echo "  STEP2: Modify the LDAP/user property files with your values."
@@ -103,60 +104,10 @@ function validate_utility_tool_for_validation(){
             esac
         done
     fi
-    which java &>/dev/null
-    if [[ $? -ne 0 ]]; then
-        echo -e  "\x1B[1;31mUnable to locate java. You must install it to run this script.\x1B[0m" && \
-        while true; do
-            printf "\x1B[1mDo you want install the IBM JRE by the bai-prerequisites.sh script? (Yes/No): \x1B[0m"
-            read -rp "" ans
-            case "$ans" in
-            "y"|"Y"|"yes"|"Yes"|"YES")
-                install_ibm_jre
-                break
-                ;;
-            "n"|"N"|"no"|"No"|"NO")
-                info "IBM JRE or other JRE must be installed for the next validation"
-                exit 1
-                ;;
-            *)
-                echo -e "Answer must be \"Yes\" or \"No\"\n"
-                ;;
-            esac
-        done
-    else
-        java -version &>/dev/null
-        if [[ $? -ne 0 ]]; then
-            echo -e  "\x1B[1;31mUnable to locate a Java Runtime. You must install JRE to run this script.\x1B[0m" && \
-            while true; do
-                printf "\x1B[1mDo you want install the IBM JRE by the bai-prerequisites.sh script? (Yes/No): \x1B[0m"
-                read -rp "" ans
-                case "$ans" in
-                "y"|"Y"|"yes"|"Yes"|"YES")
-                    install_ibm_jre
-                    break
-                    ;;
-                "n"|"N"|"no"|"No"|"NO")
-                    info "Must install the IBM JRE or other JRE to continue next validation"
-                    exit 1
-                    ;;
-                *)
-                    echo -e "Answer must be \"Yes\" or \"No\"\n"
-                    ;;
-                esac
-            done    
-        fi
-    fi
-    which keytool &>/dev/null
-    if [[ $? -ne 0 ]]; then
-        echo -e  "\x1B[1;31mUnable to locate keytool. You must add it in \"\$PATH\" to run this script.\x1B[0m" && \
-        exit 1
-    else
-        keytool -help &>/dev/null
-        if [[ $? -ne 0 ]]; then
-            echo -e  "\x1B[1;31mUnable to locate keytool. You must install the IBM JRE or other JRE and add keytool in \"\$PATH\" to run this script\x1B[0m" && \
-            exit 1     
-        fi
-    fi
+    # DBACLD-198782: Check if Java is installed and meets the minimum version requirement
+    # Priority: --java-path > JAVA_HOME > system PATH
+    JAVA_PATH="${CUSTOM_JAVA_PATH:-$JAVA_HOME}"
+    validate_java_runtime "$JAVA_PATH"
 
     which openssl &>/dev/null
     if [[ $? -ne 0 ]]; then
@@ -716,15 +667,6 @@ function create_prerequisites() {
         fi
         ${SED_COMMAND} "s|<cp4a-db-crt-file-in-local>|$bts_external_db_cert_folder|g" ${BTS_SSL_SECRET_FILE}
 
-        #  replace <DatabaseUser>
-        tmp_name="$(prop_user_profile_property_file BAI.BTS_EXTERNAL_POSTGRES_DATABASE_USER_NAME)"
-        tmp_name=$(sed -e 's/^"//' -e 's/"$//' <<<"$tmp_name")
-        ${SED_COMMAND} "s|<USERNAME>|$tmp_name|g" ${BTS_SECRET_FILE}
-
-        #  replace <DatabaseUser_password>
-        tmp_name="$(prop_user_profile_property_file BAI.BTS_EXTERNAL_POSTGRES_DATABASE_USER_PASSWORD)"
-        tmp_name=$(sed -e 's/^"//' -e 's/"$//' <<<"$tmp_name")
-        ${SED_COMMAND} "s|<PASSWORD>|$tmp_name|g" ${BTS_SECRET_FILE}
 
         create_bts_external_db_configmap_template
         #  replace <DatabaseHostName>
@@ -741,6 +683,11 @@ function create_prerequisites() {
         tmp_name="$(prop_user_profile_property_file BAI.BTS_EXTERNAL_POSTGRES_DATABASE_NAME)"
         tmp_name=$(sed -e 's/^"//' -e 's/"$//' <<<"$tmp_name")
         ${SED_COMMAND} "s|<DatabaseName>|$tmp_name|g" ${BTS_CONFIGMAP_FILE}
+
+        #  replace <DatabaseUserName>
+        tmp_name="$(prop_user_profile_property_file BAI.BTS_EXTERNAL_POSTGRES_DATABASE_USER_NAME)"
+        tmp_name=$(sed -e 's/^"//' -e 's/"$//' <<<"$tmp_name")
+        ${SED_COMMAND} "s|<DatabaseUserName>|$tmp_name|g" ${BTS_CONFIGMAP_FILE}
 
     fi
 
@@ -937,9 +884,6 @@ function create_property_file(){
         #Removed the else part here
         fi
 
-        # Added "BAI.BTS_EXTERNAL_POSTGRES_DATABASE_USER_PASSWORD" to OPTIONAL_PARAMETERS_LIST
-        OPTIONAL_PARAMETERS_LIST+=("BAI.BTS_EXTERNAL_POSTGRES_DATABASE_USER_PASSWORD")
-
         # Marks all entries in "OPTIONAL_PARAMETERS_LIST" as optional by appending them to the TEMPORARY_PROPERTY_FILE under "OPTIONAL_PARAMETERS:"
         mark_optional
 
@@ -1107,10 +1051,6 @@ function create_property_file(){
 
         echo "## Name of the database user. The default value is \"btscnp_user\"." >> ${USER_PROFILE_PROPERTY_FILE}
         echo "BAI.BTS_EXTERNAL_POSTGRES_DATABASE_USER_NAME=\"btscnp_user\"" >> ${USER_PROFILE_PROPERTY_FILE}
-        echo "" >> ${USER_PROFILE_PROPERTY_FILE}
-
-        echo "## The password of the database user." >> ${USER_PROFILE_PROPERTY_FILE}
-        echo "BAI.BTS_EXTERNAL_POSTGRES_DATABASE_USER_PASSWORD=\"<Optional>\"" >> ${USER_PROFILE_PROPERTY_FILE}
         echo "" >> ${USER_PROFILE_PROPERTY_FILE}
 
         echo "## Name of the database. The default value is \"btscnpdb\"." >> ${USER_PROFILE_PROPERTY_FILE}
@@ -1296,7 +1236,7 @@ function select_external_postgresdb_for_im(){
     printf "\n"
     echo ""
     while true; do
-        printf "\x1B[1mDo you want to use an external Postgres DB \x1B[0m${RED_TEXT}[YOU NEED TO CREATE THIS POSTGRESQL DB BY YOURSELF FIRST BEFORE YOU APPLY THE BAI CUSTOM RESOURCE]${RESET_TEXT}${GREEN_TEXT}PLEASE REFER THE KNOWLEDGE CENTER: https://www.ibm.com/docs/en/cloud-paks/foundational-services/4.10?topic=im-setting-up-external-edb-postgresql-database-server#dbcreate ${RESET_TEXT}]\x1B[1mas IM metastore DB for this BAI deployment?\x1B[0m ${YELLOW_TEXT}(Notes: IM service can use an external Postgres DB to store IM data. If you select \"Yes\", IM service uses an external Postgres DB as IM metastore DB. If you select \"No\", IM service uses an embedded cloud native postgresql DB as IM metastore DB.)${RESET_TEXT} (Yes/No, default: No):  "
+        printf "\x1B[1mDo you want to use an external Postgres DB \x1B[0m${RED_TEXT}[YOU NEED TO CREATE THIS POSTGRESQL DB BY YOURSELF FIRST BEFORE YOU APPLY THE BAI CUSTOM RESOURCE]${RESET_TEXT}${GREEN_TEXT}PLEASE REFER THE KNOWLEDGE CENTER: https://www.ibm.com/docs/en/cloud-paks/foundational-services/$CS_CHANNEL_KC?topic=im-setting-up-external-edb-postgresql-database-server#dbcreate ${RESET_TEXT}]\x1B[1mas IM metastore DB for this BAI deployment?\x1B[0m ${YELLOW_TEXT}(Notes: IM service can use an external Postgres DB to store IM data. If you select \"Yes\", IM service uses an external Postgres DB as IM metastore DB. If you select \"No\", IM service uses an embedded cloud native postgresql DB as IM metastore DB.)${RESET_TEXT} (Yes/No, default: No):  "
         read -rp "" ans
         case "$ans" in
         "y"|"Y"|"yes"|"Yes"|"YES")
@@ -1320,7 +1260,7 @@ function select_external_postgresdb_for_zen(){
     while true; do
         # Updating this question to reflect zen instead of BTS
         # DBACLD-166156
-        printf "\x1B[1mDo you want to use an external Postgres DB \x1B[0m${RED_TEXT}[YOU NEED TO CREATE THIS POSTGRESQL DB BY YOURSELF FIRST BEFORE YOU APPLY THE BAI CUSTOM RESOURCE]${RESET_TEXT}${GREEN_TEXT}PLEASE REFER THE KNOWLEDGE CENTER: https://www.ibm.com/docs/en/cloud-paks/foundational-services/4.10?topic=im-setting-up-external-edb-postgresql-database-server#dbcreate ${RESET_TEXT}]\x1B[1m as Zen metastore DB for this BAI deployment?\x1B[0m ${YELLOW_TEXT}(Notes: Zen stores all metadata such as users, groups, service instances, vault integration and secret references in metastore DB. If you select \"Yes\", Zen service uses an external Postgres DB as Zen metastore DB.. If you select \"No\", Zen service uses an embedded cloud native postgresql DB as Zen metastore DB )${RESET_TEXT} (Yes/No, default: No): "
+        printf "\x1B[1mDo you want to use an external Postgres DB \x1B[0m${RED_TEXT}[YOU NEED TO CREATE THIS POSTGRESQL DB BY YOURSELF FIRST BEFORE YOU APPLY THE BAI CUSTOM RESOURCE]${RESET_TEXT}${GREEN_TEXT}PLEASE REFER THE KNOWLEDGE CENTER: https://www.ibm.com/docs/en/cloud-paks/foundational-services/$CS_CHANNEL_KC?topic=im-setting-up-external-edb-postgresql-database-server#dbcreate ${RESET_TEXT}]\x1B[1m as Zen metastore DB for this BAI deployment?\x1B[0m ${YELLOW_TEXT}(Notes: Zen stores all metadata such as users, groups, service instances, vault integration and secret references in metastore DB. If you select \"Yes\", Zen service uses an external Postgres DB as Zen metastore DB.. If you select \"No\", Zen service uses an embedded cloud native postgresql DB as Zen metastore DB )${RESET_TEXT} (Yes/No, default: No): "
         read -rp "" ans
         case "$ans" in
         "y"|"Y"|"yes"|"Yes"|"YES")
@@ -1342,7 +1282,7 @@ function select_external_postgresdb_for_bts(){
     printf "\n"
     echo ""
     while true; do
-        printf "\x1B[1mDo you want to use an external Postgres DB \x1B[0m${RED_TEXT}[YOU NEED TO CREATE THIS POSTGRESQL DB BY YOURSELF FIRST BEFORE APPLY BAI CUSTOM RESOURCE]${RESET_TEXT}${GREEN_TEXT}PLEASE REFER THE KNOWLEDGE CENTER: https://www.ibm.com/docs/en/cloud-paks/foundational-services/4.10?topic=im-setting-up-external-edb-postgresql-database-server#dbcreate ${RESET_TEXT}]\x1B[1m as BTS metastore DB for this BAI deployment?\x1B[0m ${YELLOW_TEXT}(Notes: BTS service can use an external Postgres DB to store meta data. If select \"Yes\", BTS service uses an external Postgres DB as BTS metastore DB. If select \"No\", BTS service uses an embedded cloud native postgresql DB as BTS metastore DB )${RESET_TEXT} (Yes/No, default: No): "
+        printf "\x1B[1mDo you want to use an external Postgres DB \x1B[0m${RED_TEXT}[YOU NEED TO CREATE THIS POSTGRESQL DB BY YOURSELF FIRST BEFORE APPLY BAI CUSTOM RESOURCE]${RESET_TEXT}${GREEN_TEXT}PLEASE REFER THE KNOWLEDGE CENTER: https://www.ibm.com/docs/en/cloud-paks/foundational-services/$CS_CHANNEL_KC?topic=im-setting-up-external-edb-postgresql-database-server#dbcreate ${RESET_TEXT}]\x1B[1m as BTS metastore DB for this BAI deployment?\x1B[0m ${YELLOW_TEXT}(Notes: BTS service can use an external Postgres DB to store meta data. If select \"Yes\", BTS service uses an external Postgres DB as BTS metastore DB. If select \"No\", BTS service uses an embedded cloud native postgresql DB as BTS metastore DB )${RESET_TEXT} (Yes/No, default: No): "
         read -rp "" ans
         case "$ans" in
         "y"|"Y"|"yes"|"Yes"|"YES")
@@ -1398,7 +1338,7 @@ function select_project() {
             echo -e "\x1B[1;31mEnter a valid project name, project name should not be 'kube' or start with 'kube' \x1B[0m"
             TARGET_PROJECT_NAME=""
         else
-            isProjExists=`kubectl get project $TARGET_PROJECT_NAME --ignore-not-found | wc -l`  >/dev/null 2>&1
+            isProjExists=`${CLI_CMD} get project $TARGET_PROJECT_NAME --ignore-not-found | wc -l`  >/dev/null 2>&1
 
             if [ "$isProjExists" -ne 2 ] ; then
                 echo -e "\x1B[1;31mInvalid project name, please enter a existing project name ...\x1B[0m"
@@ -1412,7 +1352,7 @@ function select_project() {
 
 function select_fips_enable(){
     select_project
-    all_fips_enabled_flag=$(kubectl get configmap bai-fips-status --no-headers --ignore-not-found -n $TARGET_PROJECT_NAME -o jsonpath={.data.all-fips-enabled})
+    all_fips_enabled_flag=$(${CLI_CMD} get configmap bai-fips-status --no-headers --ignore-not-found -n $TARGET_PROJECT_NAME -o jsonpath={.data.all-fips-enabled})
     if [ -z $all_fips_enabled_flag ]; then
         warning "Not found configmap \"bai-fips-status\" in project \"$TARGET_PROJECT_NAME\". setting BAI_STANDALONE.ENABLE_FIPS as \"false\" by default in the \"BAI_user_profile.property\""
         FIPS_ENABLED="false"
@@ -1520,7 +1460,7 @@ function select_ldap_user_for_zen(){
 function select_iam_default_admin(){
     printf "\n"
     while true; do
-        echo -e "\x1B[33;5mATTENTION: \x1B[0m\x1B[1;31mIf you are unable to use [cpadmin] as the default IAM admin user due to it being already used in your LDAP Directory, you need to change the Cloud Pak administrator username. See: \" https://www.ibm.com/docs/en/cloud-paks/foundational-services/4.9?topic=configurations-changing-cluster-administrator-access-credentials#name\"\x1B[0m"
+        echo -e "\x1B[33;5mATTENTION: \x1B[0m\x1B[1;31mIf you are unable to use [cpadmin] as the default IAM admin user due to it being already used in your LDAP Directory, you need to change the Cloud Pak administrator username. See: \" https://www.ibm.com/docs/en/cloud-paks/foundational-services/$CS_CHANNEL_KC?topic=configurations-changing-cluster-administrator-access-credentials#name\"\x1B[0m"
         printf "\x1B[1mDo you want to use the default IAM admin user: [cpadmin] (Yes/No, default: Yes): \x1B[0m"
         read -rp "" ans
         case "$ans" in
@@ -1672,7 +1612,7 @@ function generate_create_secret_script(){
         echo "echo \"****************************************************************************\"" >> ${CREATE_SECRET_SCRIPT_FILE_TMP}
         echo "echo \"******************************* START **************************************\"" >> ${CREATE_SECRET_SCRIPT_FILE_TMP}
         echo "echo \"[INFO] Applying YAML template file:$item\"">> ${CREATE_SECRET_SCRIPT_FILE_TMP}
-        echo "kubectl apply -f \"$item\"" >> ${CREATE_SECRET_SCRIPT_FILE_TMP}
+        echo "${CLI_CMD} apply -f \"$item\"" >> ${CREATE_SECRET_SCRIPT_FILE_TMP}
         echo "echo \"******************************** END ***************************************\"" >> ${CREATE_SECRET_SCRIPT_FILE_TMP}
         echo "echo \"****************************************************************************\"" >> ${CREATE_SECRET_SCRIPT_FILE_TMP}
         echo "printf \"\\n\"" >> ${CREATE_SECRET_SCRIPT_FILE_TMP}
@@ -1711,7 +1651,7 @@ function validate_secret_in_cluster(){
             secret_name_tmp=$(sed -e 's/^"//' -e 's/"$//' <<<"$secret_name_tmp")
             # need to check ibm-zen-metastore-edb-cm/im-datastore-edb-cm for Zen/IM and ibm-bts-config-extension external postgresql db support
             if [[ $secret_name_tmp != "ibm-zen-metastore-edb-cm" && $secret_name_tmp != "im-datastore-edb-cm" && $secret_name_tmp != "ibm-bts-config-extension" ]]; then
-                secret_exists=`kubectl get secret $secret_name_tmp -n $BAI_SERVICES_NS --ignore-not-found | wc -l`  >/dev/null 2>&1
+                secret_exists=`${CLI_CMD} get secret $secret_name_tmp -n $BAI_SERVICES_NS --ignore-not-found | wc -l`  >/dev/null 2>&1
                 if [ "$secret_exists" -ne 2 ] ; then
                     error "Secret \"$secret_name_tmp\" not found in Kubernetes cluster! Please create it before deploying BAI Standalone"
                     SECRET_CREATE_PASSED="false"
@@ -1719,7 +1659,7 @@ function validate_secret_in_cluster(){
                     success "Secret \"$secret_name_tmp\" found in Kubernetes cluster, PASSED!"              
                 fi
             else
-                secret_exists=`kubectl get configmap $secret_name_tmp -n $BAI_SERVICES_NS --ignore-not-found | wc -l`  >/dev/null 2>&1
+                secret_exists=`${CLI_CMD} get configmap $secret_name_tmp -n $BAI_SERVICES_NS --ignore-not-found | wc -l`  >/dev/null 2>&1
                 if [ "$secret_exists" -ne 2 ] ; then
                     error "ConfigMap \"$secret_name_tmp\" not found in Kubernetes cluster! Please create it before deploying BAI Standalone"
                     SECRET_CREATE_PASSED="false"
@@ -1754,7 +1694,7 @@ function validate_secret_in_cluster(){
             exit 1
         else
             secret_name_tmp=$(sed -e 's/^"//' -e 's/"$//' <<<"$secret_name_tmp")
-            secret_exists=`kubectl get secret $secret_name_tmp -n $BAI_SERVICES_NS --ignore-not-found | wc -l`  >/dev/null 2>&1
+            secret_exists=`${CLI_CMD} get secret $secret_name_tmp -n $BAI_SERVICES_NS --ignore-not-found | wc -l`  >/dev/null 2>&1
             if [ "$secret_exists" -ne 2 ] ; then
                 error "Secret \"$secret_name_tmp\" not found in Kubernetes cluster! Please create it before deploying BAI Standalone"
                 SECRET_CREATE_PASSED="false"
@@ -1801,7 +1741,7 @@ function validate_prerequisites(){
     verify_storage_class_valid $tmp_storage_classname "ReadWriteOnce" $sample_pvc_name
 
     if [[ $verification_sc_passed == "No" ]]; then
-        kubectl delete pvc -l bai=test-only >/dev/null 2>&1
+        ${CLI_CMD} delete pvc -l bai=test-only >/dev/null 2>&1
         exit 0
     fi
     # Validate Secret for BAI stand-alone
@@ -1861,7 +1801,7 @@ function validate_prerequisites(){
         rm -rf ${im_external_db_cert_folder}/clientkey.pk8 2>&1 </dev/null
         openssl pkcs8 -topk8 -outform DER -in $postgres_clientkeyfile -out ${im_external_db_cert_folder}/clientkey.pk8 -nocrypt 2>&1 </dev/null
 
-        output=$(java -Dsemeru.fips=$fips_flag -Duser.language=$BAI_AUTO_LANGUAGE -Duser.country=$BAI_AUTO_REGION -Dcom.ibm.jsse2.overrideDefaultTLS=true -Djavax.net.ssl.trustStoreType=PKCS12 -cp "${DB_JDBC_NAME}/postgresql-42.7.2.jar:${DB_CONNECTION_JAR_PATH}/PostgresJDBCConnection.jar" PostgresConnection -h $dbserver -p $dbport -db $dbname -u $dbuser -pwd $dbuserpwd -sslmode verify-ca -ca $postgres_cafile -clientkey ${im_external_db_cert_folder}/clientkey.pk8 -clientcert $postgres_clientcertfile 2>&1)
+        output=$($JAVA_CMD -Dsemeru.fips=$fips_flag -Duser.language=$BAI_AUTO_LANGUAGE -Duser.country=$BAI_AUTO_REGION -Dcom.ibm.jsse2.overrideDefaultTLS=true -Djavax.net.ssl.trustStoreType=PKCS12 -cp "${DB_JDBC_NAME}/postgresql-42.7.2.jar:${DB_CONNECTION_JAR_PATH}/PostgresJDBCConnection.jar" PostgresConnection -h $dbserver -p $dbport -db $dbname -u $dbuser -pwd $dbuserpwd -sslmode verify-ca -ca $postgres_cafile -clientkey ${im_external_db_cert_folder}/clientkey.pk8 -clientcert $postgres_clientcertfile 2>&1)
         retVal_verify_db_tmp=$?
         connection_time=$(echo $output | awk -F 'Round Trip time: ' '{print $2}' | awk '{print $1}')
         if [[ ! -z $connection_time ]]; then
@@ -1869,7 +1809,7 @@ function validate_prerequisites(){
         fi
 
         [[ retVal_verify_db_tmp -ne 0 ]] && \
-        warning "Execute: java -Dsemeru.fips=$fips_flag -Duser.language=$BAI_AUTO_LANGUAGE -Duser.country=$BAI_AUTO_REGION -Dcom.ibm.jsse2.overrideDefaultTLS=true -Djavax.net.ssl.trustStoreType=PKCS12 -cp \"${DB_JDBC_NAME}/postgresql-42.7.2.jar:${DB_CONNECTION_JAR_PATH}/PostgresJDBCConnection.jar\" PostgresConnection -h $dbserver -p $dbport -db $dbname -u $dbuser -pwd ****** -sslmode verify-ca -ca $postgres_cafile -clientkey ${im_external_db_cert_folder}/clientkey.pk8 -clientcert $postgres_clientcertfile" && \
+        warning "Execute: $JAVA_CMD -Dsemeru.fips=$fips_flag -Duser.language=$BAI_AUTO_LANGUAGE -Duser.country=$BAI_AUTO_REGION -Dcom.ibm.jsse2.overrideDefaultTLS=true -Djavax.net.ssl.trustStoreType=PKCS12 -cp \"${DB_JDBC_NAME}/postgresql-42.7.2.jar:${DB_CONNECTION_JAR_PATH}/PostgresJDBCConnection.jar\" PostgresConnection -h $dbserver -p $dbport -db $dbname -u $dbuser -pwd ****** -sslmode verify-ca -ca $postgres_cafile -clientkey ${im_external_db_cert_folder}/clientkey.pk8 -clientcert $postgres_clientcertfile" && \
         fail "Unable to connect to database \"$dbname\" on database server \"$dbserver\", please check the configuration again."
         [[ retVal_verify_db_tmp -eq 0 ]] && \
         success "The DB connection check for \"$dbname\" on database server \"$dbserver\" PASSED!"
@@ -1901,7 +1841,7 @@ function validate_prerequisites(){
         rm -rf ${zen_external_db_cert_folder}/clientkey.pk8 2>&1 </dev/null
         openssl pkcs8 -topk8 -outform DER -in $postgres_clientkeyfile -out ${zen_external_db_cert_folder}/clientkey.pk8 -nocrypt 2>&1 </dev/null
 
-        output=$(java -Dsemeru.fips=$fips_flag -Duser.language=$BAI_AUTO_LANGUAGE -Duser.country=$BAI_AUTO_REGION -Dcom.ibm.jsse2.overrideDefaultTLS=true -Djavax.net.ssl.trustStoreType=PKCS12 -cp "${DB_JDBC_NAME}/postgresql-42.7.2.jar:${DB_CONNECTION_JAR_PATH}/PostgresJDBCConnection.jar" PostgresConnection -h $dbserver -p $dbport -db $dbname -u $dbuser -pwd $dbuserpwd -sslmode verify-ca -ca $postgres_cafile -clientkey ${zen_external_db_cert_folder}/clientkey.pk8 -clientcert $postgres_clientcertfile 2>&1)
+        output=$($JAVA_CMD -Dsemeru.fips=$fips_flag -Duser.language=$BAI_AUTO_LANGUAGE -Duser.country=$BAI_AUTO_REGION -Dcom.ibm.jsse2.overrideDefaultTLS=true -Djavax.net.ssl.trustStoreType=PKCS12 -cp "${DB_JDBC_NAME}/postgresql-42.7.2.jar:${DB_CONNECTION_JAR_PATH}/PostgresJDBCConnection.jar" PostgresConnection -h $dbserver -p $dbport -db $dbname -u $dbuser -pwd $dbuserpwd -sslmode verify-ca -ca $postgres_cafile -clientkey ${zen_external_db_cert_folder}/clientkey.pk8 -clientcert $postgres_clientcertfile 2>&1)
         retVal_verify_db_tmp=$?
         connection_time=$(echo $output | awk -F 'Round Trip time: ' '{print $2}' | awk '{print $1}')
         if [[ ! -z $connection_time ]]; then
@@ -1909,7 +1849,7 @@ function validate_prerequisites(){
         fi
 
         [[ retVal_verify_db_tmp -ne 0 ]] && \
-        warning "Execute: java -Dsemeru.fips=$fips_flag -Duser.language=$BAI_AUTO_LANGUAGE -Duser.country=$BAI_AUTO_REGION -Dcom.ibm.jsse2.overrideDefaultTLS=true -Djavax.net.ssl.trustStoreType=PKCS12 -cp \"${DB_JDBC_NAME}/postgresql-42.7.2.jar:${DB_CONNECTION_JAR_PATH}/PostgresJDBCConnection.jar\" PostgresConnection -h $dbserver -p $dbport -db $dbname -u $dbuser -pwd ****** -sslmode verify-ca -ca $postgres_cafile -clientkey ${zen_external_db_cert_folder}/clientkey.pk8 -clientcert $postgres_clientcertfile" && \
+        warning "Execute: $JAVA_CMD -Dsemeru.fips=$fips_flag -Duser.language=$BAI_AUTO_LANGUAGE -Duser.country=$BAI_AUTO_REGION -Dcom.ibm.jsse2.overrideDefaultTLS=true -Djavax.net.ssl.trustStoreType=PKCS12 -cp \"${DB_JDBC_NAME}/postgresql-42.7.2.jar:${DB_CONNECTION_JAR_PATH}/PostgresJDBCConnection.jar\" PostgresConnection -h $dbserver -p $dbport -db $dbname -u $dbuser -pwd ****** -sslmode verify-ca -ca $postgres_cafile -clientkey ${zen_external_db_cert_folder}/clientkey.pk8 -clientcert $postgres_clientcertfile" && \
         fail "Unable to connect to database \"$dbname\" on database server \"$dbserver\", please check the configuration again."
         [[ retVal_verify_db_tmp -eq 0 ]] && \
         success "The DB connection check for \"$dbname\" on database server \"$dbserver\" PASSED!"
@@ -1941,7 +1881,7 @@ function validate_prerequisites(){
         rm -rf ${bts_external_db_cert_folder}/clientkey.pk8 2>&1 </dev/null
         openssl pkcs8 -topk8 -outform DER -in $postgres_clientkeyfile -out ${bts_external_db_cert_folder}/clientkey.pk8 -nocrypt 2>&1 </dev/null
 
-        output=$(java -Dsemeru.fips=$fips_flag -Duser.language=$BAI_AUTO_LANGUAGE -Duser.country=$BAI_AUTO_REGION -Dcom.ibm.jsse2.overrideDefaultTLS=true -Djavax.net.ssl.trustStoreType=PKCS12 -cp "${DB_JDBC_NAME}/postgresql-42.7.2.jar:${DB_CONNECTION_JAR_PATH}/PostgresJDBCConnection.jar" PostgresConnection -h $dbserver -p $dbport -db $dbname -u $dbuser -pwd $dbuserpwd -sslmode verify-ca -ca $postgres_cafile -clientkey ${bts_external_db_cert_folder}/clientkey.pk8 -clientcert $postgres_clientcertfile 2>&1)
+        output=$($JAVA_CMD -Dsemeru.fips=$fips_flag -Duser.language=$BAI_AUTO_LANGUAGE -Duser.country=$BAI_AUTO_REGION -Dcom.ibm.jsse2.overrideDefaultTLS=true -Djavax.net.ssl.trustStoreType=PKCS12 -cp "${DB_JDBC_NAME}/postgresql-42.7.2.jar:${DB_CONNECTION_JAR_PATH}/PostgresJDBCConnection.jar" PostgresConnection -h $dbserver -p $dbport -db $dbname -u $dbuser -pwd $dbuserpwd -sslmode verify-ca -ca $postgres_cafile -clientkey ${bts_external_db_cert_folder}/clientkey.pk8 -clientcert $postgres_clientcertfile 2>&1)
         retVal_verify_db_tmp=$?
         connection_time=$(echo $output | awk -F 'Round Trip time: ' '{print $2}' | awk '{print $1}')
         if [[ ! -z $connection_time ]]; then
@@ -1949,7 +1889,7 @@ function validate_prerequisites(){
         fi
 
         [[ retVal_verify_db_tmp -ne 0 ]] && \
-        warning "Execute: java -Dsemeru.fips=$fips_flag -Duser.language=$BAI_AUTO_LANGUAGE -Duser.country=$BAI_AUTO_REGION -Dcom.ibm.jsse2.overrideDefaultTLS=true -Djavax.net.ssl.trustStoreType=PKCS12 -cp \"${DB_JDBC_NAME}/postgresql-42.7.2.jar:${DB_CONNECTION_JAR_PATH}/PostgresJDBCConnection.jar\" PostgresConnection -h $dbserver -p $dbport -db $dbname -u $dbuser -pwd ****** -sslmode verify-ca -ca $postgres_cafile -clientkey ${bts_external_db_cert_folder}/clientkey.pk8 -clientcert $postgres_clientcertfile" && \
+        warning "Execute: $JAVA_CMD -Dsemeru.fips=$fips_flag -Duser.language=$BAI_AUTO_LANGUAGE -Duser.country=$BAI_AUTO_REGION -Dcom.ibm.jsse2.overrideDefaultTLS=true -Djavax.net.ssl.trustStoreType=PKCS12 -cp \"${DB_JDBC_NAME}/postgresql-42.7.2.jar:${DB_CONNECTION_JAR_PATH}/PostgresJDBCConnection.jar\" PostgresConnection -h $dbserver -p $dbport -db $dbname -u $dbuser -pwd ****** -sslmode verify-ca -ca $postgres_cafile -clientkey ${bts_external_db_cert_folder}/clientkey.pk8 -clientcert $postgres_clientcertfile" && \
         fail "Unable to connect to database \"$dbname\" on database server \"$dbserver\", please check the configuration again."
         [[ retVal_verify_db_tmp -eq 0 ]] && \
         success "The DB connection check for \"$dbname\" on database server \"$dbserver\" PASSED!"
@@ -1960,48 +1900,51 @@ function validate_prerequisites(){
 }
 # This function helps parse arguments that are passed to the script, checks and assigns runtime mode and target namespace variables based on the -m and -n parameters passed
 function parse_arguments() {
-    # process options
-    while [[ "$@" != "" ]]; do
-        case "$1" in
+    local args=("$@")
+    local i=0
+    
+    while [ $i -lt ${#args[@]} ]; do
+        local key="${args[$i]}"
+        case $key in
         -m)
-            shift
-            if [ -z $1 ]; then
+            ((i++))
+            if [ $i -ge ${#args[@]} ] || [ -z "${args[$i]}" ]; then
                 echo "Invalid option: -m requires an argument"
                 exit 1
             fi
-            RUNTIME_MODE=$1
+            RUNTIME_MODE="${args[$i]}"
             if [[ $RUNTIME_MODE == "property" || $RUNTIME_MODE == "generate" || $RUNTIME_MODE == "validate" ]]; then
                 echo
             else
                 msg "Use a valid value: -m [property] or [generate] or [validate]"
-                exit -1
+                exit 1
             fi
             ;;
         -n)
-            shift
-            if [ -z $1 ]; then
+            ((i++))
+            if [ $i -ge ${#args[@]} ] || [ -z "${args[$i]}" ]; then
                 echo "Invalid option: -n requires an argument"
                 exit 1
             fi
-            TARGET_PROJECT_NAME=$1
+            TARGET_PROJECT_NAME="${args[$i]}"
             case "$TARGET_PROJECT_NAME" in
             "")
                 echo -e "\x1B[1;31mEnter a valid namespace name, namespace name can not be blank\x1B[0m"
-                exit -1
+                exit 1
                 ;;
             "openshift"*)
                 echo -e "\x1B[1;31mEnter a valid project name, project name should not be 'openshift' or start with 'openshift' \x1B[0m"
-                exit -1
+                exit 1
                 ;;
             "kube"*)
                 echo -e "\x1B[1;31mEnter a valid project name, project name should not be 'kube' or start with 'kube' \x1B[0m"
-                exit -1
+                exit 1
                 ;;
             *)
                 # Check cluster login
                 check_cluster_login
                 # Check project name
-                isProjExists=`kubectl get project $TARGET_PROJECT_NAME --ignore-not-found | wc -l`  >/dev/null 2>&1
+                isProjExists=`${CLI_CMD} get namespace $TARGET_PROJECT_NAME --ignore-not-found | wc -l`  >/dev/null 2>&1
                 if [ $isProjExists -ne 2 ] ; then
                     echo -e "\x1B[1;31mInvalid project name \"$TARGET_PROJECT_NAME\", please set a existing project name.\x1B[0m"
                     exit 1
@@ -2010,17 +1953,42 @@ function parse_arguments() {
                 ;;
             esac
             ;;
-        -h | --help | \?)
+        -h|--help|\?)
             show_help
             exit 0
             ;;
+        --java-path)
+            ((i++))
+            if [ $i -ge ${#args[@]} ] || [ -z "${args[$i]}" ]; then
+                echo "Invalid option: --java-path requires an argument"
+                exit 1
+            fi
+            CUSTOM_JAVA_PATH="${args[$i]}"
+            # Verify the path exists
+            if [ ! -d "$CUSTOM_JAVA_PATH" ]; then
+                echo -e "\x1B[1;31mThe specified Java (JRE) path does not exist: ${CUSTOM_JAVA_PATH}\x1B[0m"
+                exit 1
+            fi
+            ;;
+        --java-path=*)
+            CUSTOM_JAVA_PATH="${key#*=}"
+            if [ -z "$CUSTOM_JAVA_PATH" ]; then
+                echo "Invalid option: --java-path requires a value"
+                exit 1
+            fi
+            # Verify the path exists
+            if [ ! -d "$CUSTOM_JAVA_PATH" ]; then
+                echo -e "\x1B[1;31mThe specified Java (JRE) path does not exist: ${CUSTOM_JAVA_PATH}\x1B[0m"
+                exit 1
+            fi
+            ;;
         *)
-            echo "Invalid option"
+            echo "Invalid option: $key"
             show_help
             exit 1
             ;;
         esac
-        shift
+        ((i++))
     done
 }
 

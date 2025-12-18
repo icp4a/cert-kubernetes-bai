@@ -18,6 +18,9 @@
 TEMP_FOLDER=${CUR_DIR}/.tmp
 mkdir -p $TEMP_FOLDER
 
+# Define the required Java version based on CP4BA release
+REQUIRED_JAVA_MAJOR_VERSION=17  # Semeru 17 is required for BAI S 
+
 # Directory for common service script
 COMMON_SERVICES_SCRIPT_FOLDER=${CUR_DIR}/cpfs/installer_scripts/cp3pt0-deployment
 
@@ -47,8 +50,8 @@ ZEN_SECRET_FILE=${ZEN_SECRET_FOLDER}/ibm-zen-metastore-edb-secret.sh
 ZEN_CONFIGMAP_FILE=${ZEN_SECRET_FOLDER}/ibm-zen-metastore-edb-cm.yaml
 
 IM_SECRET_FOLDER=${SECRET_FILE_FOLDER}/im_external_db
-IM_SECRET_FILE=${IM_SECRET_FOLDER}/ibm-im-metastore-edb-secret.sh
-IM_CONFIGMAP_FILE=${IM_SECRET_FOLDER}/ibm-im-metastore-edb-cm.yaml
+IM_SECRET_FILE=${IM_SECRET_FOLDER}/ibm-im-datastore-edb-secret.sh
+IM_CONFIGMAP_FILE=${IM_SECRET_FOLDER}/ibm-im-datastore-edb-cm.yaml
 
 BTS_SECRET_FOLDER=${SECRET_FILE_FOLDER}/bts_external_db
 BTS_SSL_SECRET_FILE=${BTS_SECRET_FOLDER}/ibm-bts-metastore-edb-ssl-secret.sh
@@ -63,33 +66,35 @@ LDAP_SECRET_FILE=${SECRET_FILE_FOLDER}/ldap-bind-secret.yaml
 # Release/Patch version for CP4BA
 # BAI_RELEASE_BASE is for fetch content/foundation operator pod, only need to change for major release.
 BAI_RELEASE_BASE="24.0.1"
-BAI_PATCH_VERSION="IF005"
+BAI_PATCH_VERSION="IF006"
 # BAI_CSV_VERSION is for checking CP4BA operator upgrade status, need to update for each IFIX
-BAI_CSV_VERSION="v24.1.5"
+BAI_CSV_VERSION="v24.1.6"
 # BAI_CHANNEL_VERSION is for switch CP4BA operator upgrade status, need to update for major release
 BAI_CHANNEL_VERSION="v24.1"
 # CS_OPERATOR_VERSION is for checking CPFS operator upgrade status, need to update for each IFIX
-CS_OPERATOR_VERSION="v4.14.0"
+CS_OPERATOR_VERSION="v4.16.0"
 # CS_CHANNEL_VERSION is for for CPFS script -c option, need to update for each IFIX
-CS_CHANNEL_VERSION="v4.14"
+CS_CHANNEL_VERSION="v4.16"
+# CS CHANNEL VERSION that is used in the KC
+CS_CHANNEL_KC="4.x_cd"
 # CERT_LICENSE_OPERATOR_VERSION is for checking IBM cert-manager/licensing operator upgrade status, need to update for each IFIX
-CERT_LICENSE_OPERATOR_VERSION="v4.2.15"
+CERT_LICENSE_OPERATOR_VERSION="v4.2.19"
 # CERT_LICENSE_CHANNEL_VERSION is for for IBM cert-manager/licensing script -c option, need to update for each IFIX
 CERT_LICENSE_CHANNEL_VERSION="v4.2"
 # CS_CATALOG_VERSION is for CPFS script -s option, need to update for each IFIX
-CS_CATALOG_VERSION="ibm-cs-install-catalog-v4-14-0"
+CS_CATALOG_VERSION="ibm-cs-install-catalog-v4-16-0"
 # ZEN_OPERATOR_VERSION is for checking ZenService operator upgrade status, need to update for each IFIX
-ZEN_OPERATOR_VERSION="v6.2.1"
+ZEN_OPERATOR_VERSION="v6.3.0"
 # BTS_CHANNEL_VERSION is for for BTS, need to update for each IFIX
 BTS_CHANNEL_VERSION="v3.35"
-# BTS_CATALOG_VERSION is for BTS 3.35.5.
+# BTS_CATALOG_VERSION is for BTS 3.35.7.
 BTS_CATALOG_VERSION="ibm-bts-operator-catalog-v3-35"
 # REQUIREDVER_BTS is for checking bts operator upgrade status before run removal_iaf.sh, need to update for each IFIX
-REQUIREDVER_BTS="3.35.5"
+REQUIREDVER_BTS="3.35.7"
 # REQUIREDVER_POSTGRESQL is for checking postgresql operator upgrade status before run removal_iaf.sh, need to update for each IFIX
-REQUIREDVER_POSTGRESQL="1.25.2"
+REQUIREDVER_POSTGRESQL="1.25.4"
 # EVENTS_OPERATOR_VERSION is for checking IBM Events operator upgrade status, need to update for each IFIX
-EVENTS_OPERATOR_VERSION="v5.0.1"
+EVENTS_OPERATOR_VERSION="v5.2.1"
 # List of BAI versions that are supported for upgrade to $BAI_CSV_VERSION
 MINIMUM_SUPPORTED_UPGRADE_VERSIONS=("24.0." "24.1." )
 
@@ -258,36 +263,107 @@ function install_yq_cli(){
     printf "\n"
 }
 
-function install_ibm_jre(){
-    if [[ ${machine} = "Linux" ]]; then
-        local JRE_VERSION=""
-        local JRE_VERSION_TMP=""
-        JRE_VERSION=$(curl -s https://public.dhe.ibm.com/ibmdl/export/pub/systems/cloud/runtimes/java/  | grep -o '[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}\.[0-9]\{1,3\}' | tail -n 1)
-        if [[ -z $JRE_VERSION ]]; then
-            fail "Can NOT access official IBM JRE Repository https://public.dhe.ibm.com/ibmdl/export/pub/systems/cloud/runtimes/java, Please install IBM JRE manually."
-            exit 1
-        else
-            JRE_VERSION_TMP=$(echo "$JRE_VERSION" | sed 's/\./-/2')
-            local tmp_file="/tmp/ibm-java.tgz"
-            local download_url=https://public.dhe.ibm.com/ibmdl/export/pub/systems/cloud/runtimes/java/${JRE_VERSION}/linux/$(uname -m)/ibm-java-jre-${JRE_VERSION_TMP}-linux-$(uname -m).tgz
-            echo -n "Downloading $download_url";
-            echo ""
-            curl -o $tmp_file -f $download_url
-            if [ ! -e $tmp_file ]; then
-                fail "Can NOT access official IBM JRE Repository https://public.dhe.ibm.com/ibmdl/export/pub/systems/cloud/runtimes/java, Please install IBM JRE manually."
-                exit 1
-            fi
-            mkdir -p /opt/ibm/java
-            tar -xzf $tmp_file --strip-components=1 -C /opt/ibm/java
-            #  add keytool to system PATH.
-            echo -n "Add keytool to system environment variable PATH..."; sudo -s export PATH="/opt/ibm/java/jre/bin/:$PATH"; export PATH="/opt/ibm/java/jre/bin/:$PATH"; echo "PATH=$PATH:/opt/ibm/java/jre/bin/" >> ~/.bashrc;echo "done."
-            info "IBM JRE has been installed and system enviroment variable PATH was configured. Please run command \"source ~/.bashrc\" before running the validate command again. Exiting this script."
+# DBACLD-198782: Validate Java runtime and set JAVA_CMD and KEYTOOL_CMD
+# $1 - (Optional) Custom Java path
+function validate_java_runtime() {
+    local CUSTOM_JAVA_PATH=$1
+
+    # Build example command with actual namespace if available
+    local EXAMPLE_NS="${TARGET_PROJECT_NAME:-bais-ns}"
+    local EXAMPLE_CMD="./bai-prerequisites.sh -m validate -n ${EXAMPLE_NS} --java-path=/custom/java/path"
+
+    # Step 1: Set JAVA_CMD and KEYTOOL_CMD based on CUSTOM_JAVA_PATH
+    if [[ -n "$CUSTOM_JAVA_PATH" ]]; then
+        # Normalize path - ensure it points to bin directory
+        if [[ "$CUSTOM_JAVA_PATH" != */bin ]]; then
+            CUSTOM_JAVA_PATH="${CUSTOM_JAVA_PATH}/bin"
+        fi
+
+        JAVA_CMD="${CUSTOM_JAVA_PATH}/java"
+        KEYTOOL_CMD="${CUSTOM_JAVA_PATH}/keytool"
+
+        # Verify the custom Java path exists and is executable
+        if [[ ! -x "$JAVA_CMD" ]]; then
+            echo -e "\x1B[1;31mError: Java executable not found at specified path: $JAVA_CMD\x1B[0m"
+            echo -e "\x1B[1;31mPlease provide a valid path to Java (JRE) $REQUIRED_JAVA_MAJOR_VERSION or higher installation.\x1B[0m"
             exit 1
         fi
-    elif [[ ${machine} = "Mac" ]]; then
-        echo -n "IBM's Java JRE is not available for Mac OS X. Install valid JRE for Mac OS X manually refer to MacOS document"; echo "done.";
+
+        # Verify keytool exists and is executable
+        if [[ ! -x "$KEYTOOL_CMD" ]]; then
+            echo -e "\x1B[1;31mError: keytool executable not found at specified path: $KEYTOOL_CMD\x1B[0m"
+            echo -e "\x1B[1;31mPlease provide a valid path to Java (JRE) $REQUIRED_JAVA_MAJOR_VERSION or higher installation.\x1B[0m"
+            exit 1
+        fi
+    else
+        JAVA_CMD="java"
+        KEYTOOL_CMD="keytool"
+
+        # Verify that default Java is available
+        if ! command -v java &> /dev/null; then
+            echo -e "\x1B[1;31mUnable to locate a Java Runtime. Java (JRE) $REQUIRED_JAVA_MAJOR_VERSION or higher must be installed to run this script.\x1B[0m"
+            echo -e "\x1B[1;31mPlease install Java (JRE) $REQUIRED_JAVA_MAJOR_VERSION or higher manually before continuing.\x1B[0m"
+            echo -e "\x1B[1;33mInstallation instructions:\x1B[0m"
+            echo -e "  - Install any compatible Java (JRE) $REQUIRED_JAVA_MAJOR_VERSION or higher distribution (e.g., IBM Semeru, Oracle JDK, or OpenJDK)"
+            echo -e "  - Ensure the new Java version is added to your PATH environment variable"
+            echo -e "  - Re-run this script"
+            echo -e "\x1B[1;33mAlternatively, you can specify the path to an existing Java (JRE) $REQUIRED_JAVA_MAJOR_VERSION or higher installation:\x1B[0m"
+            echo -e "  - Re-run this script with the Java (JRE) path parameter, using --java-path <path_to_java>; e.g., ${EXAMPLE_CMD}"
+            exit 1
+        fi
+
+        # Verify that default keytool is available
+        if ! command -v keytool &> /dev/null; then
+            echo -e "\x1B[1;31mUnable to locate keytool. Java (JRE) $REQUIRED_JAVA_MAJOR_VERSION or higher must be installed to run this script.\x1B[0m"
+            echo -e "\x1B[1;31mPlease install Java (JRE) $REQUIRED_JAVA_MAJOR_VERSION or higher manually before continuing.\x1B[0m"
+            exit 1
+        fi
     fi
-    printf "\n"
+
+    # Step 2: Validate Java version
+    "$JAVA_CMD" -version &>/dev/null
+    if [[ $? -ne 0 ]]; then
+        echo -e "\x1B[1;31mUnable to execute Java. Please check your Java (JRE) installation.\x1B[0m"
+        exit 1
+    fi
+
+    # Extract the full version string
+    local CURRENT_JAVA_VERSION=$("$JAVA_CMD" -version 2>&1 | grep -i version | head -n 1 | awk -F '"' '{print $2}')
+
+    # Extract just the major version for comparison
+    local CURRENT_MAJOR_VERSION=$(echo "$CURRENT_JAVA_VERSION" | awk -F '.' '{print $1}')
+
+    # If version starts with "1.", use the second number (e.g., 1.8 -> 8)
+    if [[ "$CURRENT_JAVA_VERSION" == 1.* ]]; then
+        CURRENT_MAJOR_VERSION=$(echo "$CURRENT_JAVA_VERSION" | awk -F '.' '{print $2}')
+    fi
+
+    # Check if current version is less than the required version
+    if [[ -n "$CURRENT_MAJOR_VERSION" && "$CURRENT_MAJOR_VERSION" -lt "$REQUIRED_JAVA_MAJOR_VERSION" ]]; then
+        echo -e "\x1B[1;31mJava version $CURRENT_JAVA_VERSION is installed but does not meet the minimum requirement (version $REQUIRED_JAVA_MAJOR_VERSION).\x1B[0m"
+        echo -e "\x1B[1;31mPlease upgrade to Java (JRE) $REQUIRED_JAVA_MAJOR_VERSION or higher manually before continuing.\x1B[0m"
+        echo -e "\x1B[1;33mJava (JRE) $REQUIRED_JAVA_MAJOR_VERSION or higher upgrade instructions:\x1B[0m"
+        echo -e "  - Install any compatible Java (JRE) $REQUIRED_JAVA_MAJOR_VERSION or higher distribution (e.g., IBM Semeru, Oracle JDK, or OpenJDK)"
+        echo -e "  - Ensure the new Java version is added to your PATH environment variable"
+        echo -e "  - Re-run this script"
+        echo -e "\x1B[1;33mAlternatively, you can specify the path to an existing Java (JRE) $REQUIRED_JAVA_MAJOR_VERSION or higher installation:\x1B[0m"
+        echo -e "  - Re-run this script with the Java (JRE) path parameter, using --java-path <path_to_java>; e.g., ${EXAMPLE_CMD}"
+        exit 1
+    fi
+    
+    info "Using Java version: $CURRENT_JAVA_VERSION located at: $(command -v "$JAVA_CMD")"
+
+    # Step 3: Validate keytool
+    "$KEYTOOL_CMD" -help &>/dev/null
+    if [[ $? -ne 0 ]]; then
+        echo -e "\x1B[1;31mUnable to execute keytool. Keytool is required and should be part of your Java (JRE) installation.\x1B[0m"
+        echo -e "\x1B[1;31mPlease ensure you have a complete Java (JRE) $REQUIRED_JAVA_MAJOR_VERSION or higher installation that includes keytool.\x1B[0m"
+        exit 1
+    fi
+
+    # Step 4: Export the commands so they're available to child scripts
+    export JAVA_CMD
+    export KEYTOOL_CMD
 }
 
 function install_kubectl_cli(){
@@ -458,7 +534,7 @@ function prompt_press_any_key_to_continue() {
 # check OCP version
 ############################
 function check_platform_version(){
-    currentver=$(oc get nodes | awk 'NR==2{print $5}')
+    currentver=$(${CLI_CMD} get nodes | awk 'NR==2{print $5}')
     requiredver="v1.17.1"
     if [ "$(printf '%s\n' "$requiredver" "$currentver" | sort -V | head -n1)" = "$requiredver" ]; then
         PLATFORM_VERSION="4.4OrLater"  
@@ -477,9 +553,9 @@ function check_platform_version(){
 #############################
 function check_cluster_login() {
     if [[ "$CLI_CMD" == "oc" ]]; then
-        oc whoami >/dev/null 2>&1
+        ${CLI_CMD} whoami >/dev/null 2>&1
     else
-        kubectl auth whoami >/dev/null 2>&1
+        ${CLI_CMD} auth whoami >/dev/null 2>&1
     fi
     
     if [ $? -gt 0 ]; then
@@ -1038,5 +1114,83 @@ function validate_property_file_required_fields() {
         else
             success "All required properties in $property_file have valid values."
         fi
+    fi
+}
+
+# This function is to patch the kafka strimzi podset for an upgrade to a version having Events Operator 5.2 or higher
+# The function checks if events operator subscription is on channel 5.2 and if so gets the kafka strimzi podset and replaces an annotation which will allow the zen upgrade to complete
+# The subscription for events operator is updated after the new CR is applied and the foundation-operator applies the new operand request, so this function is called during upgradeDeploymentStatus
+# For https://jsw.ibm.com/browse/DBACLD-199163 https://jsw.ibm.com/browse/DBACLD-199093
+function patch_strimzi_podset(){
+    local operator_namespace=$1
+    local services_namespace=$2
+
+    echo "Checking ibm-events-operator subscription and channel..."
+    # Check if the subscription exists
+    events_operator_subscription_exists=$(${CLI_CMD} get subscription.operators.coreos.com ibm-events-operator -n $operator_namespace -o name --no-headers 2>/dev/null || echo "")
+
+    if [[ -z "$events_operator_subscription_exists" ]]; then
+        echo "Subscription 'ibm-events-operator' not found, skipping"
+        strimzi_patched=true
+        return
+    fi
+
+    # Get the subscription channel - YQ 3.3 compatible syntax
+    events_operator_channel=$(${CLI_CMD} get subscription.operators.coreos.com ibm-events-operator -n $operator_namespace -o yaml | ${YQ_CMD} read - spec.channel)
+
+    echo "Current channel: $events_operator_channel"
+
+    # Check if channel is v5.2
+    if [[ "$events_operator_channel" == "v5.2" ]]; then
+        echo "Events Operator Channel is v5.2, proceeding to check if the events operator is running..."
+
+        # Find the operator pod that starts with ibm-events-operator-v5.2
+        events_operator_pod=$(${CLI_CMD} get pods --no-headers -n $operator_namespace -o custom-columns=":metadata.name" | grep "^ibm-events-operator-v5.2" || echo "")
+
+        if [[ -z "$events_operator_pod" ]]; then
+            echo "'ibm-events-operator-v5.2' pod is not found"
+            return
+        fi
+
+        echo "Found operator pod: $events_operator_pod"
+
+        # Check if the pod is in Ready state
+        events_operator_pod_ready=$(${CLI_CMD} get pod "$events_operator_pod" -n $operator_namespace -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}')
+
+        if [[ "$events_operator_pod_ready" != "True" ]]; then
+            echo "Operator pod '$events_operator_pod' is not in Ready state"
+            return
+        fi
+
+        # Get the StrimziPodSet resource
+        kafka_podset_exists=$(${CLI_CMD} get strimzipodset iaf-system-kafka -n $services_namespace -o name --no-headers 2>/dev/null || echo "")
+
+        if [[ -z "$kafka_podset_exists" ]]; then
+            echo "StrimziPodSet 'iaf-system-kafka' not found"
+            return
+        fi
+
+        echo "Found StrimziPodSet 'iaf-system-kafka'"
+
+        # Get the current kafka version from the annotation - YQ 3.3 compatible syntax
+        kafka_annotation_value=$(${CLI_CMD} get strimzipodset iaf-system-kafka -n $services_namespace -o yaml | ${YQ_CMD} read - "metadata.annotations[strimzi.io/kafka-version]" 2>/dev/null || echo "")
+
+        if [[ -z "$kafka_annotation_value" || "$kafka_annotation_value" == "null" ]]; then
+            strimzi_patched=true
+            return
+        fi
+
+        echo "Current kafka version: $kafka_annotation_value"
+
+        # Apply the patch directly
+        echo "Applying patch to update annotations..."
+        ${CLI_CMD} patch strimzipodset iaf-system-kafka -n $services_namespace --type=merge -p "{\"metadata\":{\"annotations\":{\"strimzi.io/kafka-version\":null,\"ibmevents.ibm.com/kafka-version\":\"$kafka_annotation_value\"}}}"
+
+        echo "Successfully updated annotations:"
+        echo "- Removed: strimzi.io/kafka-version"
+        echo "- Added: ibmevents.ibm.com/kafka-version: $kafka_annotation_value"
+        strimzi_patched=true
+    else
+        echo "Events operator is not at channel v5.2"
     fi
 }

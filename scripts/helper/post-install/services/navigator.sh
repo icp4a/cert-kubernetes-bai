@@ -21,12 +21,12 @@ cp4baNavigatorConsole()
   #################################################
   #navigator
   #################################################
-  oc get cm ${CP4BA_DEPLOYMENT_NAME}-cp4ba-access-info -n ${CP4BA_AUTO_NAMESPACE} -o jsonpath='{.data.navigator-access-info}' &> ${LOG_DIR}/navigator-console.log
+  ${CLI_CMD} get cm ${CP4BA_DEPLOYMENT_NAME}-cp4ba-access-info -n ${CP4BA_AUTO_NAMESPACE} -o jsonpath='{.data.navigator-access-info}' &> ${LOG_DIR}/navigator-console.log
 
   if [ "$DEPLOYMENT_TYPE_TO_LOWER" == "production" ]; then
-    NAV_USERNAME=`oc get secret ibm-ban-secret -o go-template --template="{{.data.appLoginUsername|base64decode}}"`
+    NAV_USERNAME=`${CLI_CMD} get secret ibm-ban-secret -o go-template --template="{{.data.appLoginUsername|base64decode}}"`
     echo "Username                                      : ${NAV_USERNAME}"
-    NAV_PASSWORD=`oc get secret ibm-ban-secret -o go-template --template="{{.data.appLoginPassword|base64decode}}"`
+    NAV_PASSWORD=`${CLI_CMD} get secret ibm-ban-secret -o go-template --template="{{.data.appLoginPassword|base64decode}}"`
     echo "Password                                      : ${NAV_PASSWORD}"
   else
       NAV_USERNAME=`cat  ${LOG_DIR}/navigator-console.log | grep "username"  | awk '{print $2}'| head -n 1`
@@ -47,9 +47,9 @@ cp4baNavigatorStatus()
   printHeaderMessage "CP4BA Service Status - Navigator"
   rm ${LOG_DIR}/filenet-status.log 2> /dev/null
   if [[ $CONTENT_DEPLOYMENT == "true" ]]; then
-    kubectl get Content ${CP4BA_DEPLOYMENT_NAME} -n ${CP4BA_AUTO_NAMESPACE} -o jsonpath='{.status.components}' 2> /dev/null  | jq  . |  sed 's/\"//g' | sed 's/,//g'  | sed 's/://g' | sed 's/{//g' | sed 's/}//g'  &> ${LOG_DIR}/navigator-status.log
+    ${CLI_CMD} get Content ${CP4BA_DEPLOYMENT_NAME} -n ${CP4BA_AUTO_NAMESPACE} -o jsonpath='{.status.components}' 2> /dev/null  | jq  . |  sed 's/\"//g' | sed 's/,//g'  | sed 's/://g' | sed 's/{//g' | sed 's/}//g'  &> ${LOG_DIR}/navigator-status.log
   else
-    kubectl get ICP4ACluster ${CP4BA_DEPLOYMENT_NAME} -n ${CP4BA_AUTO_NAMESPACE} -o jsonpath='{.status.components}' 2> /dev/null  | jq  . |  sed 's/\"//g' | sed 's/,//g'  | sed 's/://g' | sed 's/{//g' | sed 's/}//g'  &> ${LOG_DIR}/navigator-status.log
+    ${CLI_CMD} get ICP4ACluster ${CP4BA_DEPLOYMENT_NAME} -n ${CP4BA_AUTO_NAMESPACE} -o jsonpath='{.status.components}' 2> /dev/null  | jq  . |  sed 's/\"//g' | sed 's/,//g'  | sed 's/://g' | sed 's/{//g' | sed 's/}//g'  &> ${LOG_DIR}/navigator-status.log
   fi
   
   #################################################

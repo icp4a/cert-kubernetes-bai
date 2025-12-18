@@ -18,9 +18,9 @@ cp4baRRStatus()
   printHeaderMessage "CP4BA Service Status - Resource Registry"
   rm ${LOG_DIR}/rr-status.log 2> /dev/null
   if [[ $CONTENT_DEPLOYMENT == "true" ]]; then
-    kubectl get Foundation  ${CP4BA_DEPLOYMENT_NAME} -n ${CP4BA_AUTO_NAMESPACE} -o jsonpath='{.status.components.resource-registry}' 2> /dev/null | jq  . |  sed 's/\"//g' | sed 's/,//g'  | sed 's/://g' | sed 's/{//g' | sed 's/}//g'  &> ${LOG_DIR}/rr-status.log
+    ${CLI_CMD} get Foundation  ${CP4BA_DEPLOYMENT_NAME} -n ${CP4BA_AUTO_NAMESPACE} -o jsonpath='{.status.components.resource-registry}' 2> /dev/null | jq  . |  sed 's/\"//g' | sed 's/,//g'  | sed 's/://g' | sed 's/{//g' | sed 's/}//g'  &> ${LOG_DIR}/rr-status.log
   else
-    kubectl get ICP4ACluster  ${CP4BA_DEPLOYMENT_NAME} -n ${CP4BA_AUTO_NAMESPACE} -o jsonpath='{.status.components.resource-registry}' 2> /dev/null | jq  . |  sed 's/\"//g' | sed 's/,//g'  | sed 's/://g' | sed 's/{//g' | sed 's/}//g'  &> ${LOG_DIR}/rr-status.log
+    ${CLI_CMD} get ICP4ACluster  ${CP4BA_DEPLOYMENT_NAME} -n ${CP4BA_AUTO_NAMESPACE} -o jsonpath='{.status.components.resource-registry}' 2> /dev/null | jq  . |  sed 's/\"//g' | sed 's/,//g'  | sed 's/://g' | sed 's/{//g' | sed 's/}//g'  &> ${LOG_DIR}/rr-status.log
   fi
   #.decisions_ads
   RR_CLUSTER_STATUS=`cat ${LOG_DIR}/rr-status.log | grep rrCluster | awk '{print $2}'`

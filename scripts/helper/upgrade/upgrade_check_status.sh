@@ -129,10 +129,10 @@ function check_operator_status(){
         echo "****************************************************************************"
         info "Checking the IBM Cert-manager Operator ready or not"
         for ((retry=0;retry<=${maxRetry};retry++)); do
-            isReadyWebhook=$(kubectl get pod -l=app.kubernetes.io/instance=cert-manager,app.kubernetes.io/name=ibm-cert-manager-webhook -o 'custom-columns=NAME:.metadata.name,PHASE:.status.phase,READY:.status.containerStatuses[0].ready' --all-namespaces --no-headers --ignore-not-found | grep 'Running' | grep 'true' | awk '{print $1}')
-            isReadyCertmanager=$(kubectl get pod -l=app.kubernetes.io/instance=cert-manager,app.kubernetes.io/name=ibm-cert-manager-controller -o 'custom-columns=NAME:.metadata.name,PHASE:.status.phase,READY:.status.containerStatuses[0].ready' --all-namespaces --no-headers --ignore-not-found | grep 'Running' | grep 'true' | awk '{print $1}')
-            isReadyCainjector=$(kubectl get pod -l=app.kubernetes.io/instance=cert-manager,app.kubernetes.io/name=ibm-cert-manager-cainjector -o 'custom-columns=NAME:.metadata.name,PHASE:.status.phase,READY:.status.containerStatuses[0].ready' --all-namespaces --no-headers --ignore-not-found | grep 'Running' | grep 'true' | awk '{print $1}')
-            isReadyCertmanagerOperator=$(kubectl get pod -l=app.kubernetes.io/name=cert-manager,app.kubernetes.io/instance=ibm-cert-manager-operator -o 'custom-columns=NAME:.metadata.name,PHASE:.status.phase,READY:.status.containerStatuses[0].ready' --all-namespaces --no-headers --ignore-not-found | grep 'Running' | grep 'true' | awk '{print $1}')
+            isReadyWebhook=$(${CLI_CMD} get pod -l=app.kubernetes.io/instance=cert-manager,app.kubernetes.io/name=ibm-cert-manager-webhook -o 'custom-columns=NAME:.metadata.name,PHASE:.status.phase,READY:.status.containerStatuses[0].ready' --all-namespaces --no-headers --ignore-not-found | grep 'Running' | grep 'true' | awk '{print $1}')
+            isReadyCertmanager=$(${CLI_CMD} get pod -l=app.kubernetes.io/instance=cert-manager,app.kubernetes.io/name=ibm-cert-manager-controller -o 'custom-columns=NAME:.metadata.name,PHASE:.status.phase,READY:.status.containerStatuses[0].ready' --all-namespaces --no-headers --ignore-not-found | grep 'Running' | grep 'true' | awk '{print $1}')
+            isReadyCainjector=$(${CLI_CMD} get pod -l=app.kubernetes.io/instance=cert-manager,app.kubernetes.io/name=ibm-cert-manager-cainjector -o 'custom-columns=NAME:.metadata.name,PHASE:.status.phase,READY:.status.containerStatuses[0].ready' --all-namespaces --no-headers --ignore-not-found | grep 'Running' | grep 'true' | awk '{print $1}')
+            isReadyCertmanagerOperator=$(${CLI_CMD} get pod -l=app.kubernetes.io/name=cert-manager,app.kubernetes.io/instance=ibm-cert-manager-operator -o 'custom-columns=NAME:.metadata.name,PHASE:.status.phase,READY:.status.containerStatuses[0].ready' --all-namespaces --no-headers --ignore-not-found | grep 'Running' | grep 'true' | awk '{print $1}')
 
             if [[ -z $isReadyWebhook || -z $isReadyCertmanager || -z $isReadyCainjector || -z $isReadyCertmanagerOperator ]]; then
             # if [[ -z $isReadyCertmanagerOperator ]]; then
@@ -141,16 +141,16 @@ function check_operator_status(){
                     warning "Timeout Waiting for IBM Cert-manager Operator to start"
                     echo -e "\x1B[1mCheck the status of Pod by issuing the following command: \x1B[0m"
                     if [[ -z $isReadyWebhook ]]; then
-                        echo "kubectl describe pod $(kubectl get pod -l=app.kubernetes.io/instance=cert-manager,app.kubernetes.io/name=ibm-cert-manager-webhook --all-namespaces --no-headers|awk '{print $1}') --all-namespaces"
+                        echo "${CLI_CMD} describe pod $(${CLI_CMD} get pod -l=app.kubernetes.io/instance=cert-manager,app.kubernetes.io/name=ibm-cert-manager-webhook --all-namespaces --no-headers|awk '{print $1}') --all-namespaces"
                     fi
                     if [[ -z $isReadyCertmanager ]]; then
-                        echo "kubectl describe pod $(kubectl get pod -l=app.kubernetes.io/instance=cert-manager,app.kubernetes.io/name=ibm-cert-manager-controller --all-namespaces --no-headers|awk '{print $1}') --all-namespaces"
+                        echo "${CLI_CMD} describe pod $(${CLI_CMD} get pod -l=app.kubernetes.io/instance=cert-manager,app.kubernetes.io/name=ibm-cert-manager-controller --all-namespaces --no-headers|awk '{print $1}') --all-namespaces"
                     fi
                     if [[ -z $isReadyCainjector ]]; then
-                        echo "kubectl describe pod $(kubectl get pod -l=app.kubernetes.io/instance=cert-manager,app.kubernetes.io/name=ibm-cert-manager-cainjector --all-namespaces --no-headers|awk '{print $1}') --all-namespaces"
+                        echo "${CLI_CMD} describe pod $(${CLI_CMD} get pod -l=app.kubernetes.io/instance=cert-manager,app.kubernetes.io/name=ibm-cert-manager-cainjector --all-namespaces --no-headers|awk '{print $1}') --all-namespaces"
                     fi
                     if [[ -z $isReadyCertmanagerOperator ]]; then
-                        echo "kubectl describe pod $(kubectl get pod -l=app.kubernetes.io/name=cert-manager,app.kubernetes.io/instance=ibm-cert-manager-operator --all-namespaces --no-headers|awk '{print $1}') --all-namespaces"
+                        echo "${CLI_CMD} describe pod $(${CLI_CMD} get pod -l=app.kubernetes.io/name=cert-manager,app.kubernetes.io/instance=ibm-cert-manager-operator --all-namespaces --no-headers|awk '{print $1}') --all-namespaces"
                     fi
                     CHECK_BAI_OPERATOR_RESULT=( "${CHECK_BAI_OPERATOR_RESULT[@]}" "FAIL" )
                     exit 1
@@ -180,17 +180,17 @@ function check_operator_status(){
         echo "****************************************************************************"
         info "Checking for IBM Cloud Pak foundational operator pod initialization"
         for ((retry=0;retry<=${maxRetry};retry++)); do
-            isReady=$(kubectl get csv ibm-common-service-operator.$CS_OPERATOR_VERSION --no-headers --ignore-not-found -n $project_name -o jsonpath='{.status.phase}')
+            isReady=$(${CLI_CMD} get csv ibm-common-service-operator.$CS_OPERATOR_VERSION --no-headers --ignore-not-found -n $project_name -o jsonpath='{.status.phase}')
             # isReady=$(kubectl exec $cpe_pod_name -c ${meta_name}-cpe-deploy -n $project_name -- cat /opt/ibm/version.txt |grep -F "P8 Content Platform Engine 23.0.1")
             if [[ $isReady != "Succeeded" ]]; then
                 if [[ $retry -eq ${maxRetry} ]]; then
                 printf "\n"
                 warning "Timeout Waiting for IBM Cloud Pak foundational operator to start"
                 echo -e "\x1B[1mCheck the status of Pod by issuing the following command:\x1B[0m"
-                echo "oc describe pod $(oc get pod -n $project_name|grep ibm-common-service-operator|awk '{print $1}') -n $project_name"
+                echo "${CLI_CMD} describe pod $(${CLI_CMD} get pod -n $project_name|grep ibm-common-service-operator|awk '{print $1}') -n $project_name"
                 printf "\n"
                 echo -e "\x1B[1mCheck the status of ReplicaSet by issuing the following command:\x1B[0m"
-                echo "oc describe rs $(oc get rs -n $project_name|grep ibm-common-service-operator|awk '{print $1}') -n $project_name"
+                echo "${CLI_CMD} describe rs $(${CLI_CMD} get rs -n $project_name|grep ibm-common-service-operator|awk '{print $1}') -n $project_name"
                 printf "\n"
                 exit 1
                 else
@@ -199,7 +199,7 @@ function check_operator_status(){
                 continue
                 fi
             elif [[ $isReady == "Succeeded" ]]; then
-                pod_name=$(kubectl get pod -l=name=ibm-common-service-operator -n $project_name -o 'custom-columns=NAME:.metadata.name,PHASE:.status.phase,READY:.status.containerStatuses[0].ready,DELETED:.metadata.deletionTimestamp' --no-headers --ignore-not-found | grep 'Running' | grep 'true' | grep '<none>' | head -1 | awk '{print $1}')
+                pod_name=$(${CLI_CMD} get pod -l=name=ibm-common-service-operator -n $project_name -o 'custom-columns=NAME:.metadata.name,PHASE:.status.phase,READY:.status.containerStatuses[0].ready,DELETED:.metadata.deletionTimestamp' --no-headers --ignore-not-found | grep 'Running' | grep 'true' | grep '<none>' | head -1 | awk '{print $1}')
                 if [ -z $pod_name ]; then
                     error "IBM Cloud Pak foundational Operator pod is NOT running"
                     CHECK_BAI_OPERATOR_RESULT=( "${CHECK_BAI_OPERATOR_RESULT[@]}" "FAIL" )
@@ -222,7 +222,7 @@ function check_operator_status(){
         echo "****************************************************************************"
         info "Checking for IBM Business Automation Insights stand-alone (BAI S) operator pod initialization"
         for ((retry=0;retry<=${maxRetry};retry++)); do
-            isReady=$(kubectl get csv ibm-bai-insights-engine-operator.$BAI_CSV_VERSION --no-headers --ignore-not-found -n $project_name -o jsonpath='{.status.phase}')
+            isReady=$(${CLI_CMD} get csv ibm-bai-insights-engine-operator.$BAI_CSV_VERSION --no-headers --ignore-not-found -n $project_name -o jsonpath='{.status.phase}')
             # isReady=$(kubectl exec $cpe_pod_name -c ${meta_name}-cpe-deploy -n $project_name -- cat /opt/ibm/version.txt |grep -F "P8 Content Platform Engine 23.0.1")
             if [[ -z $isReady ]]; then
                 fail "Failed to upgrade the IBM Business Automation Insights stand-alone (BAI S) operator to ibm-bai-insights-engine-operator.$BAI_CSV_VERSION under project \"$project_name\"" 
@@ -233,10 +233,10 @@ function check_operator_status(){
                 printf "\n"
                 warning "Timeout Waiting for IBM Business Automation Insights stand-alone (BAI S) operator to start"
                 echo -e "\x1B[1mCheck the status of Pod by executing the below command:\x1B[0m"
-                echo "oc describe pod $(oc get pod -n $project_name|grep ibm-bai-insights-engine-operator|awk '{print $1}') -n $project_name"
+                echo "${CLI_CMD} describe pod $(${CLI_CMD} get pod -n $project_name|grep ibm-bai-insights-engine-operator|awk '{print $1}') -n $project_name"
                 printf "\n"
                 echo -e "\x1B[1mCheck the status of ReplicaSet by executing the below command:\x1B[0m"
-                echo "oc describe rs $(oc get rs -n $project_name|grep ibm-bai-insights-engine-operator|awk '{print $1}') -n $project_name"
+                echo "${CLI_CMD} describe rs $(${CLI_CMD} get rs -n $project_name|grep ibm-bai-insights-engine-operator|awk '{print $1}') -n $project_name"
                 printf "\n"
                 exit 1
                 else
@@ -259,11 +259,11 @@ function check_operator_status(){
     echo "****************************************************************************"
     info "Checking for BAI Foundation operator pod initialization"
     for ((retry=0;retry<=${maxRetry};retry++)); do
-        isReady=$(kubectl get csv ibm-bai-foundation-operator.$BAI_CSV_VERSION --no-headers --ignore-not-found -n $project_name -o jsonpath='{.status.phase}')
+        isReady=$(${CLI_CMD} get csv ibm-bai-foundation-operator.$BAI_CSV_VERSION --no-headers --ignore-not-found -n $project_name -o jsonpath='{.status.phase}')
         # isReady=$(kubectl exec $cpe_pod_name -c ${meta_name}-cpe-deploy -n $project_name -- cat /opt/ibm/version.txt |grep -F "P8 Content Platform Engine 23.0.1")
         if [[ -z $isReady ]]; then
             csv_version=""
-            csv_version=$(kubectl get csv $(kubectl get csv --no-headers --ignore-not-found -n $project_name | grep ibm-bai-foundation-operator.v |awk '{print $1}') --no-headers --ignore-not-found -n $project_name -o jsonpath='{.spec.version}')
+            csv_version=$(${CLI_CMD} get csv $(${CLI_CMD} get csv --no-headers --ignore-not-found -n $project_name | grep ibm-bai-foundation-operator.v |awk '{print $1}') --no-headers --ignore-not-found -n $project_name -o jsonpath='{.spec.version}')
             if [[ "v$csv_version" != $BAI_CSV_VERSION ]]; then
                 if [[ $retry -eq ${maxRetry} ]]; then
                     fail "Failed to upgrade the IBM BAI Foundation operator to ibm-bai-foundation-operator.$BAI_CSV_VERSION under project \"$project_name\"" 
@@ -280,10 +280,10 @@ function check_operator_status(){
             printf "\n"
             warning "Timeout Waiting for IBM BAI Foundation operator to start"
             echo -e "\x1B[1mCheck the status of Pod by issuing the following command:\x1B[0m"
-            echo "oc describe pod $(oc get pod -n $project_name|grep ibm-bai-foundation-operator|awk '{print $1}') -n $project_name"
+            echo "${CLI_CMD} describe pod $(${CLI_CMD} get pod -n $project_name|grep ibm-bai-foundation-operator|awk '{print $1}') -n $project_name"
             printf "\n"
             echo -e "\x1B[1mCheck the status of ReplicaSet by issuing the following command:\x1B[0m"
-            echo "oc describe rs $(oc get rs -n $project_name|grep ibm-bai-foundation-operator|awk '{print $1}') -n $project_name"
+            echo "${CLI_CMD} describe rs $(${CLI_CMD} get rs -n $project_name|grep ibm-bai-foundation-operator|awk '{print $1}') -n $project_name"
             printf "\n"
             exit 1
             else
@@ -293,7 +293,7 @@ function check_operator_status(){
             fi
         elif [[ $isReady == "Succeeded" ]]; then
             if [[ "$check_channel" != "channel" ]]; then
-                pod_name=$(kubectl get pod -l=name=ibm-bai-foundation-operator,release=$BAI_RELEASE_BASE --no-headers --ignore-not-found -n $project_name -o 'custom-columns=NAME:.metadata.name,PHASE:.status.phase,READY:.status.containerStatuses[0].ready,DELETED:.metadata.deletionTimestamp' | grep 'Running' | grep 'true' | grep '<none>' | head -1 | awk '{print $1}')
+                pod_name=$(${CLI_CMD} get pod -l=name=ibm-bai-foundation-operator,release=$BAI_RELEASE_BASE --no-headers --ignore-not-found -n $project_name -o 'custom-columns=NAME:.metadata.name,PHASE:.status.phase,READY:.status.containerStatuses[0].ready,DELETED:.metadata.deletionTimestamp' | grep 'Running' | grep 'true' | grep '<none>' | head -1 | awk '{print $1}')
                 if [ -z $pod_name ]; then
                     error "IBM Business Automation Insights Foundation operator pod is NOT running"
                     CHECK_BAI_OPERATOR_RESULT=( "${CHECK_BAI_OPERATOR_RESULT[@]}" "FAIL" )
@@ -325,10 +325,10 @@ function check_bai_deployment_status(){
 
     UPGRADE_DEPLOYMENT_insightsengine_CR_BAK=${CUR_DIR}/bai-upgrade/project/$project_name/custom_resource/backup/insightsengine_cr_backup.yaml
 
-    bai_cr_name=$(kubectl get insightsengine -n $project_name --no-headers --ignore-not-found | awk '{print $1}')
+    bai_cr_name=$(${CLI_CMD} get insightsengine -n $project_name --no-headers --ignore-not-found | awk '{print $1}')
     if [ ! -z "$bai_cr_name" ]; then
-        cp4ba_cr_metaname=$(kubectl get insightsengine $bai_cr_name -n $project_name --no-headers --ignore-not-found -o yaml | ${YQ_CMD} r - metadata.name)
-        kubectl get insightsengine $bai_cr_name -n ${project_name} --no-headers --ignore-not-found -o yaml > ${UPGRADE_STATUS_BAI_FILE}
+        cp4ba_cr_metaname=$(${CLI_CMD} get insightsengine $bai_cr_name -n $project_name --no-headers --ignore-not-found -o yaml | ${YQ_CMD} r - metadata.name)
+        ${CLI_CMD} get insightsengine $bai_cr_name -n ${project_name} --no-headers --ignore-not-found -o yaml > ${UPGRADE_STATUS_BAI_FILE}
     fi
 
     if [[ -z "${bai_cr_name}" ]]; then
@@ -421,7 +421,7 @@ function show_bai_upgrade_status() {
     echo "${YELLOW_TEXT}[NEXT ACTION]${RESET_TEXT}:"
     # https://jsw.ibm.com/browse/DBACLD-158711 updating the upgrade status
     echo "${YELLOW_TEXT}  * After the status of upgrade for Zen Service components showing as ${RESET_TEXT}${GREEN_TEXT}\"Completed\"${RESET_TEXT}${YELLOW_TEXT}, the BAI deployment upgrade can be monitored by monitoring the logs of the ibm-insights-engine-operator.${RESET_TEXT}"
-    echo "  - ${YELLOW_TEXT} Retrieve the the logs of of the Insights Engine operator pod by exiting the script and running \"kubectl logs $(kubectl get pod -n $project_name|grep ibm-bai-insights-engine-operator|awk '{print $1}') \"${RESET_TEXT}"
+    echo "  - ${YELLOW_TEXT} Retrieve the the logs of of the Insights Engine operator pod by exiting the script and running \"${CLI_CMD} logs $(${CLI_CMD} get pod -n $project_name|grep ibm-bai-insights-engine-operator|awk '{print $1}') \"${RESET_TEXT}"
     echo "  - ${YELLOW_TEXT} AFTER UPGRADING the IBM Business Automations Insights (BAI) DEPLOYMENT SUCCESSFULLY, YOU NEED TO REMOVE${RESET_TEXT} ${RED_TEXT}\"recovery_path\"${RESET_TEXT} ${YELLOW_TEXT}FROM THE CUSTOM RESOURCE FILE UNDER${RESET_TEXT} ${RED_TEXT}\"the bai_configuration section\"${RESET_TEXT} ${YELLOW_TEXT}MANUALLY IF IT EXISTS.${RESET_TEXT}"
     echo "  - ${YELLOW_TEXT}[ATTENTION]: ${RESET_TEXT}${YELLOW_TEXT}DON'T SET ${RESET_TEXT}${RED_TEXT}\"shared_configuration.sc_egress_configuration.sc_restricted_internet_access\"${RESET_TEXT}${YELLOW_TEXT} TO ${RESET_TEXT}${RED_TEXT}\"true\"${RESET_TEXT}${YELLOW_TEXT} UNTIL AFTER YOU'VE COMPLETED THE BAI UPGRADE TO $BAI_RELEASE_BASE.${RESET_TEXT} ${GREEN_TEXT}(UNLESS YOU ALREADY HAD THIS SET TO \"true\" IN THE pre upgrade BAI VERSION)${RESET_TEXT}"
     
