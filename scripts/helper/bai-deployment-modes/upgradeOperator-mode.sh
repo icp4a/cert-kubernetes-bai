@@ -128,7 +128,7 @@ function get_catalog_type(){
 # RUN_BAI_SAVEPOINT gets set to yes only for a major release upgrade
 # This Function also provides a way to check if subscriptions are present before proceeding
 function check_subscription(){
-    sub_inst_list=$(${CLI_CMD} get subscriptions.operators.coreos.com -n $TEMP_OPERATOR_PROJECT_NAME|grep ibm-bai-operator-catalog|awk '{if(NR>0){if(NR==1){ arr=$1; }else{ arr=arr" "$1; }} } END{ print arr }')
+    sub_inst_list=$(${CLI_CMD} get subscription.operators.coreos.com -n $TEMP_OPERATOR_PROJECT_NAME|grep ibm-bai-operator-catalog|awk '{if(NR>0){if(NR==1){ arr=$1; }else{ arr=arr" "$1; }} } END{ print arr }')
     if [[ -z $sub_inst_list ]]; then
         info "No existing BAI Standalone subscriptions have been found, continuing ..."
         exit 1
@@ -138,8 +138,8 @@ function check_subscription(){
     for i in ${!sub_array[@]}; do
         if [[ ! -z "${sub_array[i]}" ]]; then
             if [[ ${sub_array[i]} = ibm-bai-operator-catalog* || ${sub_array[i]} = ibm-bai-foundation-operator* ]]; then
-                current_version=$(${CLI_CMD} get subscriptions.operators.coreos.com ${sub_array[i]} --no-headers --ignore-not-found -n $TEMP_OPERATOR_PROJECT_NAME -o 'jsonpath={.status.currentCSV}') >/dev/null 2>&1
-                installed_version=$(${CLI_CMD} get subscriptions.operators.coreos.com ${sub_array[i]} --no-headers --ignore-not-found -n $TEMP_OPERATOR_PROJECT_NAME -o 'jsonpath={.status.installedCSV}') >/dev/null 2>&1
+                current_version=$(${CLI_CMD} get subscription.operators.coreos.com ${sub_array[i]} --no-headers --ignore-not-found -n $TEMP_OPERATOR_PROJECT_NAME -o 'jsonpath={.status.currentCSV}') >/dev/null 2>&1
+                installed_version=$(${CLI_CMD} get subscription.operators.coreos.com ${sub_array[i]} --no-headers --ignore-not-found -n $TEMP_OPERATOR_PROJECT_NAME -o 'jsonpath={.status.installedCSV}') >/dev/null 2>&1
                 if [[ -z $current_version || -z $installed_version ]]; then
                     error "Failed to retrieve installed or current CSV. Aborting the upgrade procedure. Check the subscription status of ${sub_array[i]}."
                     exit 1
@@ -340,7 +340,7 @@ function create_bai_savepoints(){
 
 # Function to switch to a private catalog
 function switch_to_private_catalog(){
-    sub_inst_list=$(${CLI_CMD} get subscriptions.operators.coreos.com -n $TARGET_PROJECT_NAME|grep ibm-bai-operator-catalog|awk '{if(NR>0){if(NR==1){ arr=$1; }else{ arr=arr" "$1; }} } END{ print arr }')
+    sub_inst_list=$(${CLI_CMD} get subscription.operators.coreos.com -n $TARGET_PROJECT_NAME|grep ibm-bai-operator-catalog|awk '{if(NR>0){if(NR==1){ arr=$1; }else{ arr=arr" "$1; }} } END{ print arr }')
     if [[ -z $sub_inst_list ]]; then
         info "No existing BAI Standalone subscriptions found, continuing ..."
         # exit 1
@@ -350,7 +350,7 @@ function switch_to_private_catalog(){
     for i in ${!sub_array[@]}; do
         if [[ ! -z "${sub_array[i]}" ]]; then
             if [[ ${sub_array[i]} = ibm-bai-operator-catalog* || ${sub_array[i]} = ibm-bai-foundation-operator* ]]; then
-                ${CLI_CMD} patch subscriptions.operators.coreos.com ${sub_array[i]} -n $TARGET_PROJECT_NAME -p '{"spec":{"sourceNamespace":"'"$TARGET_PROJECT_NAME"'"}}' --type=merge >/dev/null 2>&1
+                ${CLI_CMD} patch subscription.operators.coreos.com ${sub_array[i]} -n $TARGET_PROJECT_NAME -p '{"spec":{"sourceNamespace":"'"$TARGET_PROJECT_NAME"'"}}' --type=merge >/dev/null 2>&1
                 if [ $? -eq 0 ]
                 then
                     sleep 1
@@ -369,7 +369,7 @@ function switch_to_private_catalog(){
 
 # Function that patches the channel version of the BAI Standalone operator to the latest channel
 function patch_channel_version(){
-    sub_inst_list=$(${CLI_CMD} get subscriptions.operators.coreos.com -n $TARGET_PROJECT_NAME|grep ibm-bai-operator-catalog|awk '{if(NR>0){if(NR==1){ arr=$1; }else{ arr=arr" "$1; }} } END{ print arr }')
+    sub_inst_list=$(${CLI_CMD} get subscription.operators.coreos.com -n $TARGET_PROJECT_NAME|grep ibm-bai-operator-catalog|awk '{if(NR>0){if(NR==1){ arr=$1; }else{ arr=arr" "$1; }} } END{ print arr }')
     if [[ -z $sub_inst_list ]]; then
         info "No existing BAI Standalone subscriptions found, continuing ..."
         # exit 1
@@ -379,7 +379,7 @@ function patch_channel_version(){
     for i in ${!sub_array[@]}; do
         if [[ ! -z "${sub_array[i]}" ]]; then
             if [[ ${sub_array[i]} = ibm-bai-operator-catalog* || ${sub_array[i]} = ibm-bai-foundation-operator* ]]; then
-                ${CLI_CMD} patch subscriptions.operators.coreos.com ${sub_array[i]} -n $TARGET_PROJECT_NAME -p "{\"spec\":{\"channel\":\"$BAI_CHANNEL_VERSION\"}}" --type=merge >/dev/null 2>&1
+                ${CLI_CMD} patch subscription.operators.coreos.com ${sub_array[i]} -n $TARGET_PROJECT_NAME -p "{\"spec\":{\"channel\":\"$BAI_CHANNEL_VERSION\"}}" --type=merge >/dev/null 2>&1
                 if [ $? -eq 0 ]
                 then
                     success "Updated the channel of subscription '${sub_array[i]}' to $BAI_CHANNEL_VERSION"
@@ -880,8 +880,8 @@ function upgrade_cpfs_operator_on_cncf(){
         # k8s label name length limit to 64 characters
         local length_limited_key=$(echo ${key:0:63})
         local sub_name=$(${CLI_CMD} get subscription.operators.coreos.com -n ${TARGET_PROJECT_NAME} -l operators.coreos.com/${length_limited_key}='' --no-headers | awk '{print $1}')
-        ${CLI_CMD} patch subscription $sub_name --type merge -p '{"spec": {"source": "'${CS_CATALOG_VERSION}'"}}' -n $TARGET_PROJECT_NAME
-        ${CLI_CMD} patch subscription $sub_name --type merge -p '{"spec": {"channel": "'${CS_CHANNEL_VERSION}'"}}' -n $TARGET_PROJECT_NAME
+        ${CLI_CMD} patch subscription.operators.coreos.com $sub_name --type merge -p '{"spec": {"source": "'${CS_CATALOG_VERSION}'"}}' -n $TARGET_PROJECT_NAME
+        ${CLI_CMD} patch subscription.operators.coreos.com $sub_name --type merge -p '{"spec": {"channel": "'${CS_CHANNEL_VERSION}'"}}' -n $TARGET_PROJECT_NAME
         cncf_wait_for_operator_upgrade $TARGET_PROJECT_NAME $package_name $CS_CHANNEL_VERSION
         cncf_wait_for_csv "$TARGET_PROJECT_NAME" "ibm-odlm"
         cncf_wait_for_operator "$TARGET_PROJECT_NAME" "operand-deployment-lifecycle-manager"
@@ -896,7 +896,7 @@ function upgrade_cpfs_operator_on_cncf(){
 # Function that validates the BAI Standalone CSV version after the operators are upgraded
 function validate_csv_version(){
     # Checking BAI operator CSV
-    sub_inst_list=$(${CLI_CMD} get subscriptions.operators.coreos.com -n $TEMP_OPERATOR_PROJECT_NAME|grep ibm-bai-operator-catalog|awk '{if(NR>0){if(NR==1){ arr=$1; }else{ arr=arr" "$1; }} } END{ print arr }')
+    sub_inst_list=$(${CLI_CMD} get subscription.operators.coreos.com -n $TEMP_OPERATOR_PROJECT_NAME|grep ibm-bai-operator-catalog|awk '{if(NR>0){if(NR==1){ arr=$1; }else{ arr=arr" "$1; }} } END{ print arr }')
     if [[ -z $sub_inst_list ]]; then
         fail "No existing BAI Standalone subscriptions found (version $BAI_CSV_VERSION), exiting ..."
         exit 1
@@ -907,15 +907,15 @@ function validate_csv_version(){
         if [[ ! -z "${sub_array[i]}" ]]; then
             if [[ ${sub_array[i]} = ibm-bai-insights-engine-operator* || ${sub_array[i]} = ibm-bai-foundation-operator* ]]; then
             info "Checking the channel of subscription '${sub_array[i]}'!"
-            currentChannel=$(${CLI_CMD} get subscriptions.operators.coreos.com ${sub_array[i]} -n $TEMP_OPERATOR_PROJECT_NAME -o 'jsonpath={.spec.channel}') >/dev/null 2>&1
+            currentChannel=$(${CLI_CMD} get subscription.operators.coreos.com ${sub_array[i]} -n $TEMP_OPERATOR_PROJECT_NAME -o 'jsonpath={.spec.channel}') >/dev/null 2>&1
                 if [[ "$currentChannel" == "$BAI_CHANNEL_VERSION" ]];then
                     success "The channel of subscription '${sub_array[i]}' is $currentChannel!"
                     printf "\n"
                     maxRetry=40
                     info "Waiting for the \"${sub_array[i]}\" subscription be upgraded to the ClusterServiceVersions(CSV) \"v$target_csv_version\""
                     for ((retry=0;retry<=${maxRetry};retry++)); do
-                        current_version=$(${CLI_CMD} get subscriptions.operators.coreos.com ${sub_array[i]} --no-headers --ignore-not-found -n $TEMP_OPERATOR_PROJECT_NAME -o 'jsonpath={.status.currentCSV}') >/dev/null 2>&1
-                        installed_version=$(${CLI_CMD} get subscriptions.operators.coreos.com ${sub_array[i]} --no-headers --ignore-not-found -n $TEMP_OPERATOR_PROJECT_NAME -o 'jsonpath={.status.installedCSV}') >/dev/null 2>&1
+                        current_version=$(${CLI_CMD} get subscription.operators.coreos.com ${sub_array[i]} --no-headers --ignore-not-found -n $TEMP_OPERATOR_PROJECT_NAME -o 'jsonpath={.status.currentCSV}') >/dev/null 2>&1
+                        installed_version=$(${CLI_CMD} get subscription.operators.coreos.com ${sub_array[i]} --no-headers --ignore-not-found -n $TEMP_OPERATOR_PROJECT_NAME -o 'jsonpath={.status.installedCSV}') >/dev/null 2>&1
                         if [[ -z $current_version || -z $installed_version ]]; then
                             error "Failed to retrieve installed or current CSV, abort the upgrade procedure. Check the subscription status of ${sub_array[i]}."
                             exit 1
@@ -1254,7 +1254,7 @@ function upgradeoperator_mode(){
         cloud_native_postgresql_ready="Yes"
         ibm_bts_operator_ready="Yes"
         valid_bai_operator_version=true
-        #ibm_bts_operator_flag=$(${CLI_CMD} get subscriptions.operators.coreos.com ibm-bts-operator --no-headers --ignore-not-found -n $cs_service_target_namespace | wc -l)
+        #ibm_bts_operator_flag=$(${CLI_CMD} get subscription.operators.coreos.com ibm-bts-operator --no-headers --ignore-not-found -n $cs_service_target_namespace | wc -l)
     elif [[ $ENABLE_PRIVATE_CATALOG -eq 1 ]]; then
         # For shared2dedicated/dedicated2dedicated enable private catalog, we do not switch common service catalog source in ibm-common-services project.
         ibm_bts_operator_ready="Yes"

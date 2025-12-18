@@ -60,7 +60,7 @@ spec:
     images:
       keytool_init_container:
         repository: cp.icr.io/cp/cp4a/bai/dba-keytool-initcontainer
-        tag: "25.0.0-IF002"
+        tag: "25.0.0-IF003"
 
       ## All CP4A components should use this pull_policy as the default, but it can override by each component
       pull_policy: IfNotPresent
@@ -83,6 +83,10 @@ spec:
     ## Set this flag to "true" if you plan to have restricted network policies in CP4BA namespaces so that the operators can create sample network policy templates for CP4BA components.
     ## Please refer to the CP4BA documentation for more information about how to retrieve and apply the sample network policy templates.
     sc_generate_sample_network_policies: false
+
+    ## The global flag to enable or disable Pod Disruption Budget (PDB) creation across all components.  This flag can be overridden at specific configuration sections (eg: bai_configuration.management.enable_pdb).  Default is true
+    ## A PDB will be created with a `minAvailable: 1` only if the replica count of a particular deployment is greater than 1.  Otherwise, the PDB will have `minAvailable: 0` if the replica is 1.
+    sc_enable_pdb: true
 
     ## The deployment context, which has a default value of "CP4A".  Unless you are instructed to change this value or
     ## know the reason to change this value, please leave the default value.
@@ -271,7 +275,7 @@ spec:
     application_setup:
       image:
         repository: cp.icr.io/cp/cp4a/bai/insights-engine-application-setup
-        tag: "25.0.0-IF002"
+        tag: "25.0.0-IF003"
       # The back-off limit property specifies the number of retries before the setup job is considered failed. Default: 6.
       backoff_limit: 7
       resources:
@@ -295,7 +299,7 @@ spec:
     setup:
       image:
         repository: cp.icr.io/cp/cp4a/bai/bai-setup
-        tag: "25.0.0-IF002"
+        tag: "25.0.0-IF003"
       # The back-off limit property specifies the number of retries before the setup job is considered failed. Default: 6.
       backoff_limit: 7
       resources:
@@ -318,17 +322,20 @@ spec:
     management:
       image:
         repository: cp.icr.io/cp/cp4a/bai/insights-engine-management
-        tag: "25.0.0-IF002"
+        tag: "25.0.0-IF003"
       backend:
         image:
           repository: cp.icr.io/cp/cp4a/bai/insights-engine-management-backend
-          tag: "25.0.0-IF002"
+          tag: "25.0.0-IF003"
       # You can use this parameter to customize the hostname of the management service route.
       # If not set, the value of shared_configuration.sc_deployment_hostname_suffix is used.
       # hostname: "management.bai.{{ shared_configuration.sc_deployment_hostname_suffix }}"
       # The number of Management service replicas. For High Availability,
       # use at least 2 replicas.
       replicas: 2
+      ## This flag enable or disable Pod Disruption Budget (PDB) creation for BAI management component.  This flag will override the shared_configuration.sc_enable_pdb flag.  Default is true
+      ## A PDB for Management will be created with a `minAvailable: 1` only if the replica count is greater than 1.  Otherwise, the PDB will have `minAvailable: 0` if the replica is 1.
+      enable_pdb: true
       # Optional: Enables SSL with an existing certificate for the automatic creation of the OpenShift route
       # for the Management service.
       # If not specified, the value of shared_configuration.external_tls_certificate_secret parameter is used.
@@ -436,7 +443,7 @@ spec:
       install: false
       image:
         repository: cp.icr.io/cp/cp4a/bai/bai-bpmn
-        tag: "25.0.0-IF002"
+        tag: "25.0.0-IF003"
       # The path to the savepoint or checkpoint from which a job will recover.
       # You can use this path to restart the job from a previous state in case of failure.
       # To use the default workflow of the job, leave this option empty.
@@ -474,7 +481,7 @@ spec:
       install: false
       image:
         repository: cp.icr.io/cp/cp4a/bai/bai-bawadv
-        tag: "25.0.0-IF002"
+        tag: "25.0.0-IF003"
       # The path to the savepoint or checkpoint from which a job will recover.
       # You can use this path to restart the job from a previous state in case of failure.
       # To use the default workflow of the job, leave this option empty.
@@ -507,7 +514,7 @@ spec:
       install: false
       image:
         repository: cp.icr.io/cp/cp4a/bai/bai-icm
-        tag: "25.0.0-IF002"
+        tag: "25.0.0-IF003"
       # The path to the savepoint or checkpoint from which a job will recover.
       # You can use this path to restart the job from a previous state in case of failure.
       # To use the default workflow of the job, leave this option empty.
@@ -545,7 +552,7 @@ spec:
       install: false
       image:
         repository: cp.icr.io/cp/cp4a/bai/bai-flink
-        tag: "25.0.0-IF002"
+        tag: "25.0.0-IF003"
       # The path to the savepoint or checkpoint from which a job will recover.
       # You can use this path to restart the job from a previous state in case of failure.
       # To use the default workflow of the job, leave this option empty.
@@ -577,7 +584,7 @@ spec:
       install: false
       image:
         repository: cp.icr.io/cp/cp4a/bai/bai-flink
-        tag: "25.0.0-IF002"
+        tag: "25.0.0-IF003"
       # The path to the savepoint or checkpoint from which a job will recover.
       # You can use this path to restart the job from a previous state in case of failure.
       # To use the default workflow of the job, leave this option empty.
@@ -609,7 +616,7 @@ spec:
       install: false
       image:
         repository: cp.icr.io/cp/cp4a/bai/bai-flink
-        tag: "25.0.0-IF002"
+        tag: "25.0.0-IF003"
       # The path to the savepoint or checkpoint from which a job will recover.
       # You can use this path to restart the job from a previous state in case of failure.
       # To use the default workflow of the job, leave this option empty.
@@ -642,7 +649,7 @@ spec:
       install: false
       image:
         repository: cp.icr.io/cp/cp4a/bai/bai-flink
-        tag: "25.0.0-IF002"
+        tag: "25.0.0-IF003"
       # The path to the savepoint or checkpoint from which a job will recover.
       # You can use this path to restart the job from a previous state in case of failure.
       # To use the default workflow of the job, leave this option empty.
@@ -670,13 +677,13 @@ spec:
     init_image:
       image:
         repository: cp.icr.io/cp/cp4a/bai/bai-init
-        tag: "25.0.0-IF002"
+        tag: "25.0.0-IF003"
 
     # Business data dashboarding.
     business_performance_center:
       image:
         repository: cp.icr.io/cp/cp4a/bai/insights-engine-cockpit
-        tag: "25.0.0-IF002"
+        tag: "25.0.0-IF003"
       # Set to false to disable Business Performance Center. Default: true.
       install: true
 
@@ -694,11 +701,14 @@ spec:
       # The number of Business Performance Center replicas. For High Availability,
       # use at least 2 replicas.
       replicas: 2
+      ## This flag enable or disable Pod Disruption Budget (PDB) creation for BAI cockpit component.  This flag will override the shared_configuration.sc_enable_pdb flag.  Default is true
+      ## A PDB for Cockpit will be created with a `minAvailable: 1` only if the replica count is greater than 1.  Otherwise, the PDB will have `minAvailable: 0` if the replica is 1.
+      enable_pdb: true
       ## For SaaS
       # init_ums:
       #   image:
       #     repository: cp.icr.io/cp/cp4a/aae/dba-umsregistration-initjob
-      #     tag: "25.0.0-IF002"
+      #     tag: "25.0.0-IF003"
       ## For SaaS
       # oidc:
       #   # The internal communication with single-sign-on (SSO) service.

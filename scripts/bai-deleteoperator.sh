@@ -22,7 +22,7 @@ OLM_SUBSCRIPTION_TMP=${TEMP_FOLDER}/.subscription.yaml
 function select_uninstall_type(){
     local returnValue
     # Check whether the subscription exists in the specified namespace.
-    ${CLI_CMD} get subscription -n $NAMESPACE | grep ibm-bai-operator-catalog-subscription >/dev/null 2>&1
+    ${CLI_CMD} get subscription.operators.coreos.com -n $NAMESPACE | grep ibm-bai-operator-catalog-subscription >/dev/null 2>&1
     returnValue=$?
     if [ "$returnValue" == 0 ] ; then
         # If the subscription exists, call the OLM-based uninstall function
@@ -53,11 +53,11 @@ function uninstall_olm_bai(){
         local subName=$1
         local csvName
         # Get the CSV name from the subscription
-        csvName=$(${CLI_CMD} get subscription "$subName" -n $NAMESPACE -o=jsonpath='{.status.installedCSV}')
+        csvName=$(${CLI_CMD} get subscription.operators.coreos.com "$subName" -n $NAMESPACE -o=jsonpath='{.status.installedCSV}')
         
         # Remove the subscription
         echo "Removing the subscription for $subName"
-        ${CLI_CMD} delete subscription "$subName" -n $NAMESPACE
+        ${CLI_CMD} delete subscription.operators.coreos.com "$subName" -n $NAMESPACE
         if [[ $? -eq 0 ]]; then
             echo "Subscription deletion successful."
         else

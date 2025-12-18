@@ -257,9 +257,9 @@ function delete_bai_operand_requests() {
 function delete_bai_operators() {
     local namespace=$1
     title "Deleting BAI foundation and Insights Engine Operators..."
-    insightsengine_sub=$(${CLI_CMD} get sub --no-headers --ignore-not-found -n ${namespace}|grep insights-engine |awk '{print $1}')
+    insightsengine_sub=$(${CLI_CMD} get subscription.operators.coreos.com --no-headers --ignore-not-found -n ${namespace}|grep insights-engine |awk '{print $1}')
     force_delete $insightsengine_sub "sub" ${namespace}
-    foundation_sub=$(${CLI_CMD} get sub --no-headers --ignore-not-found -n ${namespace}|grep foundation |awk '{print $1}')
+    foundation_sub=$(${CLI_CMD} get subscription.operators.coreos.com --no-headers --ignore-not-found -n ${namespace}|grep foundation |awk '{print $1}')
     force_delete $foundation_sub "sub" ${namespace}
     insightsengine_csv=$(${CLI_CMD} get csv --no-headers --ignore-not-found -n ${namespace}|grep insights-engine |awk '{print $1}')
     force_delete $insightsengine_csv "csv" ${namespace}
@@ -393,7 +393,7 @@ function cleanup_ibm_cert_manager() {
     done
 
     echo "Uninstalling the IBM Cert Manager operator subscription..."
-    ${CLI_CMD} delete subscription ibm-cert-manager-operator -n "$CERT_MANAGER_NAMESPACE" --ignore-not-found
+    ${CLI_CMD} delete subscription.operators.coreos.com ibm-cert-manager-operator -n "$CERT_MANAGER_NAMESPACE" --ignore-not-found
 
     echo "Uninstalling the IBM Cert Manager operator group..."
     ${CLI_CMD} delete operatorgroup --all -n $CERT_MANAGER_NAMESPACE
@@ -458,19 +458,19 @@ function cleanup_ibm_licensing() {
     fi
 
     # Delete Subscription
-    SUB_NAME=$(${CLI_CMD} get subscription -n "$IBM_LICENSING_NAMESPACE" --no-headers | awk '/ibm-licensing-operator-app/ {print $1}')
+    SUB_NAME=$(${CLI_CMD} get subscription.operators.coreos.com -n "$IBM_LICENSING_NAMESPACE" --no-headers | awk '/ibm-licensing-operator-app/ {print $1}')
     if [[ -n "$SUB_NAME" ]]; then
         echo "Deleting Subscription: $SUB_NAME"
-        ${CLI_CMD} delete subscription "$SUB_NAME" -n "$IBM_LICENSING_NAMESPACE"
+        ${CLI_CMD} delete subscription.operators.coreos.com "$SUB_NAME" -n "$IBM_LICENSING_NAMESPACE"
     else
         echo "No IBM Licensing Subscription found."
     fi
 
     # Delete Subscription
-    SUB_NAME=$(${CLI_CMD} get subscription -n "$BAI_SERVICE_NAMESPACE" --no-headers | awk '/ibm-licensing-operator-app/ {print $1}')
+    SUB_NAME=$(${CLI_CMD} get subscription.operators.coreos.com -n "$BAI_SERVICE_NAMESPACE" --no-headers | awk '/ibm-licensing-operator-app/ {print $1}')
     if [[ -n "$SUB_NAME" ]]; then
         echo "Deleting Subscription: $SUB_NAME"
-        ${CLI_CMD} delete subscription "$SUB_NAME" -n "$BAI_SERVICE_NAMESPACE"
+        ${CLI_CMD} delete subscription.operators.coreos.com "$SUB_NAME" -n "$BAI_SERVICE_NAMESPACE"
     else
         echo "No IBM Licensing Subscription found."
     fi
@@ -503,7 +503,7 @@ function cleanup_ibm_foundational_services() {
 
     # Uninstall the IBM Cloud Pak foundational services operator
     ${CLI_CMD} delete csv -l operators.coreos.com/ibm-common-service-operator."$OPERATOR_NAMESPACE" -n "$OPERATOR_NAMESPACE"
-    ${CLI_CMD} delete subscription -l operators.coreos.com/ibm-common-service-operator."$OPERATOR_NAMESPACE" -n "$OPERATOR_NAMESPACE"
+    ${CLI_CMD} delete subscription.operators.coreos.com -l operators.coreos.com/ibm-common-service-operator."$OPERATOR_NAMESPACE" -n "$OPERATOR_NAMESPACE"
 
     # Delete OperandRequest instances
     ${CLI_CMD} delete operandrequest --all -n "$OPERATOR_NAMESPACE"
@@ -522,11 +522,11 @@ function cleanup_ibm_foundational_services() {
 
     # Uninstall the Operand Deployment Lifecycle Manager operator
     ${CLI_CMD} delete csv -l operators.coreos.com/ibm-odlm."$OPERATOR_NAMESPACE" -n "$OPERATOR_NAMESPACE"
-    ${CLI_CMD} delete subscription -l operators.coreos.com/ibm-odlm."$OPERATOR_NAMESPACE" -n "$OPERATOR_NAMESPACE"
+    ${CLI_CMD} delete subscription.operators.coreos.com -l operators.coreos.com/ibm-odlm."$OPERATOR_NAMESPACE" -n "$OPERATOR_NAMESPACE"
 
     # Uninstall the IBM NamespaceScope operator
     ${CLI_CMD} delete csv -l operators.coreos.com/ibm-namespace-scope-operator."$OPERATOR_NAMESPACE" -n "$OPERATOR_NAMESPACE"
-    ${CLI_CMD} delete subscription -l operators.coreos.com/ibm-namespace-scope-operator."$OPERATOR_NAMESPACE" -n "$OPERATOR_NAMESPACE"
+    ${CLI_CMD} delete subscription.operators.coreos.com -l operators.coreos.com/ibm-namespace-scope-operator."$OPERATOR_NAMESPACE" -n "$OPERATOR_NAMESPACE"
 
     echo "IBM Cloud Pak foundational services cleanup completed in namespace: $OPERATOR_NAMESPACE"
 }

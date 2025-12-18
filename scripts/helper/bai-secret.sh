@@ -198,25 +198,6 @@ EOF
   success "Created bts-datastore-edb-secret secret YAML template for BTS metastore external Postgres DB\n"
   chmod 755 ${BTS_SSL_SECRET_FILE}
 
-  wait_msg "Creating bts-datastore-edb-user secret YAML template for BTS metastore external Postgres DB"
-  mkdir -p $BTS_SECRET_FOLDER >/dev/null 2>&1
-
-cat << EOF > ${BTS_SECRET_FILE}
-# YAML template for bts-datastore-edb-user secret
----
-kind: Secret
-apiVersion: v1
-type: Opaque
-metadata:
-  name: bts-datastore-edb-user
-  namespace: ${bai_services_namespace}
-stringData:
-  username: "<USERNAME>"
-  password: '<PASSWORD>'
-EOF
-
-  success "Created bts-datastore-edb-user secret YAML template for BTS metastore external Postgres DB\n"
-
 }
 
 function create_bts_external_db_configmap_template(){
@@ -237,9 +218,10 @@ data:
   ssl: "true"
   sslMode: verify-ca
   sslSecretName: bts-datastore-edb-secret
-  userSecretName: bts-datastore-edb-user
   customPropertyName1: sslKey
   customPropertyValue1: "/opt/ibm/wlp/usr/shared/resources/security/db/tls.key"
+  customPropertyName2: user
+  customPropertyValue2: "<DatabaseUserName>"
 EOF
   success "Created bts-datastore-edb-cm configMap YAML template for BTS metastore external Postgres DB\n"
 }

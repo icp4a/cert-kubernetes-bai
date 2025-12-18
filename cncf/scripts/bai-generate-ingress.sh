@@ -19,7 +19,7 @@ function check_prereqs() {
     info "Checking prereqs ..."
     #check_command ${CLI_CMD}
 
-    licensing_namespace=$(${CLI_CMD} get sub -A | grep ibm-licensing-operator-app | cut -d ' ' -f1)
+    licensing_namespace=$(${CLI_CMD} get subscription.operators.coreos.com -A | grep ibm-licensing-operator-app | cut -d ' ' -f1)
 
     cp_console_hostname=$(${CLI_CMD} get cm ibmcloud-cluster-info -n ${bai_namespace} -o jsonpath='{.data.cluster_address}')
     if [[ -z ${cp_console_hostname} ]]; then

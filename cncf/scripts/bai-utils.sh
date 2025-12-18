@@ -284,22 +284,22 @@ function patch_csv() {
         ${CLI_CMD} get csv -n "$namespace" --no-headers -o custom-columns=":metadata.name" | grep -E "^$csv_prefix"
     }
     # Check if the CSV exists, retry up to max_retries times
-    csv_list=($(get_csv_by_prefix))
-    for csv_name in "${csv_list[@]}"; do
-        for ((i=1; i<=max_retries; i++)); do
-            if [[ -n "$csv_name" ]]; then
-                info "Found matching CSV: $csv_name"
-                break
-            fi
+    for ((i=1; i<=max_retries; i++)); do
+        # Fetch the list *inside* the loop
+        csv_list=($(get_csv_by_prefix))
 
-            if [[ "$i" -eq "$max_retries" ]]; then
-                error "CSV $csv_name not found after $max_retries attempts. Exiting..."
-                exit 1
-            fi
+        if [[ ${#csv_list[@]} -gt 0 ]]; then
+            info "Found matching CSV(s): ${csv_list[*]}"
+            break
+        fi
 
-            echo "CSV $csv_name not found. Retrying in $retry_delay seconds... ($i/$max_retries)"
-            sleep "$retry_delay"
-        done
+        if [[ "$i" -eq "$max_retries" ]]; then
+            error "No CSV found with prefix '$csv_prefix' after $max_retries attempts. Exiting..."
+            exit 1
+        fi
+
+        echo "No CSV found yet with prefix '$csv_prefix'. Retrying in $retry_delay seconds... ($i/$max_retries)"
+        sleep "$retry_delay"
     done
     for csv_name in "${csv_list[@]}"; do
         # Get the current image
