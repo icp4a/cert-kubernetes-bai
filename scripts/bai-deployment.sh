@@ -69,7 +69,7 @@ function parse_arguments() {
             fi
             RUNTIME_MODE=$1
             if [[ $RUNTIME_MODE == "upgradeOperator" || $RUNTIME_MODE == "upgradeOperatorStatus" || $RUNTIME_MODE == "upgradeDeployment" || $RUNTIME_MODE == "upgradeDeploymentStatus" ]]; then
-                echo -n
+                : # Null command - validation passed, continue execution
             else
                 msg "Provide a valid argument for -m: [upgradeOperator] or [upgradeOperatorStatus] or [upgradeDeployment] [upgradeDeploymentStatus]"
                 exit -1
@@ -83,7 +83,7 @@ function parse_arguments() {
             fi
             UPDATE_APPROVAL_STRATEGY=$1
             if [[ $UPDATE_APPROVAL_STRATEGY == "automatic" || $UPDATE_APPROVAL_STRATEGY == "manual" ]]; then
-                echo -n
+                : # Null command - validation passed, continue execution
             else
                 msg "Use a valid value: -s [automatic] or [manual]"
                 exit -1
@@ -98,15 +98,15 @@ function parse_arguments() {
             TARGET_PROJECT_NAME=$1
             case "$TARGET_PROJECT_NAME" in
             "")
-                echo -e "\x1B[1;31mEnter a valid namespace name, namespace name can not be blank\x1B[0m"
+                printf '%b\n' "\x1B[1;31mEnter a valid namespace name, namespace name can not be blank\x1B[0m"
                 exit -1
                 ;;
             "openshift"*)
-                echo -e "\x1B[1;31mEnter a valid project name, project name should not be 'openshift' or start with 'openshift' \x1B[0m"
+                printf '%b\n' "\x1B[1;31mEnter a valid project name, project name should not be 'openshift' or start with 'openshift' \x1B[0m"
                 exit -1
                 ;;
             "kube"*)
-                echo -e "\x1B[1;31mEnter a valid project name, project name should not be 'kube' or start with 'kube' \x1B[0m"
+                printf '%b\n' "\x1B[1;31mEnter a valid project name, project name should not be 'kube' or start with 'kube' \x1B[0m"
                 exit -1
                 ;;
             *)
@@ -115,10 +115,10 @@ function parse_arguments() {
                 # Check project name
                 isProjExists=`${CLI_CMD} get project $TARGET_PROJECT_NAME --ignore-not-found | wc -l`  >/dev/null 2>&1
                 if [ $isProjExists -ne 2 ] ; then
-                    echo -e "\x1B[1;31mInvalid project name \"$TARGET_PROJECT_NAME\", set a valid name...\x1B[0m"
+                    printf '%b\n' "\x1B[1;31mInvalid project name \"$TARGET_PROJECT_NAME\", set a valid name...\x1B[0m"
                     exit 1
                 fi
-                echo -n
+                : # Null command - validation passed, continue execution
                 ;;
             esac
             ;;
@@ -263,8 +263,8 @@ foundation_component_arr=()
 function prompt_license(){
     clear
 
-    echo -e "\x1B[1;31mIMPORTANT: Review the IBM Business Automation Insights standalone license information here: \n\x1B[0m"
-    echo -e "\x1B[1;31mhttps://www14.software.ibm.com/cgi-bin/weblap/lap.pl?li_formnum=L-PSZC-SHQFWS\n\x1B[0m"
+    printf '%b\n' "\x1B[1;31mIMPORTANT: Review the IBM Business Automation Insights standalone license information here: \n\x1B[0m"
+    printf '%b\n' "\x1B[1;31mhttps://www14.software.ibm.com/cgi-bin/weblap/lap.pl?li_formnum=L-PSZC-SHQFWS\n\x1B[0m"
     INSTALL_BAW_ONLY="No"
 
 
@@ -277,17 +277,17 @@ function prompt_license(){
         read -rp "" ans
         case "$ans" in
         "y"|"Y"|"yes"|"Yes"|"YES")
-            echo -e "Starting to Install the IBM Business Automation Insights standalone Operator...\n"
+            printf '%b\n' "Starting to Install the IBM Business Automation Insights standalone Operator...\n"
             IBM_LICENS="Accept"
             validate_cli
             break
             ;;
         "n"|"N"|"no"|"No"|"NO"|"")
-            echo -e "The license agreement was not accepted. The license agreement must be accepted to continue. The script is exiting...\n"
+            printf '%b\n' "The license agreement was not accepted. The license agreement must be accepted to continue. The script is exiting...\n"
             exit 0
             ;;
         *)
-            echo -e "Answer must be \"Yes\" or \"No\"\n"
+            printf '%b\n' "Answer must be \"Yes\" or \"No\"\n"
             ;;
         esac
     done
@@ -307,13 +307,13 @@ function validate_kube_oc_cli(){
     if  [[ $PLATFORM_SELECTED == "OCP" || $PLATFORM_SELECTED == "ROKS" ]]; then
         which oc &>/dev/null
         [[ $? -ne 0 ]] && \
-        echo -e  "\x1B[1;31mUnable to locate the OpenShift CLI. You must install it to run this script.\x1B[0m" && \
+        printf '%b\n'  "\x1B[1;31mUnable to locate the OpenShift CLI. You must install it to run this script.\x1B[0m" && \
         exit 1
     fi
     if  [[ $PLATFORM_SELECTED == "other" ]]; then
         which kubectl &>/dev/null
         [[ $? -ne 0 ]] && \
-        echo -e  "\x1B[1;31mUnable to locate the Kubernetes CLI, You must install it to run this script.\x1B[0m" && \
+        printf '%b\n'  "\x1B[1;31mUnable to locate the Kubernetes CLI, You must install it to run this script.\x1B[0m" && \
         exit 1
     fi
 }
@@ -401,7 +401,7 @@ function validate_docker_podman_cli(){
             [[ $? -ne 0 ]] && \
                 DOCKER_FOUND="No"
             if [[ $DOCKER_FOUND == "No" && $PODMAN_FOUND == "No" ]]; then
-                echo -e "\x1B[1;31mUnable to locate docker and podman. Install either of them first.\x1B[0m" && \
+                printf '%b\n' "\x1B[1;31mUnable to locate docker and podman. Install either of them first.\x1B[0m" && \
                 exit 1
             fi
         fi
@@ -409,7 +409,7 @@ function validate_docker_podman_cli(){
     then
         which podman &>/dev/null
         [[ $? -ne 0 ]] && \
-            echo -e "\x1B[1;31mUnable to locate podman. Install it first.\x1B[0m" && \
+            printf '%b\n' "\x1B[1;31mUnable to locate podman. Install it first.\x1B[0m" && \
             exit 1
     fi
 }
@@ -418,24 +418,24 @@ function select_project() {
     while [[ $TARGET_PROJECT_NAME == "" ]]; 
     do
         printf "\n"
-        echo -e "\x1B[1mWhere do you want to deploy IBM Business Automation Insights standalone?\x1B[0m"
+        printf '%b\n' "\x1B[1mWhere do you want to deploy IBM Business Automation Insights standalone?\x1B[0m"
         read -p "Enter the name for an existing project (namespace): " TARGET_PROJECT_NAME
         if [ -z "$TARGET_PROJECT_NAME" ]; then
-            echo -e "\x1B[1;31mEnter a valid project name, project name can not be blank\x1B[0m"
+            printf '%b\n' "\x1B[1;31mEnter a valid project name, project name can not be blank\x1B[0m"
         elif [[ "$TARGET_PROJECT_NAME" == openshift* ]]; then
-            echo -e "\x1B[1;31mEnter a valid project name, project name should not be 'openshift' or start with 'openshift' \x1B[0m"
+            printf '%b\n' "\x1B[1;31mEnter a valid project name, project name should not be 'openshift' or start with 'openshift' \x1B[0m"
             TARGET_PROJECT_NAME=""
         elif [[ "$TARGET_PROJECT_NAME" == kube* ]]; then
-            echo -e "\x1B[1;31mEnter a valid project name, project name should not be 'kube' or start with 'kube' \x1B[0m"
+            printf '%b\n' "\x1B[1;31mEnter a valid project name, project name should not be 'kube' or start with 'kube' \x1B[0m"
             TARGET_PROJECT_NAME=""
         else
             isProjExists=`${CLI_CMD} get project $TARGET_PROJECT_NAME --ignore-not-found | wc -l`  >/dev/null 2>&1
 
             if [ "$isProjExists" -ne 2 ] ; then
-                echo -e "\x1B[1;31mInvalid project name, enter a existing project name ...\x1B[0m"
+                printf '%b\n' "\x1B[1;31mInvalid project name, enter a existing project name ...\x1B[0m"
                 TARGET_PROJECT_NAME=""
             else
-                echo -e "\x1B[1mUsing project ${TARGET_PROJECT_NAME}...\x1B[0m"
+                printf '%b\n' "\x1B[1mUsing project ${TARGET_PROJECT_NAME}...\x1B[0m"
             fi
         fi
     done
@@ -450,7 +450,7 @@ function containsElement(){
 
 function select_platform(){
     printf "\n"
-    echo -e "\x1B[1mSelect the cloud platform to deploy: \x1B[0m"
+    printf '%b\n' "\x1B[1mSelect the cloud platform to deploy: \x1B[0m"
     COLUMNS=12
     if [ -z "$existing_platform_type" ]; then
         if [[ "${SCRIPT_MODE}" == "OLM" ]]; then
@@ -500,8 +500,8 @@ function select_platform(){
                 printf "%1d) %s\n" $((i+1)) "${options[i]}"
             fi
         done
-        echo -e "\x1B[1;31mExisting platform type found in CR: \"$existing_platform_type\"\x1B[0m"
-        # echo -e "\x1B[1;31mDo not need to select again.\n\x1B[0m"
+        printf '%b\n' "\x1B[1;31mExisting platform type found in CR: \"$existing_platform_type\"\x1B[0m"
+        # printf '%b\n' "\x1B[1;31mDo not need to select again.\n\x1B[0m"
         prompt_press_any_key_to_continue
     fi
 
@@ -529,7 +529,7 @@ function check_ocp_version(){
         else
             # OCP_VERSION="3.11"
             OCP_VERSION="4.4OrLater"
-            echo -e "\x1B[1;31mIMPORTANT: The apiextensions.k8s.io/v1beta API has been deprecated from k8s 1.16+, OCP 4.3 is using k8s 1.16.x. recommend you to upgrade your OCP to version 4.4 or later\n\x1B[0m"
+            printf '%b\n' "\x1B[1;31mIMPORTANT: The apiextensions.k8s.io/v1beta API has been deprecated from k8s 1.16+, OCP 4.3 is using k8s 1.16.x. recommend you to upgrade your OCP to version 4.4 or later\n\x1B[0m"
             prompt_press_any_key_to_continue
             # exit 0
         fi
@@ -555,11 +555,11 @@ function select_flink_job(){
         for ((j=0;j<${#options_cr_val[@]};j++));
         do [ "${options_cr_val[$j]}" = "$1" ] && { i=$j; break; }
         done
-        echo $i
+        echo "$i"
     }
     menu() {
         clear
-        echo -e "\x1B[1mWhich are the components you want to enable the Flink job for: \x1B[0m"
+        printf '%b\n' "\x1B[1mWhich are the components you want to enable the Flink job for: \x1B[0m"
         for i in ${!options[@]}; do
             containsElement "${options_cr_val[i]}" "${EXISTING_PATTERN_ARR[@]}"
             retVal=$?
@@ -578,9 +578,9 @@ function select_flink_job(){
         containsElement "(Selected)" "${choices_pattern[@]}"
         retVal=$?
         if [ $retVal -ne 0 ]; then
-            echo -e "${tips1}"
+            printf '%b\n' "${tips1}"
         else
-            echo -e "${tips2}"
+            printf '%b\n' "${tips2}"
         fi
 # ##########################DEBUG############################
 #     for i in "${!choices_pattern[@]}"; do
@@ -605,7 +605,7 @@ function select_flink_job(){
     for i in ${!options[@]}; do
         [[ "${choices_pattern[i]}" ]] && { flink_job_arr=( "${flink_job_arr[@]}" "${options[i]}" ); flink_job_cr_arr=( "${flink_job_cr_arr[@]}" "${options_cr_val[i]}" ); msg=""; }
     done
-    # echo -e "$msg"
+    # printf '%b\n' "$msg"
 
     if [ "${#flink_job_arr[@]}" -eq "0" ]; then
         FLINK_JOB_SELECTED="None"
@@ -636,7 +636,7 @@ function get_local_registry_password(){
     do
        read -rsp "" local_registry_password
        if [ -z "$local_registry_password" ]; then
-       echo -e "\x1B[1;31mEnter a valid password\x1B[0m"
+       printf '%b\n' "\x1B[1;31mEnter a valid password\x1B[0m"
        fi
     done
     export LOCAL_REGISTRY_PWD=${local_registry_password}
@@ -667,7 +667,7 @@ function get_local_registry_password_double(){
                    pwdconfirmed=0
                 else
                    printf "\n"
-                   echo -e "\x1B[1;31mThe passwords do not match. Try again.\x1B[0m"
+                   printf '%b\n' "\x1B[1;31mThe passwords do not match. Try again.\x1B[0m"
                    unset pwd
                    unset pwd2
                 fi
@@ -695,7 +695,7 @@ function get_entitlement_registry(){
 
     fi
     test "$result" || { echo "Timed out too soon. Try using a wait_time greater than $wait_time..."; return 1 ;}
-    echo $result | grep -vq 'not found'
+    echo "$result" | grep -vq 'not found'
     }
 
     # For Entitlement Registry key
@@ -732,7 +732,7 @@ function get_entitlement_registry(){
             fi
             ;;
         *)
-            echo -e "Answer must be \"Yes\" or \"No\"\n"
+            printf '%b\n' "Answer must be \"Yes\" or \"No\"\n"
             ;;
         esac
     done
@@ -744,9 +744,9 @@ function create_secret_entitlement_registry(){
     ${CLI_CMD} delete secret "$DOCKER_RES_SECRET_NAME" >/dev/null 2>&1
     CREATE_SECRET_CMD="${CLI_CMD} create secret docker-registry $DOCKER_RES_SECRET_NAME --docker-server=$DOCKER_REG_SERVER --docker-username=$DOCKER_REG_USER --docker-password=$DOCKER_REG_KEY --docker-email=ecmtest@ibm.com"
     if $CREATE_SECRET_CMD ; then
-        echo -e "\x1B[1mDone\x1B[0m"
+        printf '%b\n' "\x1B[1mDone\x1B[0m"
     else
-        echo -e "\x1B[1mFailed\x1B[0m"
+        printf '%b\n' "\x1B[1mFailed\x1B[0m"
     fi
 }
 
@@ -762,7 +762,7 @@ function get_local_registry_server(){
         do
             read -rp "" local_public_registry_server
             if [ -z "$local_public_registry_server" ]; then
-            echo -e "\x1B[1;31mEnter a valid service name or the URL for the docker registry.\x1B[0m"
+            printf '%b\n' "\x1B[1;31mEnter a valid service name or the URL for the docker registry.\x1B[0m"
             fi
         done
     fi
@@ -789,7 +789,7 @@ function get_local_registry_server(){
     do
         read -rp "" local_registry_server
         if [ -z "$local_registry_server" ]; then
-        echo -e "\x1B[1;31mEnter a valid service name or the URL for the docker registry.\x1B[0m"
+        printf '%b\n' "\x1B[1;31mEnter a valid service name or the URL for the docker registry.\x1B[0m"
         fi
     done
     LOCAL_REGISTRY_SERVER=${local_registry_server}
@@ -816,7 +816,7 @@ function get_local_registry_user(){
     do
        read -rp "" local_registry_user
        if [ -z "$local_registry_user" ]; then
-       echo -e "\x1B[1;31mEnter a valid user name.\x1B[0m"
+       printf '%b\n' "\x1B[1;31mEnter a valid user name.\x1B[0m"
        fi
     done
     export LOCAL_REGISTRY_USER=${local_registry_user}
@@ -840,7 +840,7 @@ function get_storage_class_name(){
         printf "\x1B[1mEnter the file storage classname for medium storage(RWX): \x1B[0m"
         read -rp "" sc_medium_file_storage_classname
         if [ -z "$sc_medium_file_storage_classname" ]; then
-            echo -e "\x1B[1;31mEnter a valid file storage classname(RWX)\x1B[0m"
+            printf '%b\n' "\x1B[1;31mEnter a valid file storage classname(RWX)\x1B[0m"
         fi
     done
 
@@ -849,7 +849,7 @@ function get_storage_class_name(){
         printf "\x1B[1mEnter the file storage classname for fast storage(RWX): \x1B[0m"
         read -rp "" sc_fast_file_storage_classname
         if [ -z "$sc_fast_file_storage_classname" ]; then
-            echo -e "\x1B[1;31mEnter a valid file storage classname(RWX)\x1B[0m"
+            printf '%b\n' "\x1B[1;31mEnter a valid file storage classname(RWX)\x1B[0m"
         fi
     done
     
@@ -858,7 +858,7 @@ function get_storage_class_name(){
         printf "\x1B[1mEnter the block storage classname for Zen(RWO): \x1B[0m"
         read -rp "" block_storage_class_name
         if [ -z "$block_storage_class_name" ]; then
-            echo -e "\x1B[1;31mEnter a valid block storage classname(RWO)\x1B[0m"
+            printf '%b\n' "\x1B[1;31mEnter a valid block storage classname(RWO)\x1B[0m"
         fi
     done
     # fi
@@ -870,9 +870,9 @@ function get_storage_class_name(){
 }
 
 function create_secret_local_registry(){
-    echo -e "\x1B[1mCreating the secret based on the local docker registry information...\x1B[0m"
+    printf '%b\n' "\x1B[1mCreating the secret based on the local docker registry information...\x1B[0m"
     # Create docker-registry secret for local Registry Key
-    # echo -e "Create docker-registry secret for Local Registry...\n"
+    # printf '%b\n' "Create docker-registry secret for Local Registry...\n"
     if [[ $LOCAL_REGISTRY_SERVER == docker-registry* || $LOCAL_REGISTRY_SERVER == image-registry.openshift-image-registry* ]] ;
     then
         builtin_dockercfg_secrect_name=$(${CLI_CMD} get secret | grep default-dockercfg | awk '{print $1}')
@@ -882,9 +882,9 @@ function create_secret_local_registry(){
         ${CLI_CMD} delete secret "$DOCKER_RES_SECRET_NAME" >/dev/null 2>&1
         CREATE_SECRET_CMD="${CLI_CMD} create secret docker-registry $DOCKER_RES_SECRET_NAME --docker-server=$LOCAL_REGISTRY_SERVER --docker-username=$LOCAL_REGISTRY_USER --docker-password=$LOCAL_REGISTRY_PWD --docker-email=ecmtest@ibm.com"
         if $CREATE_SECRET_CMD ; then
-            echo -e "\x1B[1mDone\x1B[0m"
+            printf '%b\n' "\x1B[1mDone\x1B[0m"
         else
-            echo -e "\x1B[1;31mFailed\x1B[0m"
+            printf '%b\n' "\x1B[1;31mFailed\x1B[0m"
         fi
     fi
 }
@@ -902,11 +902,11 @@ function verify_local_registry_password(){
             break
             ;;
         "n"|"N"|"no"|"No"|"NO")
-            echo -e "\x1B[1;31mPull the images to the local images to proceed.\n\x1B[0m"
+            printf '%b\n' "\x1B[1;31mPull the images to the local images to proceed.\n\x1B[0m"
             exit 1
             ;;
         *)
-            echo -e "Answer must be \"Yes\" or \"No\"\n"
+            printf '%b\n' "Answer must be \"Yes\" or \"No\"\n"
             ;;
         esac
     done
@@ -914,7 +914,7 @@ function verify_local_registry_password(){
     # Select which type of image registry to use.
     if [[ "${PLATFORM_SELECTED}" == "OCP" ]]; then
         printf "\n"
-        echo -e "\x1B[1mSelect the type of image registry to use: \x1B[0m"
+        printf '%b\n' "\x1B[1mSelect the type of image registry to use: \x1B[0m"
         COLUMNS=12
         options=("Other ( External image registry: abc.xyz.com )")
 
@@ -940,7 +940,7 @@ function verify_local_registry_password(){
 }
 function select_installation_type(){
     COLUMNS=12
-    echo -e "\x1B[1mIs this a new installation or an existing installation?\x1B[0m"
+    printf '%b\n' "\x1B[1mIs this a new installation or an existing installation?\x1B[0m"
     options=("New" "Existing")
     PS3='Enter a valid option [1 to 2]: '
     select opt in "${options[@]}"
@@ -975,7 +975,7 @@ function select_installation_type(){
 function select_iam_default_admin(){
     printf "\n"
     while true; do
-        echo -e "\x1B[33;5mATTENTION: \x1B[0m\x1B[1;31mIf you are unable to use [cpadmin] as the default IAM admin user due to it being already used in your LDAP Directory, you need to change the Cloud Pak administrator username. See: \" https://www.ibm.com/docs/en/cloud-paks/foundational-services/4.9?topic=configurations-changing-cluster-administrator-access-credentials#name\"\x1B[0m"
+        printf '%b\n' "\x1B[33;5mATTENTION: \x1B[0m\x1B[1;31mIf you are unable to use [cpadmin] as the default IAM admin user due to it being already used in your LDAP Directory, you need to change the Cloud Pak administrator username. See: \" https://www.ibm.com/docs/en/cloud-paks/foundational-services/4.9?topic=configurations-changing-cluster-administrator-access-credentials#name\"\x1B[0m"
         printf "\x1B[1mDo you want to use the default IAM admin user: [cpadmin] (Yes/No, default: Yes): \x1B[0m"
         read -rp "" ans
         case "$ans" in
@@ -988,21 +988,21 @@ function select_iam_default_admin(){
             while [[ $NON_DEFAULT_IAM_ADMIN == "" ]]; 
             do
                 printf "\n"
-                echo -e "\x1B[1mWhat is the non default IAM admin user you renamed?\x1B[0m"
+                printf '%b\n' "\x1B[1mWhat is the non default IAM admin user you renamed?\x1B[0m"
                 read -p "Enter the admin user name: " NON_DEFAULT_IAM_ADMIN
             
                 if [ -z "$NON_DEFAULT_IAM_ADMIN" ]; then
-                    echo -e "\x1B[1;31mEnter a valid admin user name, user name can not be blank\x1B[0m"
+                    printf '%b\n' "\x1B[1;31mEnter a valid admin user name, user name can not be blank\x1B[0m"
                     NON_DEFAULT_IAM_ADMIN=""
                 elif [[ "$NON_DEFAULT_IAM_ADMIN" == "cpadmin" ]]; then
-                    echo -e "\x1B[1;31mEnter a valid admin user name, user name should not be 'cpadmin'\x1B[0m"
+                    printf '%b\n' "\x1B[1;31mEnter a valid admin user name, user name should not be 'cpadmin'\x1B[0m"
                     NON_DEFAULT_IAM_ADMIN=""
                 fi
             done
             break
             ;;
         *)
-            echo -e "Answer must be \"Yes\" or \"No\"\n"
+            printf '%b\n' "Answer must be \"Yes\" or \"No\"\n"
             ;;
         esac
     done
@@ -1011,7 +1011,7 @@ function select_iam_default_admin(){
 function select_profile_type(){
     printf "\n"
     COLUMNS=12
-    echo -e "\x1B[1mSelect the deployment profile (default: small).  Refer to the documentation in BAI standalone Knowledge Center for details on profile.\x1B[0m"
+    printf '%b\n' "\x1B[1mSelect the deployment profile (default: small).  Refer to the documentation in BAI standalone Knowledge Center for details on profile.\x1B[0m"
     options=("small" "medium" "large")
     if [ -z "$existing_profile_type" ]; then
         PS3='Enter a valid option [1 to 3]: '
@@ -1042,8 +1042,8 @@ function select_profile_type(){
                 printf "%1d) %s\n" $((i+1)) "${options[i]}"
             fi
         done
-        echo -e "\x1B[1;31mExisting profile size type found in CR: \"$existing_profile_type\"\x1B[0m"
-        # echo -e "\x1B[1;31mDo not need to select again.\n\x1B[0m"
+        printf '%b\n' "\x1B[1;31mExisting profile size type found in CR: \"$existing_profile_type\"\x1B[0m"
+        # printf '%b\n' "\x1B[1;31mDo not need to select again.\n\x1B[0m"
         prompt_press_any_key_to_continue        
     fi
 }
@@ -1063,7 +1063,7 @@ function select_ocp_olm(){
             break
             ;;
         *)
-            echo -e "Answer must be \"Yes\" or \"No\"\n"
+            printf '%b\n' "Answer must be \"Yes\" or \"No\"\n"
             ;;
         esac
     done
@@ -1072,7 +1072,7 @@ function select_ocp_olm(){
 
 function select_deployment_type(){
     printf "\n"
-    echo -e "\x1B[1mWhat type of deployment is being performed?\x1B[0m"
+    printf '%b\n' "\x1B[1mWhat type of deployment is being performed?\x1B[0m"
     COLUMNS=12
     options_var=("Production")
     for i in ${!options_var[@]}; do
@@ -1082,14 +1082,14 @@ function select_deployment_type(){
             printf "%1d) %s\n" $((i+1)) "${options_var[i]}"
         fi
     done
-    echo -e "${YELLOW_TEXT}BAI standalone only supports production deployment${RESET_TEXT}"
+    printf '%b\n' "${YELLOW_TEXT}BAI standalone only supports production deployment${RESET_TEXT}"
     prompt_press_any_key_to_continue
 }
 
 function select_upgrade_mode(){
     printf "\n"
     COLUMNS=12
-    echo -e "\x1B[1mWhich migration mode for the IBM Foundational Services you want to select? \x1B[0m"
+    printf '%b\n' "\x1B[1mWhich migration mode for the IBM Foundational Services you want to select? \x1B[0m"
     options=("Shared to Dedicated (Incoming)" "Shared to Shared")
     PS3='Enter a valid option [1 to 2]: '
     select opt in "${options[@]}"
@@ -1125,7 +1125,7 @@ function select_ldap_type(){
             ;;
         *)
             SELECTED_LDAP=""
-            echo -e "Answer must be \"Yes\" or \"No\"\n"
+            printf '%b\n' "Answer must be \"Yes\" or \"No\"\n"
             ;;
         esac
     done
@@ -1134,7 +1134,7 @@ function select_ldap_type(){
         select_ldap_user_for_zen
         printf "\n"
         COLUMNS=12
-        echo -e "\x1B[1mWhat is the LDAP type that will be used for this deployment? \x1B[0m"
+        printf '%b\n' "\x1B[1mWhat is the LDAP type that will be used for this deployment? \x1B[0m"
         options=("Microsoft Active Directory" "IBM Tivoli Directory Server / Security Directory Server")
         PS3='Enter a valid option [1 to 3]: '
         select opt in "${options[@]}"
@@ -1158,13 +1158,13 @@ function select_ldap_user_for_zen(){
     printf "\n"
     LDAP_USER_NAME=""
 
-    echo -e  "${YELLOW_TEXT}For BAI standalone, if you select LDAP, then provide one ldap user here for onborading ZEN.${RESET_TEXT}"    
+    printf '%b\n'  "${YELLOW_TEXT}For BAI standalone, if you select LDAP, then provide one ldap user here for onborading ZEN.${RESET_TEXT}"    
     while [[ $LDAP_USER_NAME == "" ]] # While get medium storage clase name
     do
         printf "\x1B[1mEnter one LDAP user for BAI standalone: \x1B[0m"
         read -rp "" LDAP_USER_NAME
         if [ -z "$LDAP_USER_NAME" ]; then
-        echo -e "\x1B[1;31mEnter a valid LDAP user\x1B[0m"
+        printf '%b\n' "\x1B[1;31mEnter a valid LDAP user\x1B[0m"
         fi
     done
 }
@@ -1227,7 +1227,7 @@ function select_fips_enable(){
                 break
                 ;;
             *)
-                echo -e "Answer must be \"Yes\" or \"No\"\n"
+                printf '%b\n' "Answer must be \"Yes\" or \"No\"\n"
                 ;;
             esac
         done
@@ -1306,6 +1306,7 @@ function input_information(){
                 MEDIUM_STORAGE_CLASS_NAME=$(prop_user_profile_property_file BAI_STANDALONE.MEDIUM_FILE_STORAGE_CLASSNAME)
                 FAST_STORAGE_CLASS_NAME=$(prop_user_profile_property_file BAI_STANDALONE.FAST_FILE_STORAGE_CLASSNAME)
                 BLOCK_STORAGE_CLASS_NAME=$(prop_user_profile_property_file BAI_STANDALONE.BLOCK_STORAGE_CLASS_NAME)
+                RESTRICTED_INTERNET_ACCESS=$(prop_user_profile_property_file BAI_STANDALONE.ENABLE_RESTRICTED_INTERNET_ACCESS)
 
                 select_project
                 #select_restricted_internet_access
@@ -1369,7 +1370,7 @@ function sync_property_into_final_cr(){
     # Set sc_restricted_internet_access
     restricted_flag="$(prop_user_profile_property_file BAI_STANDALONE.ENABLE_RESTRICTED_INTERNET_ACCESS)"
     restricted_flag=$(sed -e 's/^"//' -e 's/"$//' <<<"$restricted_flag")
-    restricted_flag=$(echo $restricted_flag | tr '[:upper:]' '[:lower:]')
+    restricted_flag=$(echo "$restricted_flag" | tr '[:upper:]' '[:lower:]')
     if [[ ! -z $restricted_flag ]]; then
         if [[ $restricted_flag == "true" ]]; then
             ${YQ_CMD} w -i ${BAI_PATTERN_FILE_TMP} spec.shared_configuration.sc_egress_configuration.sc_restricted_internet_access "true"
@@ -1506,7 +1507,7 @@ function select_private_catalog_bai(){
             ;;
         *)
             PRIVATE_CATALOG=""
-            echo -e "Answer must be \"Yes\" or \"No\"\n"
+            printf '%b\n' "Answer must be \"Yes\" or \"No\"\n"
             ;;
         esac
     done
@@ -1674,47 +1675,47 @@ function apply_bai_final_cr(){
 
     ${COPY_CMD} -rf ${BAI_PATTERN_FILE_TMP} ${BAI_PATTERN_FILE_FINAL}
 
-    echo -e "\x1B[1mThe custom resource file used is: \"${BAI_PATTERN_FILE_FINAL}\"\x1B[0m"
+    printf '%b\n' "\x1B[1mThe custom resource file used is: \"${BAI_PATTERN_FILE_FINAL}\"\x1B[0m"
     printf "\n"
-    echo -e "\x1B[1mTo monitor the deployment status, follow the Operator logs.\x1B[0m"
-    echo -e "\x1B[1mFor details, refer to the troubleshooting section in Knowledge Center here: \x1B[0m"
-    echo -e "\x1B[1m https://www.ibm.com/docs/en/bai/$BAI_RELEASE_BASE?topic=troubleshooting\x1B[0m"
+    printf '%b\n' "\x1B[1mTo monitor the deployment status, follow the Operator logs.\x1B[0m"
+    printf '%b\n' "\x1B[1mFor details, refer to the troubleshooting section in Knowledge Center here: \x1B[0m"
+    printf '%b\n' "\x1B[1m https://www.ibm.com/docs/en/bai/$BAI_RELEASE_BASE?topic=troubleshooting\x1B[0m"
 }
 
 function show_summary(){
     printf "\n"
-    echo -e "\x1B[1m*******************************************************\x1B[0m"
-    echo -e "\x1B[1m                    Summary of input                   \x1B[0m"
-    echo -e "\x1B[1m*******************************************************\x1B[0m"
+    printf '%b\n' "\x1B[1m*******************************************************\x1B[0m"
+    printf '%b\n' "\x1B[1m                    Summary of input                   \x1B[0m"
+    printf '%b\n' "\x1B[1m*******************************************************\x1B[0m"
 
-    echo -e "${YELLOW_TEXT}1. Platform Type: ${RESET_TEXT}${PLATFORM_SELECTED}"
+    printf '%b\n' "${YELLOW_TEXT}1. Platform Type: ${RESET_TEXT}${PLATFORM_SELECTED}"
 
     if [[ $SELECTED_LDAP == "No" ]]; then
-        echo -e "${YELLOW_TEXT}2. LDAP Type: ${RESET_TEXT}None"
+        printf '%b\n' "${YELLOW_TEXT}2. LDAP Type: ${RESET_TEXT}None"
     else
-        echo -e "${YELLOW_TEXT}2. LDAP Type: ${RESET_TEXT}${LDAP_TYPE}"
-        echo -e  "   * ${YELLOW_TEXT}LDAP User Name onboarding Zen:${RESET_TEXT} ${LDAP_USER_NAME}"
+        printf '%b\n' "${YELLOW_TEXT}2. LDAP Type: ${RESET_TEXT}${LDAP_TYPE}"
+        printf '%b\n'  "   * ${YELLOW_TEXT}LDAP User Name onboarding Zen:${RESET_TEXT} ${LDAP_USER_NAME}"
     fi
 
-    echo -e "${YELLOW_TEXT}3. Profile Size: ${RESET_TEXT}${PROFILE_TYPE}"
+    printf '%b\n' "${YELLOW_TEXT}3. Profile Size: ${RESET_TEXT}${PROFILE_TYPE}"
 
     if [[ $USE_DEFAULT_IAM_ADMIN == "Yes" ]]; then
-        echo -e "${YELLOW_TEXT}4. IAM default admin user name: ${RESET_TEXT}cpadmin"
+        printf '%b\n' "${YELLOW_TEXT}4. IAM default admin user name: ${RESET_TEXT}cpadmin"
     else
-        echo -e "${YELLOW_TEXT}4. IAM default admin user name: ${RESET_TEXT}$NON_DEFAULT_IAM_ADMIN"
+        printf '%b\n' "${YELLOW_TEXT}4. IAM default admin user name: ${RESET_TEXT}$NON_DEFAULT_IAM_ADMIN"
     fi
 
 
-    echo -e "${YELLOW_TEXT}5. File storage classname(RWX):${RESET_TEXT}"
-    echo -e  "   * ${YELLOW_TEXT}Medium:${RESET_TEXT} ${MEDIUM_STORAGE_CLASS_NAME}"
-    echo -e  "   * ${YELLOW_TEXT}Fast:${RESET_TEXT} ${FAST_STORAGE_CLASS_NAME}"
-    echo -e "${YELLOW_TEXT}6. Block storage classname(RWO): ${RESET_TEXT}${BLOCK_STORAGE_CLASS_NAME}"
+    printf '%b\n' "${YELLOW_TEXT}5. File storage classname(RWX):${RESET_TEXT}"
+    printf '%b\n'  "   * ${YELLOW_TEXT}Medium:${RESET_TEXT} ${MEDIUM_STORAGE_CLASS_NAME}"
+    printf '%b\n'  "   * ${YELLOW_TEXT}Fast:${RESET_TEXT} ${FAST_STORAGE_CLASS_NAME}"
+    printf '%b\n' "${YELLOW_TEXT}6. Block storage classname(RWO): ${RESET_TEXT}${BLOCK_STORAGE_CLASS_NAME}"
 
-    echo -e "${YELLOW_TEXT}7. Target project for this BAI standalone deployment: ${RESET_TEXT}${TARGET_PROJECT_NAME}"
+    printf '%b\n' "${YELLOW_TEXT}7. Target project for this BAI standalone deployment: ${RESET_TEXT}${TARGET_PROJECT_NAME}"
 
-    echo -e "${YELLOW_TEXT}8. Restrict network egress or not for this BAI standalone deployment: ${RESET_TEXT}${RESTRICTED_INTERNET_ACCESS}"
+    printf '%b\n' "${YELLOW_TEXT}8. Restrict network egress or not for this BAI standalone deployment: ${RESET_TEXT}${RESTRICTED_INTERNET_ACCESS}"
 
-    echo -e "${YELLOW_TEXT}9. The Flink job for which components selected: ${RESET_TEXT}"
+    printf '%b\n' "${YELLOW_TEXT}9. The Flink job for which components selected: ${RESET_TEXT}"
     if [ "${#flink_job_cr_arr[@]}" -eq "0" ]; then
         printf '   * %s\n' "None"
     else
@@ -1744,7 +1745,7 @@ function show_summary(){
         done
     fi
 
-    echo -e "\x1B[1m*******************************************************\x1B[0m"
+    printf '%b\n' "\x1B[1m*******************************************************\x1B[0m"
 }
 
 function prepare_pattern_file(){
@@ -1812,20 +1813,20 @@ function create_project() {
         returnValue=$?
         if [ "$returnValue" == 1 ]; then
             if [ -z "$BAI_AUTO_NAMESPACE" ]; then
-                echo -e "\x1B[1;31mInvalid project name, enter a valid name...\x1B[0m"
+                printf '%b\n' "\x1B[1;31mInvalid project name, enter a valid name...\x1B[0m"
                 project_name=""
                 return 1
             else
-                echo -e "\x1B[1;31mInvalid project name \"$BAI_AUTO_NAMESPACE\", set a valid name...\x1B[0m"
+                printf '%b\n' "\x1B[1;31mInvalid project name \"$BAI_AUTO_NAMESPACE\", set a valid name...\x1B[0m"
                 project_name=""
                 exit 1
             fi
         else
-            echo -e "\x1B[1mUsing project ${project_name}...\x1B[0m"
+            printf '%b\n' "\x1B[1mUsing project ${project_name}...\x1B[0m"
             return 0
         fi
     else
-        echo -e "\x1B[1mProject \"${project_name}\" already exists! Continuing...\x1B[0m"
+        printf '%b\n' "\x1B[1mProject \"${project_name}\" already exists! Continuing...\x1B[0m"
         return 0
     fi
 }
@@ -1901,17 +1902,17 @@ then
             if [[ ("$SCRIPT_MODE" != "review") && ("$SCRIPT_MODE" != "OLM") ]]; then
                 if [[ $DEPLOYMENT_TYPE == "production" ]];then
                     printf "\n"
-                    echo -e "\x1B[1mCreating the Custom Resource of the IBM Business Automation Insights standalone Operator...\x1B[0m"
+                    printf '%b\n' "\x1B[1mCreating the Custom Resource of the IBM Business Automation Insights standalone Operator...\x1B[0m"
                 fi
             fi
             printf "\n"
             if [[ "${INSTALLATION_TYPE}"  == "new" ]]; then
                 if [[ "$SCRIPT_MODE" == "review" ]]; then
-                    echo -e "\x1B[1mReview mode is running. The final CR will be generated, but the operator will not be deployed.\x1B[0m"
+                    printf '%b\n' "\x1B[1mReview mode is running. The final CR will be generated, but the operator will not be deployed.\x1B[0m"
                     # prompt_press_any_key_to_continue
                 elif [[ "$SCRIPT_MODE" == "OLM" ]]
                 then
-                    echo -e "\x1B[1mA custom resource file to apply in the OCP Catalog is being generated.\x1B[0m"
+                    printf '%b\n' "\x1B[1mA custom resource file to apply in the OCP Catalog is being generated.\x1B[0m"
                     # prompt_press_any_key_to_continue
                 else
                     if [ "$use_entitlement" = "no" ] ; then
@@ -2012,7 +2013,7 @@ then
                     break
                     ;;
                 *)
-                    echo -e "\x1B[1mEnter a valid number [1 to 9] \x1B[0m"
+                    printf '%b\n' "\x1B[1mEnter a valid number [1 to 9] \x1B[0m"
                     ;;
                 esac
             done
@@ -2074,7 +2075,7 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
 
 
     # Checking CSV and subscription for bai-operator
-    sub_inst_list=$(${CLI_CMD} get subscriptions.operators.coreos.com -n $TARGET_PROJECT_NAME|grep ibm-bai-insights-engine-operator|awk '{if(NR>0){if(NR==1){ arr=$1; }else{ arr=arr" "$1; }} } END{ print arr }')
+    sub_inst_list=$(${CLI_CMD} get subscription.operators.coreos.com -n $TARGET_PROJECT_NAME|grep ibm-bai-insights-engine-operator|awk '{if(NR>0){if(NR==1){ arr=$1; }else{ arr=arr" "$1; }} } END{ print arr }')
     if [[ -z $sub_inst_list ]]; then
         info "No existing BAI standalone subscriptions found, continue ..."
         exit 1
@@ -2084,8 +2085,8 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
     for i in ${!sub_array[@]}; do
         if [[ ! -z "${sub_array[i]}" ]]; then
             if [[ ${sub_array[i]} = ibm-bai-operator* ]]; then
-                current_version=$(${CLI_CMD} get subscriptions.operators.coreos.com ${sub_array[i]} --no-headers --ignore-not-found -n $TARGET_PROJECT_NAME -o 'jsonpath={.status.currentCSV}') >/dev/null 2>&1
-                installed_version=$(${CLI_CMD} get subscriptions.operators.coreos.com ${sub_array[i]} --no-headers --ignore-not-found -n $TARGET_PROJECT_NAME -o 'jsonpath={.status.installedCSV}') >/dev/null 2>&1
+                current_version=$(${CLI_CMD} get subscription.operators.coreos.com ${sub_array[i]} --no-headers --ignore-not-found -n $TARGET_PROJECT_NAME -o 'jsonpath={.status.currentCSV}') >/dev/null 2>&1
+                installed_version=$(${CLI_CMD} get subscription.operators.coreos.com ${sub_array[i]} --no-headers --ignore-not-found -n $TARGET_PROJECT_NAME -o 'jsonpath={.status.installedCSV}') >/dev/null 2>&1
                 if [[ -z $current_version || -z $installed_version ]]; then
                     error "Failed to retrieve installed or current CSV. Aborting the upgrade procedure. Check the subscription status of ${sub_array[i]}."
                     exit 1
@@ -2127,13 +2128,13 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
                 exit 1
                 ;;
             *)
-                echo -e "Answer must be \"Yes\" or \"No\"\n"
+                printf '%b\n' "Answer must be \"Yes\" or \"No\"\n"
                 ;;
             esac
         done
     fi
 
-    PLATFORM_SELECTED=$(eval echo $(${CLI_CMD} get insightsengine $(${CLI_CMD} get insightsengine --no-headers --ignore-not-found -n $BAI_SERVICES_NS | grep NAME -v | awk '{print $1}') --no-headers --ignore-not-found -n $BAI_SERVICES_NS -o yaml | grep sc_deployment_platform | tail -1 | cut -d ':' -f 2))
+    PLATFORM_SELECTED=$(eval echo "$(${CLI_CMD} get insightsengine $(${CLI_CMD} get insightsengine --no-headers --ignore-not-found -n $BAI_SERVICES_NS | grep NAME -v | awk '{print $1}') --no-headers --ignore-not-found -n $BAI_SERVICES_NS -o yaml | grep sc_deployment_platform | tail -1 | cut -d ':' -f 2)")
     if [[ -z $PLATFORM_SELECTED ]]; then
         fail "No custom resource found for BAI Standalone under project \"$BAI_SERVICES_NS\", exiting"
         exit 1
@@ -2169,14 +2170,14 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
                 ${CLI_CMD} apply -f $UPGRADE_BAI_SHARED_INFO_CM_FILE  >/dev/null 2>&1
                 if [ $? -eq 0 ]; then
                     success "Created ibm-bai-shared-info configMap in the project \"$BAI_SERVICES_NS\"!"
-                    ${CLI_CMD} patch configmap ibm-bai-shared-info -n $BAI_SERVICES_NS --type=json -p="[{'op': 'add', 'path': '/data/bai_original_csv_ver_for_upgrade_script', 'value': '$(echo $bai_operator_csv_version)'}]" >/dev/null 2>&1
+                    ${CLI_CMD} patch configmap ibm-bai-shared-info -n $BAI_SERVICES_NS --type=json -p="[{'op': 'add', 'path': '/data/bai_original_csv_ver_for_upgrade_script', 'value': '$(echo "$bai_operator_csv_version")'}]" >/dev/null 2>&1
                     bai_original_csv_ver_for_upgrade_script=$bai_operator_csv_version
                 else
                     fail "Failed to create ibm-bai-shared-info configMap in the project \"$BAI_SERVICES_NS\"!"
                 fi
             else
                 success "Found ibm-bai-shared-info configMap under \"$BAI_SERVICES_NS\"!"
-                ${CLI_CMD} patch configmap ibm-bai-shared-info -n $BAI_SERVICES_NS --type=json -p="[{'op': 'add', 'path': '/data/bai_original_csv_ver_for_upgrade_script', 'value': '$(echo $bai_operator_csv_version)'}]" >/dev/null 2>&1
+                ${CLI_CMD} patch configmap ibm-bai-shared-info -n $BAI_SERVICES_NS --type=json -p="[{'op': 'add', 'path': '/data/bai_original_csv_ver_for_upgrade_script', 'value': '$(echo "$bai_operator_csv_version")'}]" >/dev/null 2>&1
                 bai_original_csv_ver_for_upgrade_script=$bai_operator_csv_version
             fi
         fi
@@ -2276,7 +2277,7 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
         #  Switch BAI Standalone Operator to private catalog source
         if [ $ENABLE_PRIVATE_CATALOG -eq 1 ]; then
             # switch BAI Standalone
-            sub_inst_list=$(${CLI_CMD} get subscriptions.operators.coreos.com -n $TARGET_PROJECT_NAME|grep ibm-bai-operator-catalog|awk '{if(NR>0){if(NR==1){ arr=$1; }else{ arr=arr" "$1; }} } END{ print arr }')
+            sub_inst_list=$(${CLI_CMD} get subscription.operators.coreos.com -n $TARGET_PROJECT_NAME|grep ibm-bai-operator-catalog|awk '{if(NR>0){if(NR==1){ arr=$1; }else{ arr=arr" "$1; }} } END{ print arr }')
             if [[ -z $sub_inst_list ]]; then
                 info "No existing BAI Standalone subscriptions have been found, continuing ..."
                 # exit 1
@@ -2286,7 +2287,7 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
             for i in ${!sub_array[@]}; do
                 if [[ ! -z "${sub_array[i]}" ]]; then
                     if [[ ${sub_array[i]} = ibm-bai-operator-catalog-subscription* || ${sub_array[i]} = ibm-bai-foundation-operator-v24.0-ibm-bai-operator-catalog* ]]; then
-                        ${CLI_CMD} patch subscriptions.operators.coreos.com ${sub_array[i]} -n $TARGET_PROJECT_NAME -p '{"spec":{"sourceNamespace":"'"$TARGET_PROJECT_NAME"'"}}' --type=merge >/dev/null 2>&1
+                        ${CLI_CMD} patch subscription.operators.coreos.com ${sub_array[i]} -n $TARGET_PROJECT_NAME -p '{"spec":{"sourceNamespace":"'"$TARGET_PROJECT_NAME"'"}}' --type=merge >/dev/null 2>&1
                         if [ $? -eq 0 ]
                         then
                             sleep 1
@@ -2304,7 +2305,7 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
         fi
 
         #  Patch BAI Standalone channel to latest version, wait for all the operators are upgraded before applying operandRequest.
-        sub_inst_list=$(${CLI_CMD} get subscriptions.operators.coreos.com -n $TARGET_PROJECT_NAME|grep ibm-bai-operator-catalog|awk '{if(NR>0){if(NR==1){ arr=$1; }else{ arr=arr" "$1; }} } END{ print arr }')
+        sub_inst_list=$(${CLI_CMD} get subscription.operators.coreos.com -n $TARGET_PROJECT_NAME|grep ibm-bai-operator-catalog|awk '{if(NR>0){if(NR==1){ arr=$1; }else{ arr=arr" "$1; }} } END{ print arr }')
         if [[ -z $sub_inst_list ]]; then
             info "No existing BAI Standalone subscriptions have been found, continuing ..."
             # exit 1
@@ -2314,7 +2315,7 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
         for i in ${!sub_array[@]}; do
             if [[ ! -z "${sub_array[i]}" ]]; then
                 if [[ ${sub_array[i]} = ibm-bai-operator-catalog-subscription* || ${sub_array[i]} = ibm-bai-foundation-operator-v24.0-ibm-bai-operator-catalog* ]]; then
-                    ${CLI_CMD} patch subscriptions.operators.coreos.com ${sub_array[i]} -n $TARGET_PROJECT_NAME -p '{"spec":{"channel":"v24.0"}}' --type=merge >/dev/null 2>&1
+                    ${CLI_CMD} patch subscription.operators.coreos.com ${sub_array[i]} -n $TARGET_PROJECT_NAME -p '{"spec":{"channel":"v24.0"}}' --type=merge >/dev/null 2>&1
                     if [ $? -eq 0 ]
                     then
                         success "Updated the channel of subscription '${sub_array[i]}' to $BAI_CHANNEL_VERSION"
@@ -2452,7 +2453,7 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
                         exit 1
                     else
                         sleep 30
-                        echo -n "..."
+                        printf '%s' "..."
                         continue
                     fi
                 else
@@ -2487,14 +2488,14 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
             cloud_native_postgresql_ready="Yes"
         fi
 
-        #ibm_bai_foundation_operator_flag=$(${CLI_CMD} get subscriptions.operators.coreos.com -l=operators.coreos.com/ibm-bai-foundation-operator.$TEMP_OPERATOR_PROJECT_NAME --no-headers --ignore-not-found -n $TEMP_OPERATOR_PROJECT_NAME | wc -l)
+        #ibm_bai_foundation_operator_flag=$(${CLI_CMD} get subscription.operators.coreos.com -l=operators.coreos.com/ibm-bai-foundation-operator.$TEMP_OPERATOR_PROJECT_NAME --no-headers --ignore-not-found -n $TEMP_OPERATOR_PROJECT_NAME | wc -l)
         #if [ $ibm_bai_foundation_operator_flag -ne 0 ]; then
-        #    ibm_bai_foundation_sub_name=$(${CLI_CMD} get subscriptions.operators.coreos.com -l=operators.coreos.com/ibm-bai-foundation-operator.$TEMP_OPERATOR_PROJECT_NAME --no-headers --ignore-not-found -n $TEMP_OPERATOR_PROJECT_NAME | awk '{print $1}')
+        #    ibm_bai_foundation_sub_name=$(${CLI_CMD} get subscription.operators.coreos.com -l=operators.coreos.com/ibm-bai-foundation-operator.$TEMP_OPERATOR_PROJECT_NAME --no-headers --ignore-not-found -n $TEMP_OPERATOR_PROJECT_NAME | awk '{print $1}')
 
         #    info "Checking the version of subscription '$ibm_bai_foundation_sub_name' in the project \"$TEMP_OPERATOR_PROJECT_NAME\""
         #    for ((retry=0;retry<=${maxRetry};retry++)); do
-        #        current_version_foundation=$(${CLI_CMD} get subscriptions.operators.coreos.com $ibm_bai_foundation_sub_name --no-headers --ignore-not-found -n $TEMP_OPERATOR_PROJECT_NAME -o 'jsonpath={.status.currentCSV}') >/dev/null 2>&1
-        #        installed_version_foundation=$(${CLI_CMD} get subscriptions.operators.coreos.com $ibm_bai_foundation_sub_name --no-headers --ignore-not-found -n $TEMP_OPERATOR_PROJECT_NAME -o 'jsonpath={.status.installedCSV}') >/dev/null 2>&1
+        #        current_version_foundation=$(${CLI_CMD} get subscription.operators.coreos.com $ibm_bai_foundation_sub_name --no-headers --ignore-not-found -n $TEMP_OPERATOR_PROJECT_NAME -o 'jsonpath={.status.currentCSV}') >/dev/null 2>&1
+        #        installed_version_foundation=$(${CLI_CMD} get subscription.operators.coreos.com $ibm_bai_foundation_sub_name --no-headers --ignore-not-found -n $TEMP_OPERATOR_PROJECT_NAME -o 'jsonpath={.status.installedCSV}') >/dev/null 2>&1
         #        prefix_bts="ibm-bai-foundation-operator.v"
         #        current_version_foundation=${current_version_foundation#"$prefix_bts"}
         #        installed_version_foundation=${installed_version_foundation#"$prefix_bts"}
@@ -2506,7 +2507,7 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
         #                break
         #            else
         #                sleep 30
-        #                echo -n "..."
+        #                printf '%s' "..."
         #                continue
         #            fi
         #        else
@@ -2681,16 +2682,16 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
                 if [[ $retry -eq ${maxRetry} ]]; then
                 printf "\n"
                 warning "Timeout waiting for IBM Cloud Pak foundational operator to start"
-                echo -e "\x1B[1mCheck the status of Pod by issuing the following command:\x1B[0m"
+                printf '%b\n' "\x1B[1mCheck the status of Pod by issuing the following command:\x1B[0m"
                 echo "${CLI_CMD} describe pod $(${CLI_CMD} get pod -n $TEMP_OPERATOR_PROJECT_NAME|grep ibm-common-service-operator|awk '{print $1}') -n $TEMP_OPERATOR_PROJECT_NAME"
                 printf "\n"
-                echo -e "\x1B[1mCheck the status of ReplicaSet by issuing the following command:\x1B[0m"
+                printf '%b\n' "\x1B[1mCheck the status of ReplicaSet by issuing the following command:\x1B[0m"
                 echo "${CLI_CMD} describe rs $(${CLI_CMD} get rs -n $TEMP_OPERATOR_PROJECT_NAME|grep ibm-common-service-operator|awk '{print $1}') -n $TEMP_OPERATOR_PROJECT_NAME"
                 printf "\n"
                 exit 1
                 else
                 sleep 30
-                echo -n "..."
+                printf '%s' "..."
                 continue
                 fi
             elif [[ $isReady == "Succeeded" ]]; then
@@ -2710,7 +2711,7 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
         echo "****************************************************************************"
 
         # Checking BAI operator CSV
-        sub_inst_list=$(${CLI_CMD} get subscriptions.operators.coreos.com -n $TEMP_OPERATOR_PROJECT_NAME|grep ibm-bai-operator-catalog|awk '{if(NR>0){if(NR==1){ arr=$1; }else{ arr=arr" "$1; }} } END{ print arr }')
+        sub_inst_list=$(${CLI_CMD} get subscription.operators.coreos.com -n $TEMP_OPERATOR_PROJECT_NAME|grep ibm-bai-operator-catalog|awk '{if(NR>0){if(NR==1){ arr=$1; }else{ arr=arr" "$1; }} } END{ print arr }')
         if [[ -z $sub_inst_list ]]; then
             fail "No existing BAI Standalone subscriptions found (version $BAI_CSV_VERSION), exiting ..."
             exit 1
@@ -2721,15 +2722,15 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
             if [[ ! -z "${sub_array[i]}" ]]; then
                 if [[ ${sub_array[i]} = ibm-bai-operator* ]]; then
                 info "Checking the channel of subscription '${sub_array[i]}'!"
-                currentChannel=$(${CLI_CMD} get subscriptions.operators.coreos.com ${sub_array[i]} -n $TEMP_OPERATOR_PROJECT_NAME -o 'jsonpath={.spec.channel}') >/dev/null 2>&1
+                currentChannel=$(${CLI_CMD} get subscription.operators.coreos.com ${sub_array[i]} -n $TEMP_OPERATOR_PROJECT_NAME -o 'jsonpath={.spec.channel}') >/dev/null 2>&1
                     if [[ "$currentChannel" == "$BAI_CHANNEL_VERSION" ]];then
                         success "The channel of subscription '${sub_array[i]}' is $currentChannel!"
                         printf "\n"
                         maxRetry=40
                         info "Waiting for the \"${sub_array[i]}\" subscription be upgraded to the ClusterServiceVersions(CSV) \"v$target_csv_version\""
                         for ((retry=0;retry<=${maxRetry};retry++)); do
-                            current_version=$(${CLI_CMD} get subscriptions.operators.coreos.com ${sub_array[i]} --no-headers --ignore-not-found -n $TEMP_OPERATOR_PROJECT_NAME -o 'jsonpath={.status.currentCSV}') >/dev/null 2>&1
-                            installed_version=$(${CLI_CMD} get subscriptions.operators.coreos.com ${sub_array[i]} --no-headers --ignore-not-found -n $TEMP_OPERATOR_PROJECT_NAME -o 'jsonpath={.status.installedCSV}') >/dev/null 2>&1
+                            current_version=$(${CLI_CMD} get subscription.operators.coreos.com ${sub_array[i]} --no-headers --ignore-not-found -n $TEMP_OPERATOR_PROJECT_NAME -o 'jsonpath={.status.currentCSV}') >/dev/null 2>&1
+                            installed_version=$(${CLI_CMD} get subscription.operators.coreos.com ${sub_array[i]} --no-headers --ignore-not-found -n $TEMP_OPERATOR_PROJECT_NAME -o 'jsonpath={.status.installedCSV}') >/dev/null 2>&1
                             if [[ -z $current_version || -z $installed_version ]]; then
                                 error "Failed to retrieve installed or current CSV. Aborting the upgrade procedure. Check the subscription status of ${sub_array[i]}."
                                 exit 1
@@ -2753,7 +2754,7 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
                                     break
                                 else
                                     sleep 10
-                                    echo -n "..."
+                                    printf '%s' "..."
                                     continue
                                 fi
                             else
@@ -2936,7 +2937,7 @@ if [[ "$RUNTIME_MODE" == "upgradeDeploymentStatus" ]]; then
         rm -fr $TEMP_CP_CONSOLE_FILE
         local tmp_cp_console=$( ${CLI_CMD} get route $CP_CONSOLE --no-headers --ignore-not-found  -n $TARGET_PROJECT_NAME_CS | awk '{print $1}' )
         if [ -n $tmp_cp_console  ]; then
-            # echo -e "${BLUE}Creating backup yaml for route $CP_CONSOLE${COLOR_OFF}"
+            # printf '%b\n' "${BLUE}Creating backup yaml for route $CP_CONSOLE${COLOR_OFF}"
             ${CLI_CMD} get route $CP_CONSOLE -o yaml -n $TARGET_PROJECT_NAME_CS > $TEMP_CP_CONSOLE_FILE
             CP_CONSOLE_HOST=$(${YQ_CMD} r $TEMP_CP_CONSOLE_FILE spec.host )
             ID_MGMT_CP_CONSOLE=$( echo "id-mgmt-${CP_CONSOLE_HOST}" | sed   "s/-$TARGET_PROJECT_NAME_CS//g" )
@@ -2973,7 +2974,7 @@ if [[ "$RUNTIME_MODE" == "upgradeDeploymentStatus" ]]; then
             ${YQ_CMD} w -i $TEMP_CP_CONSOLE_FILE_ID_PROVIDER 'metadata.annotations."haproxy.router.openshift.io/rewrite-target"' '/'
             fi
 
-            # echo -e "Creating new route named $ID_PROVIDER_ROUTE_NAME"
+            # printf '%b\n' "Creating new route named $ID_PROVIDER_ROUTE_NAME"
             ${CLI_CMD} apply -f $TEMP_CP_CONSOLE_FILE_ID_PROVIDER -n $TARGET_PROJECT_NAME_CS >/dev/null 2>&1
             if [ $? -ne 0 ]; then
                 warning "Failed to create route named $ID_PROVIDER_ROUTE_NAME in the project \"$TARGET_PROJECT_NAME_CS\"!"
@@ -3011,7 +3012,7 @@ if [[ "$RUNTIME_MODE" == "upgradeDeploymentStatus" ]]; then
 
             fi
 
-            # echo -e "Creating new route named $ID_MGMT_ROUTE_NAME"
+            # printf '%b\n' "Creating new route named $ID_MGMT_ROUTE_NAME"
             ${CLI_CMD} apply -f $TEMP_CP_CONSOLE_FILE_ID_MGMT -n $TARGET_PROJECT_NAME_CS >/dev/null 2>&1
             if [ $? -ne 0 ]; then
                 warning "Failed to create route named $ID_MGMT_ROUTE_NAME in the project \"$TARGET_PROJECT_NAME_CS\"!"
@@ -3095,7 +3096,7 @@ if [[ "$RUNTIME_MODE" == "upgradeDeploymentStatus" ]]; then
                 clear
                 BAI_DEPLOYMENT_STATUS="Waiting for the zenService to be ready (could take up to 120 minutes) before upgrade the BAI Standalone capabilities..."
                 printf '%s %s\n' "$(date)" "[refresh interval: 60s]"
-                echo -en "[Press Ctrl+C to exit] \t\t"
+                printf '%b' "[Press Ctrl+C to exit] \t\t"
                 printf "\n"
                 echo "${YELLOW_TEXT}$BAI_DEPLOYMENT_STATUS${RESET_TEXT}"
                 printHeaderMessage "BAI Standalone Upgrade Status"
@@ -3121,7 +3122,7 @@ if [[ "$RUNTIME_MODE" == "upgradeDeploymentStatus" ]]; then
             elif [[ $retry -eq ${maxRetry} ]]; then
                 printf "\n"
                 warning "Timeout waiting for the Zen Service to start"
-                echo -e "\x1B[1mCheck the status of the Zen Service\x1B[0m"
+                printf '%b\n' "\x1B[1mCheck the status of the Zen Service\x1B[0m"
                 printf "\n"
                 exit 1
             fi
@@ -3137,7 +3138,7 @@ if [[ "$RUNTIME_MODE" == "upgradeDeploymentStatus" ]]; then
         # success "The Zen Service (${ZEN_OPERATOR_VERSION//v/}) is ready for BAI Standalone"
         BAI_DEPLOYMENT_STATUS="The Zen Service (${ZEN_OPERATOR_VERSION//v/}) is ready for BAI Standalone"
         printf '%s %s\n' "$(date)" "[refresh interval: 30s]"
-        echo -en "[Press Ctrl+C to exit] \t\t"
+        printf '%b' "[Press Ctrl+C to exit] \t\t"
         printf "\n"
         echo "${YELLOW_TEXT}$BAI_DEPLOYMENT_STATUS${RESET_TEXT}"
         info "Starting all BAI Standalone Operators to upgrade BAI Standalone capabilities"

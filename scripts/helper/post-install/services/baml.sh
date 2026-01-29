@@ -17,7 +17,7 @@ cp4baBAMLStatus()
 {
     printHeaderMessage "CP4BA Service Status - BAML"
     rm ${LOG_DIR}/baml-status.log 2> /dev/null
-    DEPLOYMENT_TYPE_TO_LOWER=`echo $CP4BA_DEPLOYMENT_TYPE | awk '{print tolower($0)}'`
+    DEPLOYMENT_TYPE_TO_LOWER=`echo "$CP4BA_DEPLOYMENT_TYPE" | awk '{print tolower($0)}'`
 
     ${CLI_CMD} get ICP4ACluster ${CP4BA_DEPLOYMENT_NAME} -n ${CP4BA_AUTO_NAMESPACE} -o jsonpath='{.status.components}' 2> /dev/null  | jq  . |  sed 's/\"//g' | sed 's/,//g'  | sed 's/://g' | sed 's/{//g' | sed 's/}//g'  &> ${LOG_DIR}/baml-status.log
 
@@ -54,7 +54,7 @@ cp4baBAMLConsole()
   printHeaderMessage "Workflow, BAML"
   ${CLI_CMD} get cm ${CP4BA_DEPLOYMENT_NAME}-cp4ba-access-info -n ${CP4BA_AUTO_NAMESPACE} -o jsonpath='{.data.bastudio-access-info}' &> ${LOG_DIR}/bastudio-access-info.log
 
-  DEPLOYMENT_TYPE_TO_LOWER=`echo $CP4BA_DEPLOYMENT_TYPE | awk '{print tolower($0)}'`
+  DEPLOYMENT_TYPE_TO_LOWER=`echo "$CP4BA_DEPLOYMENT_TYPE" | awk '{print tolower($0)}'`
 
   if [ "${CP4BA_DEPLOYMENT_TYPE}" == "Starter" ]; then
     BAW_USERNAME=`cat  ${LOG_DIR}/bastudio-access-info.log | grep "username:"  | awk '{print $2}'| head -n 1`

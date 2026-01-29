@@ -18,7 +18,7 @@ cp4baBAWStatus()
     printHeaderMessage "CP4BA Service Status - Workflow"
     rm ${LOG_DIR}/workflow-status.log 2> /dev/null
     rm ${LOG_DIR}/baw-status.log 2> /dev/null
-    DEPLOYMENT_TYPE_TO_LOWER=`echo $CP4BA_DEPLOYMENT_TYPE | awk '{print tolower($0)}'`
+    DEPLOYMENT_TYPE_TO_LOWER=`echo "$CP4BA_DEPLOYMENT_TYPE" | awk '{print tolower($0)}'`
 
     ${CLI_CMD} get ICP4ACluster ${CP4BA_DEPLOYMENT_NAME} -n ${CP4BA_AUTO_NAMESPACE} -o jsonpath='{.status.components.workflow-authoring}' 2> /dev/null  | jq  . |  sed 's/\"//g' | sed 's/,//g'  | sed 's/://g' | sed 's/{//g' | sed 's/}//g'  &> ${LOG_DIR}/workflow-status.log
 
@@ -75,7 +75,7 @@ cp4baBAWConsole()
 
   printHeaderMessage "BAW - Business Automation Workflow, BA Studio Console"
 
-  DEPLOYMENT_TYPE_TO_LOWER=`echo $CP4BA_DEPLOYMENT_TYPE | awk '{print tolower($0)}'`
+  DEPLOYMENT_TYPE_TO_LOWER=`echo "$CP4BA_DEPLOYMENT_TYPE" | awk '{print tolower($0)}'`
 
   if [ "${CP4BA_DEPLOYMENT_TYPE}" == "Starter" ]; then
     BAW_USERNAME=`cat  ${LOG_DIR}/bastudio-access-info.log | grep "username:"  | awk '{print $2}'| head -n 1`
@@ -126,7 +126,7 @@ cp4baBAWWorklowAuthoringConsole()
 
   printHeaderMessage "BAW - Business Automation Workflow Authoring Console"
 
-  DEPLOYMENT_TYPE_TO_LOWER=`echo $CP4BA_DEPLOYMENT_TYPE | awk '{print tolower($0)}'`
+  DEPLOYMENT_TYPE_TO_LOWER=`echo "$CP4BA_DEPLOYMENT_TYPE" | awk '{print tolower($0)}'`
 
   if [ "${CP4BA_DEPLOYMENT_TYPE}" == "Starter" ]; then
     BAW_USERNAME=`cat  ${LOG_DIR}/bastudio-access-info.log | grep "username:"  | awk '{print $2}'| head -n 1`

@@ -55,7 +55,7 @@ cp4baNavigatorStatus()
   #################################################
   #Navigator
   #################################################
-  DEPLOYMENT_TYPE_TO_LOWER=`echo $CP4BA_DEPLOYMENT_TYPE | awk '{print tolower($0)}'`
+  DEPLOYMENT_TYPE_TO_LOWER=`echo "$CP4BA_DEPLOYMENT_TYPE" | awk '{print tolower($0)}'`
 
   CP4BA_NAVIGATOR_DEPLOYMENT_STATUS=`cat ${LOG_DIR}/navigator-status.log | grep navigatorDeployment | awk '{print $2}'`
   if [ -z "${CP4BA_NAVIGATOR_DEPLOYMENT_STATUS}" ]; then

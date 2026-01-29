@@ -498,16 +498,16 @@ function upgrade_deployment(){
                     if [[ $retry -eq ${maxRetry} ]]; then
                     printf "\n"
                     warning "Timeout Waiting for IBM CP4BA Workflow Process Service operator to start"
-                    echo -e "\x1B[1mCheck the status of Pod by issuing the following command:\x1B[0m"
+                    printf '%b\n' "\x1B[1mCheck the status of Pod by issuing the following command:\x1B[0m"
                     echo "${CLI_CMD} describe pod $(${CLI_CMD} get pod -n $project_name|grep ibm-cp4a-wfps-operator|awk '{print $1}') -n $project_name"
                     printf "\n"
-                    echo -e "\x1B[1mCheck the status of ReplicaSet issuing the following command:\x1B[0m"
+                    printf '%b\n' "\x1B[1mCheck the status of ReplicaSet issuing the following command:\x1B[0m"
                     echo "${CLI_CMD} describe rs $(${CLI_CMD} get rs -n $project_name|grep ibm-cp4a-wfps-operator|awk '{print $1}') -n $project_name"
                     printf "\n"
                     exit 1
                     else
                     sleep 30
-                    echo -n "..."
+                    printf '%s' "..."
                     continue
                     fi
                 elif [[ $isReady == "Succeeded" ]]; then
