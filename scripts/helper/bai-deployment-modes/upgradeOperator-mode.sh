@@ -34,19 +34,19 @@ function check_and_created_sharedinfo_configmap(){
             ${SED_COMMAND} "s|<csv_version>|$bai_operator_csv_version|g" ${UPGRADE_BAI_SHARED_INFO_CM_FILE}
             ${SED_COMMAND} "s|<cr_version>|$cr_version|g" ${UPGRADE_BAI_SHARED_INFO_CM_FILE}
 
-            ${CLI_CMD} apply -f $UPGRADE_BAI_SHARED_INFO_CM_FILE  >/dev/null 2>&1
+            ${CLI_CMD} apply -f $UPGRADE_BAI_SHARED_INFO_CM_FILE >&3 2>&3
             if [ $? -eq 0 ]; then
                 success "Created ibm-bai-shared-info configMap in the project \"$BAI_SERVICES_NS\"!"
-                ${CLI_CMD} patch configmap ibm-bai-shared-info -n $BAI_SERVICES_NS --type=json -p="[{'op': 'add', 'path': '/data/bai_original_csv_ver_for_upgrade_script', 'value': '$(echo $bai_operator_csv_version)'}]" >/dev/null 2>&1
-                ${CLI_CMD} patch configmap ibm-bai-shared-info -n $BAI_SERVICES_NS --type=json -p="[{'op': 'add', 'path': '/data/cpfs_original_csv_ver_for_upgrade_script', 'value': '$(echo $cpfs_operator_csv_version)'}]" >/dev/null 2>&1
+                ${CLI_CMD} patch configmap ibm-bai-shared-info -n $BAI_SERVICES_NS --type=json -p="[{'op': 'add', 'path': '/data/bai_original_csv_ver_for_upgrade_script', 'value': '$(echo "$bai_operator_csv_version")'}]" >&3 2>&3
+                ${CLI_CMD} patch configmap ibm-bai-shared-info -n $BAI_SERVICES_NS --type=json -p="[{'op': 'add', 'path': '/data/cpfs_original_csv_ver_for_upgrade_script', 'value': '$(echo "$cpfs_operator_csv_version")'}]" >&3 2>&3
                 bai_original_csv_ver_for_upgrade_script=$bai_operator_csv_version
             else
                 fail "Failed to create ibm-bai-shared-info configMap in the project \"$BAI_SERVICES_NS\"!"
             fi
         else
             success "Found ibm-bai-shared-info configMap under \"$BAI_SERVICES_NS\"!"
-            ${CLI_CMD} patch configmap ibm-bai-shared-info -n $BAI_SERVICES_NS --type=json -p="[{'op': 'add', 'path': '/data/bai_original_csv_ver_for_upgrade_script', 'value': '$(echo $bai_operator_csv_version)'}]" >/dev/null 2>&1
-            ${CLI_CMD} patch configmap ibm-bai-shared-info -n $BAI_SERVICES_NS --type=json -p="[{'op': 'add', 'path': '/data/cpfs_original_csv_ver_for_upgrade_script', 'value': '$(echo $cpfs_operator_csv_version)'}]" >/dev/null 2>&1
+            ${CLI_CMD} patch configmap ibm-bai-shared-info -n $BAI_SERVICES_NS --type=json -p="[{'op': 'add', 'path': '/data/bai_original_csv_ver_for_upgrade_script', 'value': '$(echo "$bai_operator_csv_version")'}]" >&3 2>&3
+            ${CLI_CMD} patch configmap ibm-bai-shared-info -n $BAI_SERVICES_NS --type=json -p="[{'op': 'add', 'path': '/data/cpfs_original_csv_ver_for_upgrade_script', 'value': '$(echo "$cpfs_operator_csv_version")'}]" >&3 2>&3
             bai_original_csv_ver_for_upgrade_script=$bai_operator_csv_version
         fi
     fi
@@ -70,7 +70,7 @@ function select_private_catalog_bai(){
             ;;
         *)
             PRIVATE_CATALOG=""
-            echo -e "Answer must be \"Yes\" or \"No\"\n"
+            printf '%b\n' "Answer must be \"Yes\" or \"No\"\n"
             ;;
         esac
     done
@@ -203,7 +203,7 @@ function create_bai_savepoints(){
         if [[ "$machine" == "Mac" ]]; then
             which jq &>/dev/null
             [[ $? -ne 0 ]] && \
-            echo -e  "\x1B[1;31mUnable to locate the jq CLI. You must install it to run this script on MacOS.\x1B[0m" && \
+            printf '%b\n'  "\x1B[1;31mUnable to locate the jq CLI. You must install it to run this script on MacOS.\x1B[0m" && \
             exit 1
         fi
         info "Creating the BAI savepoints for recovery path used for updating the custom resource file"
@@ -408,20 +408,20 @@ function create_project() {
         returnValue=$?
         if [ "$returnValue" == 1 ]; then
             if [ -z "$BAI_AUTO_NAMESPACE" ]; then
-                echo -e "\x1B[1;31mInvalid project name, enter a valid name...\x1B[0m"
+                printf '%b\n' "\x1B[1;31mInvalid project name, enter a valid name...\x1B[0m"
                 project_name=""
                 return 1
             else
-                echo -e "\x1B[1;31mInvalid project name \"$BAI_AUTO_NAMESPACE\", set a valid name...\x1B[0m"
+                printf '%b\n' "\x1B[1;31mInvalid project name \"$BAI_AUTO_NAMESPACE\", set a valid name...\x1B[0m"
                 project_name=""
                 exit 1
             fi
         else
-            echo -e "\x1B[1mUsing project ${project_name}...\x1B[0m"
+            printf '%b\n' "\x1B[1mUsing project ${project_name}...\x1B[0m"
             return 0
         fi
     else
-        echo -e "\x1B[1mProject \"${project_name}\" already exists! Continuing...\x1B[0m"
+        printf '%b\n' "\x1B[1mProject \"${project_name}\" already exists! Continuing...\x1B[0m"
         return 0
     fi
 }
@@ -604,7 +604,7 @@ function check_catalog_pod_status(){
                 exit 1
             else
                 sleep 30
-                echo -n "..."
+                printf '%s' "..."
                 continue
             fi
         else
@@ -649,7 +649,7 @@ function upgrade_cpfs_operator(){
             # replace openshift-marketplace for ibm-licensing-catalog with cs-control
             ${SED_COMMAND} "/name: ibm-licensing-catalog/{n;s/namespace: .*/namespace: \"$DEDICATED_CS_PROJECT\"/;}" ${TMP_LICENSING_OLM_CATALOG}
 
-            ${CLI_CMD} apply -f $TMP_LICENSING_OLM_CATALOG >/dev/null 2>&1
+            ${CLI_CMD} apply -f $TMP_LICENSING_OLM_CATALOG >&3 2>&3
             if [ $? -eq 0 ]; then
                 echo "Created IBM License Manager Catalog source in project \"$DEDICATED_CS_PROJECT\"!"
             else
@@ -817,7 +817,7 @@ function cncf_wait_for_operator_upgrade() {
     local channel=$3
     local key="${package_name}.${namespace}"
     # k8s label name length limit to 64 characters
-    local length_limited_key=$(echo ${key:0:63})
+    local length_limited_key=$(echo "${key:0:63}")
     local condition="${CLI_CMD} get subscription.operators.coreos.com -l operators.coreos.com/${length_limited_key}='' -n ${namespace} -o yaml -o jsonpath='{.items[*].status.installedCSV}' | grep -w $channel"
     local debug_condition="${CLI_CMD} get subscription.operators.coreos.com -l operators.coreos.com/${length_limited_key}='' -n ${namespace} -o jsonpath='{.items[*].status.conditions}'"
 
@@ -843,7 +843,7 @@ function cncf_wait_for_csv() {
     local namespace=$1
     local package_name=$2
     local key="${package_name}.${namespace}"
-    local length_limited_key=$(echo ${key:0:63})
+    local length_limited_key=$(echo "${key:0:63}")
     local condition="${CLI_CMD} get subscription.operators.coreos.com -l operators.coreos.com/${length_limited_key}='' -n ${namespace} -o yaml -o jsonpath='{.items[*].status.installedCSV}'"
     local debug_condition="${CLI_CMD} get subscription.operators.coreos.com -l operators.coreos.com/${length_limited_key}='' -n ${namespace} -o jsonpath='{.items[*].status.conditions}'"
     
@@ -878,7 +878,7 @@ function upgrade_cpfs_operator_on_cncf(){
         info "There is an ibm-common-service-operator Subscription already\n"
         local key="${package_name}.${TARGET_PROJECT_NAME}"
         # k8s label name length limit to 64 characters
-        local length_limited_key=$(echo ${key:0:63})
+        local length_limited_key=$(echo "${key:0:63}")
         local sub_name=$(${CLI_CMD} get subscription.operators.coreos.com -n ${TARGET_PROJECT_NAME} -l operators.coreos.com/${length_limited_key}='' --no-headers | awk '{print $1}')
         ${CLI_CMD} patch subscription.operators.coreos.com $sub_name --type merge -p '{"spec": {"source": "'${CS_CATALOG_VERSION}'"}}' -n $TARGET_PROJECT_NAME
         ${CLI_CMD} patch subscription.operators.coreos.com $sub_name --type merge -p '{"spec": {"channel": "'${CS_CHANNEL_VERSION}'"}}' -n $TARGET_PROJECT_NAME
@@ -942,7 +942,7 @@ function validate_csv_version(){
                                 break
                             else
                                 sleep 10
-                                echo -n "..."
+                                printf '%s' "..."
                                 continue
                             fi
                         else
@@ -1085,12 +1085,12 @@ function upgradeoperator_mode(){
                 exit 1
                 ;;
             *)
-                echo -e "Answer must be \"Yes\" or \"No\"\n"
+                printf '%b\n' "Answer must be \"Yes\" or \"No\"\n"
                 ;;
             esac
         done
     fi
-    PLATFORM_SELECTED=$(eval echo $(${CLI_CMD} get insightsengine $(${CLI_CMD} get insightsengine --no-headers --ignore-not-found -n $BAI_SERVICES_NS | grep NAME -v | awk '{print $1}') --no-headers --ignore-not-found -n $BAI_SERVICES_NS -o yaml | grep sc_deployment_platform | tail -1 | cut -d ':' -f 2))
+    PLATFORM_SELECTED=$(eval echo "$(${CLI_CMD} get insightsengine $(${CLI_CMD} get insightsengine --no-headers --ignore-not-found -n $BAI_SERVICES_NS | grep NAME -v | awk '{print $1}') --no-headers --ignore-not-found -n $BAI_SERVICES_NS -o yaml | grep sc_deployment_platform | tail -1 | cut -d ':' -f 2)")
     if [[ -z $PLATFORM_SELECTED ]]; then
         fail "No custom resource found for BAI Standalone under project \"$BAI_SERVICES_NS\", exiting"
         exit 1
@@ -1308,16 +1308,16 @@ function upgradeoperator_mode(){
             if [[ $retry -eq ${maxRetry} ]]; then
             printf "\n"
             warning "Timeout waiting for IBM Cloud Pak foundational operator to start"
-            echo -e "\x1B[1mCheck the status of Pod by issuing the following command:\x1B[0m"
+            printf '%b\n' "\x1B[1mCheck the status of Pod by issuing the following command:\x1B[0m"
             echo "${CLI_CMD} describe pod $(${CLI_CMD} get pod -n $TEMP_OPERATOR_PROJECT_NAME|grep ibm-common-service-operator|awk '{print $1}') -n $TEMP_OPERATOR_PROJECT_NAME"
             printf "\n"
-            echo -e "\x1B[1mCheck the status of ReplicaSet by issuing the following command:\x1B[0m"
+            printf '%b\n' "\x1B[1mCheck the status of ReplicaSet by issuing the following command:\x1B[0m"
             echo "${CLI_CMD} describe rs $(${CLI_CMD} get rs -n $TEMP_OPERATOR_PROJECT_NAME|grep ibm-common-service-operator|awk '{print $1}') -n $TEMP_OPERATOR_PROJECT_NAME"
             printf "\n"
             exit 1
             else
             sleep 30
-            echo -n "..."
+            printf '%s' "..."
             continue
             fi
         elif [[ $isReady == "Succeeded" ]]; then

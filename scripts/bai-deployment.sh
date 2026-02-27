@@ -71,7 +71,7 @@ function parse_arguments() {
             fi
             RUNTIME_MODE=$1
             if [[ $RUNTIME_MODE == "upgradeOperator" || $RUNTIME_MODE == "upgradeOperatorStatus" || $RUNTIME_MODE == "upgradeDeployment" || $RUNTIME_MODE == "upgradeDeploymentStatus" ]]; then
-                echo -n
+                : # Null command - validation passed, continue execution
             else
                 msg "Provide a valid argument for -m: [upgradeOperator] or [upgradeOperatorStatus] or [upgradeDeployment] [upgradeDeploymentStatus]"
                 exit -1
@@ -85,7 +85,7 @@ function parse_arguments() {
             fi
             UPDATE_APPROVAL_STRATEGY=$1
             if [[ $UPDATE_APPROVAL_STRATEGY == "automatic" || $UPDATE_APPROVAL_STRATEGY == "manual" ]]; then
-                echo -n
+                : # Null command - validation passed, continue execution
             else
                 msg "Use a valid value: -s [automatic] or [manual]"
                 exit -1
@@ -246,7 +246,7 @@ foundation_component_arr=()
 # This function is never called , so commenting it out
 #function select_installation_type(){
 #    COLUMNS=12
-#    echo -e "\x1B[1mIs this a new installation or an existing installation?\x1B[0m"
+#    printf '%b\n' "\x1B[1mIs this a new installation or an existing installation?\x1B[0m"
 #    options=("New" "Existing")
 #    PS3='Enter a valid option [1 to 2]: '
 #    select opt in "${options[@]}"
@@ -258,9 +258,9 @@ foundation_component_arr=()
 #                ;;
 #            "Existing")
 #                INSTALLATION_TYPE="existing"
-#                mkdir -p $TEMP_FOLDER >/dev/null 2>&1
-#                mkdir -p $BAK_FOLDER >/dev/null 2>&1
-#                mkdir -p $FINAL_CR_FOLDER >/dev/null 2>&1
+#                mkdir -p $TEMP_FOLDER >&3 2>&3
+#                mkdir -p $BAK_FOLDER >&3 2>&3
+#                mkdir -p $FINAL_CR_FOLDER >&3 2>&3
 #                get_existing_pattern_name
 #               break
 #                ;;
@@ -269,12 +269,12 @@ foundation_component_arr=()
 #    done
 #    if [[ "${INSTALLATION_TYPE}" == "new" ]]; then
 #        clean_up_temp_file
-#        rm -rf $BAK_FOLDER >/dev/null 2>&1
-#        rm -rf $FINAL_CR_FOLDER >/dev/null 2>&1
+#        rm -rf $BAK_FOLDER >&3 2>&3
+#        rm -rf $FINAL_CR_FOLDER >&3 2>&3
 #
-#        mkdir -p $TEMP_FOLDER >/dev/null 2>&1
-#        mkdir -p $BAK_FOLDER >/dev/null 2>&1
-#        mkdir -p $FINAL_CR_FOLDER >/dev/null 2>&1
+#        mkdir -p $TEMP_FOLDER >&3 2>&3
+#        mkdir -p $BAK_FOLDER >&3 2>&3
+#        mkdir -p $FINAL_CR_FOLDER >&3 2>&3
 #    fi
 #}
 
@@ -294,7 +294,7 @@ foundation_component_arr=()
 #            break
 #            ;;
 #        *)
-#            echo -e "Answer must be \"Yes\" or \"No\"\n"
+#            printf '%b\n' "Answer must be \"Yes\" or \"No\"\n"
 #            ;;
 #        esac
 #    done
@@ -303,7 +303,7 @@ foundation_component_arr=()
 # This function is never called , so commenting it out
 #function select_deployment_type(){
 #    printf "\n"
-#    echo -e "\x1B[1mWhat type of deployment is being performed?\x1B[0m"
+#    printf '%b\n' "\x1B[1mWhat type of deployment is being performed?\x1B[0m"
 #    COLUMNS=12
 #    options_var=("Production")
 #    for i in ${!options_var[@]}; do
@@ -313,7 +313,7 @@ foundation_component_arr=()
 #            printf "%1d) %s\n" $((i+1)) "${options_var[i]}"
 #        fi
 #    done
-#    echo -e "${YELLOW_TEXT}BAI standalone only supports production deployment${RESET_TEXT}"
+#    printf '%b\n' "${YELLOW_TEXT}BAI standalone only supports production deployment${RESET_TEXT}"
 #    prompt_press_any_key_to_continue
 #}
 
@@ -321,7 +321,7 @@ foundation_component_arr=()
 #function select_upgrade_mode(){
 #    printf "\n"
 #    COLUMNS=12
-#    echo -e "\x1B[1mWhich migration mode for the IBM Foundational Services you want to select? \x1B[0m"
+#    printf '%b\n' "\x1B[1mWhich migration mode for the IBM Foundational Services you want to select? \x1B[0m"
 #    options=("Shared to Dedicated (Incoming)" "Shared to Shared")
 #    PS3='Enter a valid option [1 to 2]: '
 #    select opt in "${options[@]}"
@@ -348,13 +348,13 @@ foundation_component_arr=()
 #        files=($(find $TEMP_FOLDER -name '*.yaml'))
 #        for item in ${files[*]}
 #        do
-#            rm -rf $item >/dev/null 2>&1
+#            rm -rf $item 
 #        done
 #        
 #        files=($(find $TEMP_FOLDER -name '*.swp'))
 #        for item in ${files[*]}
 #        do
-#            rm -rf $item >/dev/null 2>&1
+#            rm -rf $item 
 #        done
 #    fi
 #}
@@ -366,7 +366,7 @@ foundation_component_arr=()
 #    local project_name=$1
 #    local run_mode=$2  # silent
 #    info "Scaling up \"IBM Business Automation Insights standalone\" operator"
-#    kubectl scale --replicas=1 deployment ibm-bai-insights-engine-operator -n $project_name >/dev/null 2>&1
+#    kubectl scale --replicas=1 deployment ibm-bai-insights-engine-operator -n $project_name 
 #    if [ $? -eq 0 ]; then
 #        sleep 1
 #        if [[ -z "$run_mode" ]]; then
@@ -378,7 +378,7 @@ foundation_component_arr=()
 #
 #
 #    info "Scaling up \"IBM BAI standalone Foundation\" operator"
-#    kubectl scale --replicas=1 deployment ibm-bai-foundation-operator -n $project_name >/dev/null 2>&1
+#    kubectl scale --replicas=1 deployment ibm-bai-foundation-operator -n $project_name 
 #    if [ $? -eq 0 ]; then
 #        sleep 1
 #        if [[ -z "$run_mode" ]]; then

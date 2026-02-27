@@ -18,7 +18,7 @@ cp4baPFSStatus()
     printHeaderMessage "CP4BA Service Status - PFS"
     rm ${LOG_DIR}/pfs-status.log 2> /dev/null
 
-    DEPLOYMENT_TYPE_TO_LOWER=`echo $CP4BA_DEPLOYMENT_TYPE | awk '{print tolower($0)}'`
+    DEPLOYMENT_TYPE_TO_LOWER=`echo "$CP4BA_DEPLOYMENT_TYPE" | awk '{print tolower($0)}'`
 
     ${CLI_CMD} get ICP4ACluster ${CP4BA_DEPLOYMENT_NAME} -n ${CP4BA_AUTO_NAMESPACE} -o jsonpath='{.status.components}' 2> /dev/null  | jq  . |  sed 's/\"//g' | sed 's/,//g'  | sed 's/://g' | sed 's/{//g' | sed 's/}//g'  &> ${LOG_DIR}/pfs-status.log
 

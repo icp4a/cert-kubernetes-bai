@@ -80,7 +80,7 @@ function check_missing_quotes(){
 
 ## -- https://jsw.ibm.com/browse/DBACLD-172803 - Function created to improve code
 # Function to check for unfilled <Required> parameters, takes two arguments:
-# 1) The style of <Required> filed, e.g. {Base}<Required>, {xor}<Required>
+# 1) The style of <Required> filed, e.g. {Base}<Required>, {Base64}<Required>
 # 2) The property file name to check.
 function check_required_values(){
     required_field=$1
@@ -118,8 +118,6 @@ function check_property_file(){
     # Check <Required> values for cp4ba_user_profile.property
     check_required_values "<Required>" "${USER_PROFILE_PROPERTY_FILE}"
     check_required_values "{Base64}<Required>" "${USER_PROFILE_PROPERTY_FILE}"
-    ## -- https://jsw.ibm.com/browse/DBACLD-172803 - We are now asking user to use {xor} for special characters in password for some parameters, so we need to check if the "{xor}<Required>" is not filled out.
-    check_required_values "<{xor}<Required>" "${USER_PROFILE_PROPERTY_FILE}"
     
     # Check for empty values in the user profile property file
     validate_property_file_required_fields "${USER_PROFILE_PROPERTY_FILE}"
@@ -146,8 +144,6 @@ function check_property_file(){
     if [[ $selected_ldap_flag == "Yes" ]]; then
         check_required_values "<Required>" "${LDAP_PROPERTY_FILE}"
         check_required_values "{Base64}<Required>" "${LDAP_PROPERTY_FILE}"
-        ## -- https://jsw.ibm.com/browse/DBACLD-172803 - We are now asking user to use {xor} for special characters in password for some parameters, so we need to check if the "{xor}<Required>" is not filled out.
-        check_required_values "{xor}<Required>" "${LDAP_PROPERTY_FILE}"
 
         # Check for empty values in the ldap property file
         validate_property_file_required_fields "${LDAP_PROPERTY_FILE}"

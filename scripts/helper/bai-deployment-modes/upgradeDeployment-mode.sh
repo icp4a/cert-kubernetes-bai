@@ -37,7 +37,7 @@ function rerun_upgrade_check(){
                     exit 1
                     ;;
                 *)
-                    echo -e "Answer must be \"Yes\" or \"No\"\n"
+                    printf '%b\n' "Answer must be \"Yes\" or \"No\"\n"
                     ;;
                 esac
             done
@@ -129,11 +129,11 @@ function shutdown_operator(){
     # scale down BAI standalone operators
     local project_name=$1
     info "Scaling down \"IBM BAI standalone Insights Engine\" operator"
-    ${CLI_CMD} scale --replicas=0 deployment ibm-bai-insights-engine-operator -n $project_name >/dev/null 2>&1
+    ${CLI_CMD} scale --replicas=0 deployment ibm-bai-insights-engine-operator -n $project_name >&3 2>&3
     sleep 1
     echo "Done!"
     info "Scaling down \"IBM BAI standalone Foundation\" operator"
-    ${CLI_CMD} scale --replicas=0 deployment ibm-bai-foundation-operator -n $project_name >/dev/null 2>&1
+    ${CLI_CMD} scale --replicas=0 deployment ibm-bai-foundation-operator -n $project_name >&3 2>&3
     sleep 1
     echo "Done!"
 }

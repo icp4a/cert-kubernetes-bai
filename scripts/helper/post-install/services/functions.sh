@@ -168,15 +168,15 @@ COLOUR="\e[0m"
 # Print the values in the array
 for key in "${!operator_array[@]}"; do
     if [ "$key" = "ibm-iam-operator" ]; then
-        echo -e "${VALUE_COLOUR}$key${COLOUR} : Installed -  Version : ${VALUE_COLOUR}${operator_array[$key]}${COLOUR}"
+        printf '%b\n' "${VALUE_COLOUR}$key${COLOUR} : Installed -  Version : ${VALUE_COLOUR}${operator_array[$key]}${COLOUR}"
       elif [[ "$key" = "cloud-native-postgresql" ]]; then
-        echo -e "${VALUE_COLOUR}$key${COLOUR} : Installed -  Version : ${VALUE_COLOUR}${operator_array[$key]}${COLOUR}"
+        printf '%b\n' "${VALUE_COLOUR}$key${COLOUR} : Installed -  Version : ${VALUE_COLOUR}${operator_array[$key]}${COLOUR}"
       elif [[ "$key" = "ibm-bts-operator" ]]; then
-        echo -e "${VALUE_COLOUR}$key${COLOUR} : Installed -  Version : ${VALUE_COLOUR}${operator_array[$key]}${COLOUR}"
+        printf '%b\n' "${VALUE_COLOUR}$key${COLOUR} : Installed -  Version : ${VALUE_COLOUR}${operator_array[$key]}${COLOUR}"
       elif [[ "$key" = "ibm-elasticsearch-operator" ]]; then
-        echo -e "${VALUE_COLOUR}$key${COLOUR} : Installed -  Version : ${VALUE_COLOUR}${operator_array[$key]}${COLOUR}"
+        printf '%b\n' "${VALUE_COLOUR}$key${COLOUR} : Installed -  Version : ${VALUE_COLOUR}${operator_array[$key]}${COLOUR}"
       elif [[ "$key" = "ibm-opencontent-flink" ]]; then
-        echo -e "${VALUE_COLOUR}$key${COLOUR} : Installed -  Version : ${VALUE_COLOUR}${operator_array[$key]}${COLOUR}"
+        printf '%b\n' "${VALUE_COLOUR}$key${COLOUR} : Installed -  Version : ${VALUE_COLOUR}${operator_array[$key]}${COLOUR}"
       fi
 done
 }

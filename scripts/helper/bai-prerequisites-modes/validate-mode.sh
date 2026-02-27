@@ -28,7 +28,7 @@
 function validate_utility_tools_for_validate_mode(){
     which kubectl &>/dev/null
     if [[ $? -ne 0 ]]; then
-        echo -e  "\x1B[1;31mUnable to locate Kubernetes CLI. You must install it to run this script.\x1B[0m" && \
+        printf '%b\n'  "\x1B[1;31mUnable to locate Kubernetes CLI. You must install it to run this script.\x1B[0m" && \
         while true; do
             printf "\x1B[1mDo you want install the Kubernetes CLI by the bai-prerequisites.sh script? (Yes/No): \x1B[0m"
             read -rp "" ans
@@ -42,7 +42,7 @@ function validate_utility_tools_for_validate_mode(){
                 exit 1
                 ;;
             *)
-                echo -e "Answer must be \"Yes\" or \"No\"\n"
+                printf '%b\n' "Answer must be \"Yes\" or \"No\"\n"
                 ;;
             esac
         done
@@ -54,7 +54,7 @@ function validate_utility_tools_for_validate_mode(){
 
     which openssl &>/dev/null
     if [[ $? -ne 0 ]]; then
-        echo -e  "\x1B[1;31mUnable to locate openssl. You must install it to run this script.\x1B[0m" && \
+        printf '%b\n'  "\x1B[1;31mUnable to locate openssl. You must install it to run this script.\x1B[0m" && \
         while true; do
             printf "\x1B[1mDo you want install the OpenSSL by the bai-prerequisites.sh script? (Yes/No): \x1B[0m"
             read -rp "" ans
@@ -68,7 +68,7 @@ function validate_utility_tools_for_validate_mode(){
                 exit 1
                 ;;
             *)
-                echo -e "Answer must be \"Yes\" or \"No\"\n"
+                printf '%b\n' "Answer must be \"Yes\" or \"No\"\n"
                 ;;
             esac
         done
@@ -104,9 +104,9 @@ EOF
   
     # CREATE_PVC_CMD="kubectl apply -f ${STORAGE_CLASS_SAMPLE}"
     # if $CREATE_PVC_CMD ; then
-    #     echo -e "\x1B[1mDone\x1B[0m"
+    #     printf '%b\n' "\x1B[1mDone\x1B[0m"
     # else
-    #     echo -e "\x1B[1;31mFailed\x1B[0m"
+    #     printf '%b\n' "\x1B[1;31mFailed\x1B[0m"
     # fi
    # Check Operator Persistent Volume status every 5 seconds (max 1 minutes) until allocate.
     ${CLI_CMD} apply -f ${STORAGE_CLASS_SAMPLE} >/dev/null 2>&1
@@ -116,7 +116,7 @@ EOF
     info "Checking the storage class: \"${sc_name}\"..."
     until ${CLI_CMD} get pvc | grep ${sample_pvc_name}| grep -q -m 1 "Bound" || [ $ATTEMPTS -eq $TIMEOUT ]; do
         ATTEMPTS=$((ATTEMPTS + 1))
-        echo -e "......"
+        printf '%b\n' "......"
         sleep 5
         if [ $ATTEMPTS -eq $TIMEOUT ] ; then
             fail "Failed to allocate the persistent volumes using storage class: \"${sc_name}\"!"
@@ -454,9 +454,8 @@ function validate_prerequisites(){
         tmp_basdn="$(prop_ldap_property_file LDAP_BASE_DN)"
         tmp_ldapssl="$(prop_ldap_property_file LDAP_SSL_ENABLED)"
         tmp_user=$( ${CLI_CMD} get secret -l name=ldap-bind-secret -o yaml -n "$BAI_SERVICES_NS" | ${YQ_CMD} r - items.[0].data.ldapUsername | base64 --decode )
-        ## <https://jsw.ibm.com/browse/DBACLD-172803> - We are now asking user to use {xor} for special characters in password, so we need to use decode_xor_password to get the password decoded before validation.
-        bai_operator=$( ${CLI_CMD} get pods -l name=ibm-bai-insights-engine-operator --no-headers --ignore-not-found -n "$BAI_OPERATORS_NS" | awk '{print $1}' )
-        tmp_userpwd=$( decode_xor_password "$( ${CLI_CMD} get secret -n "$BAI_SERVICES_NS" -l name=ldap-bind-secret -o yaml | ${YQ_CMD} r - items.[0].data.ldapPassword | base64 --decode )" "$BAI_OPERATORS_NS" "$bai_operator" | sed  's/\$/\\$/g' )
+        ## <https://jsw.ibm.com/browse/DBACLD-198288> - We are now asking user to use {Base64} for special characters in password.
+        tmp_userpwd=$( ${CLI_CMD} get secret -n "$BAI_SERVICES_NS" -l name=ldap-bind-secret -o yaml | ${YQ_CMD} r - items.[0].data.ldapPassword | base64 --decode | sed  's/\$/\\$/g' )
 
         tmp_servername=$(sed -e 's/^"//' -e 's/"$//' <<<"$tmp_servername")
         tmp_serverport=$(sed -e 's/^"//' -e 's/"$//' <<<"$tmp_serverport")

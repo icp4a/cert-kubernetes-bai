@@ -27,7 +27,7 @@ cp4baFilenetConsole()
 
   ${CLI_CMD} get cm ${CP4BA_DEPLOYMENT_NAME}-cp4ba-access-info -n ${CP4BA_AUTO_NAMESPACE} -o jsonpath='{.data.cpe-access-info}' &> ${LOG_DIR}/filenet-console.log
 
-  DEPLOYMENT_TYPE_TO_LOWER=`echo $CP4BA_DEPLOYMENT_TYPE | awk '{print tolower($0)}'`
+  DEPLOYMENT_TYPE_TO_LOWER=`echo "$CP4BA_DEPLOYMENT_TYPE" | awk '{print tolower($0)}'`
   if [ "$DEPLOYMENT_TYPE_TO_LOWER" == "production" ]; then
     NAV_USERNAME=`${CLI_CMD} get secret ibm-fncm-secret -o go-template --template="{{.data.appLoginUsername|base64decode}}"`
     echo "Username                                      : ${NAV_USERNAME}"
@@ -105,7 +105,7 @@ cp4baFilenetStatus()
     printHeaderMessage "CP4BA Service Status - Content"
     rm ${LOG_DIR}/filenet-status.log 2> /dev/null
     echo '' > ${LOG_DIR}/filenet-status.log
-    DEPLOYMENT_TYPE_TO_LOWER=`echo $CP4BA_DEPLOYMENT_TYPE | awk '{print tolower($0)}'`
+    DEPLOYMENT_TYPE_TO_LOWER=`echo "$CP4BA_DEPLOYMENT_TYPE" | awk '{print tolower($0)}'`
 
     if [ "$CONTENT_DEPLOYMENT" == "true" ]; then
       ${CLI_CMD} get Content ${CP4BA_DEPLOYMENT_NAME} -n ${CP4BA_AUTO_NAMESPACE} -o jsonpath='{.status.components}' 2> /dev/null  | jq  . |  sed 's/\"//g' | sed 's/,//g'  | sed 's/://g' | sed 's/{//g' | sed 's/}//g'  &> ${LOG_DIR}/filenet-status.log

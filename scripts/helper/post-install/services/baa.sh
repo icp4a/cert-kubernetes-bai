@@ -39,7 +39,7 @@ cp4baBAAConsole()
   printHeaderMessage "BAA - Business Automation Application Console"
   ${CLI_CMD} get cm ${CP4BA_DEPLOYMENT_NAME}-cp4ba-access-info -n ${CP4BA_AUTO_NAMESPACE} -o jsonpath='{.data.baa-access-info}' &> ${LOG_DIR}/baa-console.log
 
-  DEPLOYMENT_TYPE_TO_LOWER=`echo $CP4BA_DEPLOYMENT_TYPE | awk '{print tolower($0)}'`
+  DEPLOYMENT_TYPE_TO_LOWER=`echo "$CP4BA_DEPLOYMENT_TYPE" | awk '{print tolower($0)}'`
   if [ "$DEPLOYMENT_TYPE_TO_LOWER" == "production" ]; then
     NAV_USERNAME=`${CLI_CMD} get secret ibm-ban-secret -o go-template --template="{{.data.appLoginUsername|base64decode}}"`
     echo "Username                                      : ${NAV_USERNAME}"

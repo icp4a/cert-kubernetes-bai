@@ -35,7 +35,7 @@ optional_component_arr=()
 optional_component_cr_arr=()
 
 function show_help() {
-    echo -e "\nUsage: bai-prerequisites.sh -m [modetype] -n [BAI-NAMESPACE] [options]\n"
+    printf '%b\n' "\nUsage: bai-prerequisites.sh -m [modetype] -n [BAI-NAMESPACE] [options]\n"
     echo "Options:"
     echo "  -h  Display help"
     echo "  -m  The valid mode types are: [property], [generate], or [validate]"
@@ -55,24 +55,24 @@ function show_help() {
 #    while [[ $TARGET_PROJECT_NAME == "" ]]; 
 #    do
 #        printf "\n"
-#        echo -e "\x1B[1mWhere do you want to deploy IBM Business Automation Insights stand-alone?\x1B[0m"
+#        printf '%b\n' "\x1B[1mWhere do you want to deploy IBM Business Automation Insights stand-alone?\x1B[0m"
 #        read -p "Enter the name for an existing project (namespace): " TARGET_PROJECT_NAME
 #        if [ -z "$TARGET_PROJECT_NAME" ]; then
-#            echo -e "\x1B[1;31mEnter a valid project name, project name can not be blank\x1B[0m"
+#            printf '%b\n' "\x1B[1;31mEnter a valid project name, project name can not be blank\x1B[0m"
 #        elif [[ "$TARGET_PROJECT_NAME" == openshift* ]]; then
-#            echo -e "\x1B[1;31mEnter a valid project name, project name should not be 'openshift' or start with 'openshift' \x1B[0m"
+#            printf '%b\n' "\x1B[1;31mEnter a valid project name, project name should not be 'openshift' or start with 'openshift' \x1B[0m"
 #            TARGET_PROJECT_NAME=""
 #        elif [[ "$TARGET_PROJECT_NAME" == kube* ]]; then
-#            echo -e "\x1B[1;31mEnter a valid project name, project name should not be 'kube' or start with 'kube' \x1B[0m"
+#            printf '%b\n' "\x1B[1;31mEnter a valid project name, project name should not be 'kube' or start with 'kube' \x1B[0m"
 #            TARGET_PROJECT_NAME=""
 #        else
 #            isProjExists=`kubectl get namespace $TARGET_PROJECT_NAME --ignore-not-found | wc -l`  >/dev/null 2>&1
 #
 #            if [ "$isProjExists" -ne 2 ] ; then
-#                echo -e "\x1B[1;31mInvalid project name, please enter a existing project name ...\x1B[0m"
+#                printf '%b\n' "\x1B[1;31mInvalid project name, please enter a existing project name ...\x1B[0m"
 #                TARGET_PROJECT_NAME=""
 #            else
-#                echo -e "\x1B[1mUsing project ${TARGET_PROJECT_NAME}...\x1B[0m"
+#                printf '%b\n' "\x1B[1mUsing project ${TARGET_PROJECT_NAME}...\x1B[0m"
 #            fi
 #        fi
 #    done
@@ -106,7 +106,7 @@ function show_help() {
 #                    FIPS_ENABLED="true"
 #                fi
 #                if [[ $FIPS_ENABLED == "false" ]]; then
-#                    echo -e "${YELLOW_TEXT}[ATTENTION]: ${RESET_TEXT}\x1B[1;31mBecause \"$msg_tmp\" selected does not support FIPS enabled, the script will disable FIPS mode for this BAI stand-alone deployment (shared_configuration.enable_fips: false).\x1B[0m"
+#                    printf '%b\n' "${YELLOW_TEXT}[ATTENTION]: ${RESET_TEXT}\x1B[1;31mBecause \"$msg_tmp\" selected does not support FIPS enabled, the script will disable FIPS mode for this BAI stand-alone deployment (shared_configuration.enable_fips: false).\x1B[0m"
 #                    sleep 3
 #                fi
 #                break
@@ -116,7 +116,7 @@ function show_help() {
 #                break
 #                ;;
 #            *)
-#                echo -e "Answer must be \"Yes\" or \"No\"\n"
+#                printf '%b\n' "Answer must be \"Yes\" or \"No\"\n"
 #                ;;
 #            esac
 #        done
@@ -156,15 +156,15 @@ function parse_arguments() {
             TARGET_PROJECT_NAME="${args[$i]}"
             case "$TARGET_PROJECT_NAME" in
             "")
-                echo -e "\x1B[1;31mEnter a valid namespace name, namespace name can not be blank\x1B[0m"
+                printf '%b\n' "\x1B[1;31mEnter a valid namespace name, namespace name can not be blank\x1B[0m"
                 exit 1
                 ;;
             "openshift"*)
-                echo -e "\x1B[1;31mEnter a valid project name, project name should not be 'openshift' or start with 'openshift' \x1B[0m"
+                printf '%b\n' "\x1B[1;31mEnter a valid project name, project name should not be 'openshift' or start with 'openshift' \x1B[0m"
                 exit 1
                 ;;
             "kube"*)
-                echo -e "\x1B[1;31mEnter a valid project name, project name should not be 'kube' or start with 'kube' \x1B[0m"
+                printf '%b\n' "\x1B[1;31mEnter a valid project name, project name should not be 'kube' or start with 'kube' \x1B[0m"
                 exit 1
                 ;;
             *)
@@ -173,10 +173,10 @@ function parse_arguments() {
                 # Check project name
                 isProjExists=`${CLI_CMD} get namespace $TARGET_PROJECT_NAME --ignore-not-found | wc -l`  >/dev/null 2>&1
                 if [ $isProjExists -ne 2 ] ; then
-                    echo -e "\x1B[1;31mInvalid project name \"$TARGET_PROJECT_NAME\", please set a existing project name.\x1B[0m"
+                    printf '%b\n' "\x1B[1;31mInvalid project name \"$TARGET_PROJECT_NAME\", please set a existing project name.\x1B[0m"
                     exit 1
                 fi
-                echo -n
+                : # Null command - validation passed, continue execution
                 ;;
             esac
             ;;
@@ -193,7 +193,7 @@ function parse_arguments() {
             CUSTOM_JAVA_PATH="${args[$i]}"
             # Verify the path exists
             if [ ! -d "$CUSTOM_JAVA_PATH" ]; then
-                echo -e "\x1B[1;31mThe specified Java (JRE) path does not exist: ${CUSTOM_JAVA_PATH}\x1B[0m"
+                printf '%b\n' "\x1B[1;31mThe specified Java (JRE) path does not exist: ${CUSTOM_JAVA_PATH}\x1B[0m"
                 exit 1
             fi
             ;;
@@ -205,7 +205,7 @@ function parse_arguments() {
             fi
             # Verify the path exists
             if [ ! -d "$CUSTOM_JAVA_PATH" ]; then
-                echo -e "\x1B[1;31mThe specified Java (JRE) path does not exist: ${CUSTOM_JAVA_PATH}\x1B[0m"
+                printf '%b\n' "\x1B[1;31mThe specified Java (JRE) path does not exist: ${CUSTOM_JAVA_PATH}\x1B[0m"
                 exit 1
             fi
             ;;
@@ -229,12 +229,12 @@ parse_arguments "$@"
 ##### Begin - Checks for required parameters to be passed #####
 ###################################################################################
 if [[ -z "$RUNTIME_MODE" ]]; then
-    echo -e "\x1B[1;31mPlease input value for \"-m <MODE_TYPE>\" option.\n\x1B[0m"
+    printf '%b\n' "\x1B[1;31mPlease input value for \"-m <MODE_TYPE>\" option.\n\x1B[0m"
     show_help
     exit 1
 fi
 if [[ -z "$TARGET_PROJECT_NAME" ]]; then
-    echo -e "\x1B[1;31mPlease input value for \"-n <BAI_NAMESPACE>\" option.\n\x1B[0m"
+    printf '%b\n' "\x1B[1;31mPlease input value for \"-n <BAI_NAMESPACE>\" option.\n\x1B[0m"
     show_help
     exit 1
 fi
@@ -329,9 +329,9 @@ if [[ $RUNTIME_MODE == "validate" ]]; then
     # Import the functions required for the generate runtime mode
     source ${CUR_DIR}/helper/bai-prerequisites-modes/validate-mode.sh
 
-    echo  "*****************************************************************"
-    echo  " Validating the prerequisites before you install BAI stand-alone "
-    echo  "*****************************************************************"
+    echo "*****************************************************************"
+    echo " Validating the prerequisites before you install BAI stand-alone "
+    echo "*****************************************************************"
     # Check for separation of duties
     check_bai_separate_operand $TARGET_PROJECT_NAME # Function Definition can be found in helper/common.sh
 

@@ -21,7 +21,7 @@
 
 function select_platform(){
     printf "\n"
-    echo -e "\x1B[1mSelect the cloud platform to deploy: \x1B[0m"
+    printf '%b\n' "\x1B[1mSelect the cloud platform to deploy: \x1B[0m"
     COLUMNS=12
     otheroption="Other - Cloud Native Computing Foundation ( CNCF )"
     if [ -z "$existing_platform_type" ]; then
@@ -68,8 +68,8 @@ function select_platform(){
                 printf "%1d) %s\n" $((i+1)) "${options[i]}"
             fi
         done
-        echo -e "\x1B[1;31mExisting platform type found in CR: \"$existing_platform_type\"\x1B[0m"
-        # echo -e "\x1B[1;31mDo not need to select again.\n\x1B[0m"
+        printf '%b\n' "\x1B[1;31mExisting platform type found in CR: \"$existing_platform_type\"\x1B[0m"
+        # printf '%b\n' "\x1B[1;31mDo not need to select again.\n\x1B[0m"
         prompt_press_any_key_to_continue
     fi
 
@@ -88,13 +88,13 @@ function select_ldap_user_for_zen(){
     printf "\n"
     LDAP_USER_NAME=""
 
-    echo -e  "${YELLOW_TEXT}For BAI standalone, if you select LDAP, then provide one ldap user here for onborading ZEN.${RESET_TEXT}"    
+    printf '%b\n'  "${YELLOW_TEXT}For BAI standalone, if you select LDAP, then provide one ldap user here for onborading ZEN.${RESET_TEXT}"    
     while [[ $LDAP_USER_NAME == "" ]] # While get medium storage clase name
     do
         printf "\x1B[1mEnter one LDAP user for BAI standalone: \x1B[0m"
         read -rp "" LDAP_USER_NAME
         if [ -z "$LDAP_USER_NAME" ]; then
-        echo -e "\x1B[1;31mEnter a valid LDAP user\x1B[0m"
+        printf '%b\n' "\x1B[1;31mEnter a valid LDAP user\x1B[0m"
         fi
     done
 }
@@ -117,7 +117,7 @@ function select_ldap_type(){
             ;;
         *)
             SELECTED_LDAP=""
-            echo -e "Answer must be \"Yes\" or \"No\"\n"
+            printf '%b\n' "Answer must be \"Yes\" or \"No\"\n"
             ;;
         esac
     done
@@ -126,7 +126,7 @@ function select_ldap_type(){
         select_ldap_user_for_zen
         printf "\n"
         COLUMNS=12
-        echo -e "\x1B[1mWhat is the LDAP type that will be used for this deployment? \x1B[0m"
+        printf '%b\n' "\x1B[1mWhat is the LDAP type that will be used for this deployment? \x1B[0m"
         options=("Microsoft Active Directory" "IBM Tivoli Directory Server / Security Directory Server")
         PS3='Enter a valid option [1 to 2]: '
         select opt in "${options[@]}"
@@ -167,7 +167,7 @@ function get_storage_class_name(){
         printf "\x1B[1mEnter the file storage classname for medium storage(RWX): \x1B[0m"
         read -rp "" sc_medium_file_storage_classname
         if [ -z "$sc_medium_file_storage_classname" ]; then
-            echo -e "\x1B[1;31mEnter a valid file storage classname(RWX)\x1B[0m"
+            printf '%b\n' "\x1B[1;31mEnter a valid file storage classname(RWX)\x1B[0m"
         fi
     done
 
@@ -176,7 +176,7 @@ function get_storage_class_name(){
         printf "\x1B[1mEnter the file storage classname for fast storage(RWX): \x1B[0m"
         read -rp "" sc_fast_file_storage_classname
         if [ -z "$sc_fast_file_storage_classname" ]; then
-            echo -e "\x1B[1;31mEnter a valid file storage classname(RWX)\x1B[0m"
+            printf '%b\n' "\x1B[1;31mEnter a valid file storage classname(RWX)\x1B[0m"
         fi
     done
     
@@ -185,7 +185,7 @@ function get_storage_class_name(){
         printf "\x1B[1mEnter the block storage classname for Zen(RWO): \x1B[0m"
         read -rp "" block_storage_class_name
         if [ -z "$block_storage_class_name" ]; then
-            echo -e "\x1B[1;31mEnter a valid block storage classname(RWO)\x1B[0m"
+            printf '%b\n' "\x1B[1;31mEnter a valid block storage classname(RWO)\x1B[0m"
         fi
     done
     # fi
@@ -201,7 +201,7 @@ function get_storage_class_name(){
 function select_profile_type(){
     printf "\n"
     COLUMNS=12
-    echo -e "\x1B[1mSelect the deployment profile (default: small).  Refer to the documentation in BAI standalone Knowledge Center for details on profile.\x1B[0m"
+    printf '%b\n' "\x1B[1mSelect the deployment profile (default: small).  Refer to the documentation in BAI standalone Knowledge Center for details on profile.\x1B[0m"
     options=("small" "medium" "large")
     if [ -z "$existing_profile_type" ]; then
         PS3='Enter a valid option [1 to 3]: '
@@ -232,8 +232,8 @@ function select_profile_type(){
                 printf "%1d) %s\n" $((i+1)) "${options[i]}"
             fi
         done
-        echo -e "\x1B[1;31mExisting profile size type found in CR: \"$existing_profile_type\"\x1B[0m"
-        # echo -e "\x1B[1;31mDo not need to select again.\n\x1B[0m"
+        printf '%b\n' "\x1B[1;31mExisting profile size type found in CR: \"$existing_profile_type\"\x1B[0m"
+        # printf '%b\n' "\x1B[1;31mDo not need to select again.\n\x1B[0m"
         prompt_press_any_key_to_continue        
     fi
 }
@@ -244,7 +244,7 @@ function select_profile_type(){
 function select_iam_default_admin(){
     printf "\n"
     while true; do
-        echo -e "\x1B[33;5mATTENTION: \x1B[0m\x1B[1;31mIf you are unable to use [cpadmin] as the default IAM admin user due to it being already used in your LDAP Directory, you need to change the Cloud Pak administrator username. See: \" https://www.ibm.com/docs/en/cloud-paks/foundational-services/$CS_CHANNEL_KC?topic=configurations-changing-cluster-administrator-access-credentials#name\"\x1B[0m"
+        printf '%b\n' "\x1B[33;5mATTENTION: \x1B[0m\x1B[1;31mIf you are unable to use [cpadmin] as the default IAM admin user due to it being already used in your LDAP Directory, you need to change the Cloud Pak administrator username. See: \" https://www.ibm.com/docs/en/cloud-paks/foundational-services/$CS_CHANNEL_KC?topic=configurations-changing-cluster-administrator-access-credentials#name\"\x1B[0m"
         printf "\x1B[1mDo you want to use the default IAM admin user: [cpadmin] (Yes/No, default: Yes): \x1B[0m"
         read -rp "" ans
         case "$ans" in
@@ -257,21 +257,21 @@ function select_iam_default_admin(){
             while [[ $NON_DEFAULT_IAM_ADMIN == "" ]]; 
             do
                 printf "\n"
-                echo -e "\x1B[1mWhat is the non default IAM admin user you renamed?\x1B[0m"
+                printf '%b\n' "\x1B[1mWhat is the non default IAM admin user you renamed?\x1B[0m"
                 read -p "Enter the admin user name: " NON_DEFAULT_IAM_ADMIN
             
                 if [ -z "$NON_DEFAULT_IAM_ADMIN" ]; then
-                    echo -e "\x1B[1;31mEnter a valid admin user name, user name can not be blank\x1B[0m"
+                    printf '%b\n' "\x1B[1;31mEnter a valid admin user name, user name can not be blank\x1B[0m"
                     NON_DEFAULT_IAM_ADMIN=""
                 elif [[ "$NON_DEFAULT_IAM_ADMIN" == "cpadmin" ]]; then
-                    echo -e "\x1B[1;31mEnter a valid admin user name, user name should not be 'cpadmin'\x1B[0m"
+                    printf '%b\n' "\x1B[1;31mEnter a valid admin user name, user name should not be 'cpadmin'\x1B[0m"
                     NON_DEFAULT_IAM_ADMIN=""
                 fi
             done
             break
             ;;
         *)
-            echo -e "Answer must be \"Yes\" or \"No\"\n"
+            printf '%b\n' "Answer must be \"Yes\" or \"No\"\n"
             ;;
         esac
     done
@@ -298,11 +298,11 @@ function select_flink_job(){
         for ((j=0;j<${#options_cr_val[@]};j++));
         do [ "${options_cr_val[$j]}" = "$1" ] && { i=$j; break; }
         done
-        echo $i
+        echo "$i"
     }
     menu() {
         clear
-        echo -e "\x1B[1mWhich are the components you want to enable the Flink job for: \x1B[0m"
+        printf '%b\n' "\x1B[1mWhich are the components you want to enable the Flink job for: \x1B[0m"
         for i in ${!options[@]}; do
             containsElement "${options_cr_val[i]}" "${EXISTING_PATTERN_ARR[@]}"
             retVal=$?
@@ -321,9 +321,9 @@ function select_flink_job(){
         containsElement "(Selected)" "${choices_pattern[@]}"
         retVal=$?
         if [ $retVal -ne 0 ]; then
-            echo -e "${tips1}"
+            printf '%b\n' "${tips1}"
         else
-            echo -e "${tips2}"
+            printf '%b\n' "${tips2}"
         fi
 # ##########################DEBUG############################
 #     for i in "${!choices_pattern[@]}"; do
@@ -348,7 +348,7 @@ function select_flink_job(){
     for i in ${!options[@]}; do
         [[ "${choices_pattern[i]}" ]] && { flink_job_arr=( "${flink_job_arr[@]}" "${options[i]}" ); flink_job_cr_arr=( "${flink_job_cr_arr[@]}" "${options_cr_val[i]}" ); msg=""; }
     done
-    # echo -e "$msg"
+    # printf '%b\n' "$msg"
 
     if [ "${#flink_job_arr[@]}" -eq "0" ]; then
         FLINK_JOB_SELECTED="None"
@@ -487,36 +487,36 @@ function input_information(){
 # Function that shows the summary of input options selected
 function show_summary(){
     printf "\n"
-    echo -e "\x1B[1m*******************************************************\x1B[0m"
-    echo -e "\x1B[1m                    Summary of input                   \x1B[0m"
-    echo -e "\x1B[1m*******************************************************\x1B[0m"
+    printf '%b\n' "\x1B[1m*******************************************************\x1B[0m"
+    printf '%b\n' "\x1B[1m                    Summary of input                   \x1B[0m"
+    printf '%b\n' "\x1B[1m*******************************************************\x1B[0m"
 
-    echo -e "${YELLOW_TEXT}1. Platform Type: ${RESET_TEXT}${PLATFORM_SELECTED}"
+    printf '%b\n' "${YELLOW_TEXT}1. Platform Type: ${RESET_TEXT}${PLATFORM_SELECTED}"
 
     if [[ $SELECTED_LDAP == "No" ]]; then
-        echo -e "${YELLOW_TEXT}2. LDAP Type: ${RESET_TEXT}None"
+        printf '%b\n' "${YELLOW_TEXT}2. LDAP Type: ${RESET_TEXT}None"
     else
-        echo -e "${YELLOW_TEXT}2. LDAP Type: ${RESET_TEXT}${LDAP_TYPE}"
-        echo -e  "   * ${YELLOW_TEXT}LDAP User Name onboarding Zen:${RESET_TEXT} ${LDAP_USER_NAME}"
+        printf '%b\n' "${YELLOW_TEXT}2. LDAP Type: ${RESET_TEXT}${LDAP_TYPE}"
+        printf '%b\n'  "   * ${YELLOW_TEXT}LDAP User Name onboarding Zen:${RESET_TEXT} ${LDAP_USER_NAME}"
     fi
 
-    echo -e "${YELLOW_TEXT}3. Profile Size: ${RESET_TEXT}${PROFILE_TYPE}"
+    printf '%b\n' "${YELLOW_TEXT}3. Profile Size: ${RESET_TEXT}${PROFILE_TYPE}"
 
     if [[ $USE_DEFAULT_IAM_ADMIN == "Yes" ]]; then
-        echo -e "${YELLOW_TEXT}4. IAM default admin user name: ${RESET_TEXT}cpadmin"
+        printf '%b\n' "${YELLOW_TEXT}4. IAM default admin user name: ${RESET_TEXT}cpadmin"
     else
-        echo -e "${YELLOW_TEXT}4. IAM default admin user name: ${RESET_TEXT}$NON_DEFAULT_IAM_ADMIN"
+        printf '%b\n' "${YELLOW_TEXT}4. IAM default admin user name: ${RESET_TEXT}$NON_DEFAULT_IAM_ADMIN"
     fi
 
 
-    echo -e "${YELLOW_TEXT}5. File storage classname(RWX):${RESET_TEXT}"
-    echo -e  "   * ${YELLOW_TEXT}Medium:${RESET_TEXT} ${MEDIUM_STORAGE_CLASS_NAME}"
-    echo -e  "   * ${YELLOW_TEXT}Fast:${RESET_TEXT} ${FAST_STORAGE_CLASS_NAME}"
-    echo -e "${YELLOW_TEXT}6. Block storage classname(RWO): ${RESET_TEXT}${BLOCK_STORAGE_CLASS_NAME}"
+    printf '%b\n' "${YELLOW_TEXT}5. File storage classname(RWX):${RESET_TEXT}"
+    printf '%b\n'  "   * ${YELLOW_TEXT}Medium:${RESET_TEXT} ${MEDIUM_STORAGE_CLASS_NAME}"
+    printf '%b\n'  "   * ${YELLOW_TEXT}Fast:${RESET_TEXT} ${FAST_STORAGE_CLASS_NAME}"
+    printf '%b\n' "${YELLOW_TEXT}6. Block storage classname(RWO): ${RESET_TEXT}${BLOCK_STORAGE_CLASS_NAME}"
 
-    echo -e "${YELLOW_TEXT}7. Target project for this BAI standalone deployment: ${RESET_TEXT}${TARGET_PROJECT_NAME}"
+    printf '%b\n' "${YELLOW_TEXT}7. Target project for this BAI standalone deployment: ${RESET_TEXT}${TARGET_PROJECT_NAME}"
 
-    echo -e "${YELLOW_TEXT}9. The Flink job for which components selected: ${RESET_TEXT}"
+    printf '%b\n' "${YELLOW_TEXT}9. The Flink job for which components selected: ${RESET_TEXT}"
     if [ "${#flink_job_cr_arr[@]}" -eq "0" ]; then
         printf '   * %s\n' "None"
     else
@@ -546,7 +546,7 @@ function show_summary(){
         done
     fi
 
-    echo -e "\x1B[1m*******************************************************\x1B[0m"
+    printf '%b\n' "\x1B[1m*******************************************************\x1B[0m"
 }
 
 
@@ -581,7 +581,7 @@ function sync_property_into_final_cr(){
     # Set generate_sample_network_policies
     generate_network_policy_flag="$(prop_user_profile_property_file BAI_STANDALONE.ENABLE_GENERATE_SAMPLE_NETWORK_POLICIES)"
     generate_network_policy_flag=$(sed -e 's/^"//' -e 's/"$//' <<<"$generate_network_policy_flag")
-    generate_network_policy_flag=$(echo $generate_network_policy_flag | tr '[:upper:]' '[:lower:]')
+    generate_network_policy_flag=$(echo "$generate_network_policy_flag" | tr '[:upper:]' '[:lower:]')
     if [[ ! -z $generate_network_policy_flag ]]; then
         if [[ $generate_network_policy_flag == "true" ]]; then
             ${YQ_CMD} w -i ${BAI_PATTERN_FILE_TMP} spec.shared_configuration.sc_generate_sample_network_policies "true"
@@ -808,11 +808,11 @@ function apply_bai_final_cr(){
 
     ${COPY_CMD} -rf ${BAI_PATTERN_FILE_TMP} ${BAI_PATTERN_FILE_FINAL}
 
-    echo -e "\x1B[1mThe custom resource file used is: \"${BAI_PATTERN_FILE_FINAL}\"\x1B[0m"
+    printf '%b\n' "\x1B[1mThe custom resource file used is: \"${BAI_PATTERN_FILE_FINAL}\"\x1B[0m"
     printf "\n"
-    echo -e "\x1B[1mTo monitor the deployment status, follow the Operator logs.\x1B[0m"
-    echo -e "\x1B[1mFor details, refer to the troubleshooting section in Knowledge Center here: \x1B[0m"
-    echo -e "\x1B[1m https://www.ibm.com/docs/en/bai/$BAI_RELEASE_BASE?topic=troubleshooting \x1B[0m"
+    printf '%b\n' "\x1B[1mTo monitor the deployment status, follow the Operator logs.\x1B[0m"
+    printf '%b\n' "\x1B[1mFor details, refer to the troubleshooting section in Knowledge Center here: \x1B[0m"
+    printf '%b\n' "\x1B[1m https://www.ibm.com/docs/en/bai/$BAI_RELEASE_BASE?topic=troubleshooting \x1B[0m"
 
     # For platform type other, we are displaying the next steps on how to generate ingress templates to be applied
     if [[ "$PLATFORM_SELECTED" == "other" ]]; then
@@ -861,17 +861,17 @@ function fresh_install(){
             if [[ ("$SCRIPT_MODE" != "review") && ("$SCRIPT_MODE" != "OLM") ]]; then
                 if [[ $DEPLOYMENT_TYPE == "production" ]];then
                     printf "\n"
-                    echo -e "\x1B[1mCreating the Custom Resource of the IBM Business Automation Insights standalone Operator...\x1B[0m"
+                    printf '%b\n' "\x1B[1mCreating the Custom Resource of the IBM Business Automation Insights standalone Operator...\x1B[0m"
                 fi
             fi
             printf "\n"
             if [[ "${INSTALLATION_TYPE}"  == "new" ]]; then
                 if [[ "$SCRIPT_MODE" == "review" ]]; then
-                    echo -e "\x1B[1mReview mode running, just generate final CR, will not deploy operator\x1B[0m"
+                    printf '%b\n' "\x1B[1mReview mode running, just generate final CR, will not deploy operator\x1B[0m"
                     # prompt_press_any_key_to_continue
                 elif [[ "$SCRIPT_MODE" == "OLM" ]]
                 then
-                    echo -e "\x1B[1mA custom resource file to apply in the OCP Catalog is being generated.\x1B[0m"
+                    printf '%b\n' "\x1B[1mA custom resource file to apply in the OCP Catalog is being generated.\x1B[0m"
                     # prompt_press_any_key_to_continue
                 else
                     if [ "$use_entitlement" = "no" ] ; then
@@ -963,7 +963,7 @@ function fresh_install(){
                     break
                     ;;
                 *)
-                    echo -e "\x1B[1mEnter a valid number [1 to 9] \x1B[0m"
+                    printf '%b\n' "\x1B[1mEnter a valid number [1 to 9] \x1B[0m"
                     ;;
                 esac
             done

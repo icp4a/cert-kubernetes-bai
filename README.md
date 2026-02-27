@@ -1,4 +1,4 @@
-# IBM Business Automation Insights stand-alone 25.0.0 IF003 on Certified Kubernetes
+# IBM Business Automation Insights stand-alone 25.0.0 IF004 on Certified Kubernetes
 
 This repository includes folders and resources to help you install the IBM Business Automation Insights stand-alone capabilities. Installation of the capabilities is done with the Cloud Pak operator.
 

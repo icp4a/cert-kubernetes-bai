@@ -47,7 +47,7 @@ cp4baBaStudioConsole()
   printHeaderMessage "Business Automation Studio Console"
   ${CLI_CMD} get cm ${CP4BA_DEPLOYMENT_NAME}-cp4ba-access-info -n ${CP4BA_AUTO_NAMESPACE} -o jsonpath='{.data.bastudio-access-info}' &> ${LOG_DIR}/bastudio-access-info.log
 
-  DEPLOYMENT_TYPE_TO_LOWER=`echo $CP4BA_DEPLOYMENT_TYPE | awk '{print tolower($0)}'`
+  DEPLOYMENT_TYPE_TO_LOWER=`echo "$CP4BA_DEPLOYMENT_TYPE" | awk '{print tolower($0)}'`
 
   if [ "${CP4BA_DEPLOYMENT_TYPE}" == "Starter" ]; then
     BAW_USERNAME=`cat  ${LOG_DIR}/bastudio-access-info.log | grep "username:"  | awk '{print $2}'| head -n 1`
