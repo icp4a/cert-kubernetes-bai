@@ -49,7 +49,7 @@ if [[ -f "<cp4a-ldap-crt-file-in-local>/ldap-cert.crt" ]]; then
   ${CLI_CMD} delete secret generic "<cp4a-ldap_ssl_secret_name>" -n ${bai_services_namespace} >/dev/null 2>&1
   ${CLI_CMD} create secret generic "<cp4a-ldap_ssl_secret_name>" --from-file=tls.crt="<cp4a-ldap-crt-file-in-local>/ldap-cert.crt" -n ${bai_services_namespace}
 else
-  echo -e "\x1B[1;31m[FAILED]:\x1B[0m Please copy \"ldap-cert.crt\" into \"<cp4a-ldap-crt-file-in-local>\" firstly."
+  printf '%b\n' "\x1B[1;31m[FAILED]:\x1B[0m Please copy \"ldap-cert.crt\" into \"<cp4a-ldap-crt-file-in-local>\" firstly."
   exit 1
 fi
 EOF
@@ -82,7 +82,7 @@ if [[ -f "<cp4a-db-crt-file-in-local>/root.crt" && -f "<cp4a-db-crt-file-in-loca
   --from-file=tls.key="<cp4a-db-crt-file-in-local>/client_key.pem"\
   --type=kubernetes.io/tls -n ${bai_services_namespace} 
 else
-  echo -e "\x1B[1;31m[FAILED]:\x1B[0m Please copy \"root.crt\" \"client.crt\" \"client.key\" into \"<cp4a-db-crt-file-in-local>\" first."
+  printf '%b\n' "\x1B[1;31m[FAILED]:\x1B[0m Please copy \"root.crt\" \"client.crt\" \"client.key\" into \"<cp4a-db-crt-file-in-local>\" first."
   exit 1
 fi
 EOF
@@ -139,7 +139,7 @@ if [[ -f "<cp4a-db-crt-file-in-local>/root.crt" && -f "<cp4a-db-crt-file-in-loca
   --from-file=tls.key="<cp4a-db-crt-file-in-local>/client_key.pem"\
   --type=kubernetes.io/tls -n ${bai_services_namespace}
 else
-  echo -e "\x1B[1;31m[FAILED]:\x1B[0m Please copy \"root.crt\" \"client.crt\" \"client.key\" into \"<cp4a-db-crt-file-in-local>\" first."
+  printf '%b\n' "\x1B[1;31m[FAILED]:\x1B[0m Please copy \"root.crt\" \"client.crt\" \"client.key\" into \"<cp4a-db-crt-file-in-local>\" first."
   exit 1
 fi
 EOF
@@ -191,7 +191,7 @@ if [[ -f "<cp4a-db-crt-file-in-local>/root.crt" && -f "<cp4a-db-crt-file-in-loca
   --from-file=tls.crt="<cp4a-db-crt-file-in-local>/client.pem"\
   --from-file=tls.key="<cp4a-db-crt-file-in-local>/tls_key.pk8" -n ${bai_services_namespace}
 else
-  echo -e "\x1B[1;31m[FAILED]:\x1B[0m Please copy \"root.crt\" \"client.crt\" \"client.key\" into \"<cp4a-db-crt-file-in-local>\" first."
+  printf '%b\n' "\x1B[1;31m[FAILED]:\x1B[0m Please copy \"root.crt\" \"client.crt\" \"client.key\" into \"<cp4a-db-crt-file-in-local>\" first."
   exit 1
 fi
 EOF

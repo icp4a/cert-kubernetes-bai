@@ -28,11 +28,11 @@
 function determine_type_of_upgrade() {
     info "Determining the type of upgrade"
     local current_version=$1
-    local current_version_major=$(echo $current_version | cut -d'.' -f1)
-    local current_version_minor=$(echo $current_version | cut -d'.' -f2)
+    local current_version_major=$(echo "$current_version" | cut -d'.' -f1)
+    local current_version_minor=$(echo "$current_version" | cut -d'.' -f2)
     local desired_version="${BAI_CSV_VERSION//v/}"
-    local desired_version_major=$(echo $desired_version | cut -d'.' -f1)
-    local desired_version_minor=$(echo $desired_version | cut -d'.' -f2)
+    local desired_version_major=$(echo "$desired_version" | cut -d'.' -f1)
+    local desired_version_minor=$(echo "$desired_version" | cut -d'.' -f2)
     if [[ $current_version_major"."$current_version_minor == $desired_version_major"."$desired_version_minor ]]; then
         export is_ifix_to_ifix_upgrade="true"
         info "This is an upgrade from $current_version to $desired_version which is an Ifix to Ifix upgrade"
@@ -112,7 +112,7 @@ function check_bai_operator_version(){
                 exit 1
             else
                 sleep 2
-                echo -n "..."
+                printf '%s' "..."
                 continue
             fi
         fi
@@ -139,7 +139,7 @@ function check_operator_status(){
                 if [[ $retry -eq ${maxRetry} ]]; then
                     printf "\n"
                     warning "Timeout Waiting for IBM Cert-manager Operator to start"
-                    echo -e "\x1B[1mCheck the status of Pod by issuing the following command: \x1B[0m"
+                    printf '%b\n' "\x1B[1mCheck the status of Pod by issuing the following command: \x1B[0m"
                     if [[ -z $isReadyWebhook ]]; then
                         echo "${CLI_CMD} describe pod $(${CLI_CMD} get pod -l=app.kubernetes.io/instance=cert-manager,app.kubernetes.io/name=ibm-cert-manager-webhook --all-namespaces --no-headers|awk '{print $1}') --all-namespaces"
                     fi
@@ -156,7 +156,7 @@ function check_operator_status(){
                     exit 1
                 else
                     sleep 10
-                    echo -n "..."
+                    printf '%s' "..."
                     continue
                 fi
             else
@@ -186,16 +186,16 @@ function check_operator_status(){
                 if [[ $retry -eq ${maxRetry} ]]; then
                 printf "\n"
                 warning "Timeout Waiting for IBM Cloud Pak foundational operator to start"
-                echo -e "\x1B[1mCheck the status of Pod by issuing the following command:\x1B[0m"
+                printf '%b\n' "\x1B[1mCheck the status of Pod by issuing the following command:\x1B[0m"
                 echo "${CLI_CMD} describe pod $(${CLI_CMD} get pod -n $project_name|grep ibm-common-service-operator|awk '{print $1}') -n $project_name"
                 printf "\n"
-                echo -e "\x1B[1mCheck the status of ReplicaSet by issuing the following command:\x1B[0m"
+                printf '%b\n' "\x1B[1mCheck the status of ReplicaSet by issuing the following command:\x1B[0m"
                 echo "${CLI_CMD} describe rs $(${CLI_CMD} get rs -n $project_name|grep ibm-common-service-operator|awk '{print $1}') -n $project_name"
                 printf "\n"
                 exit 1
                 else
                 sleep 30
-                echo -n "..."
+                printf '%s' "..."
                 continue
                 fi
             elif [[ $isReady == "Succeeded" ]]; then
@@ -232,16 +232,16 @@ function check_operator_status(){
                 if [[ $retry -eq ${maxRetry} ]]; then
                 printf "\n"
                 warning "Timeout Waiting for IBM Business Automation Insights stand-alone (BAI S) operator to start"
-                echo -e "\x1B[1mCheck the status of Pod by executing the below command:\x1B[0m"
+                printf '%b\n' "\x1B[1mCheck the status of Pod by executing the below command:\x1B[0m"
                 echo "${CLI_CMD} describe pod $(${CLI_CMD} get pod -n $project_name|grep ibm-bai-insights-engine-operator|awk '{print $1}') -n $project_name"
                 printf "\n"
-                echo -e "\x1B[1mCheck the status of ReplicaSet by executing the below command:\x1B[0m"
+                printf '%b\n' "\x1B[1mCheck the status of ReplicaSet by executing the below command:\x1B[0m"
                 echo "${CLI_CMD} describe rs $(${CLI_CMD} get rs -n $project_name|grep ibm-bai-insights-engine-operator|awk '{print $1}') -n $project_name"
                 printf "\n"
                 exit 1
                 else
                 sleep 30
-                echo -n "..."
+                printf '%s' "..."
                 continue
                 fi
             elif [[ $isReady == "Succeeded" ]]; then
@@ -271,7 +271,7 @@ function check_operator_status(){
                     exit 1
                 else
                     sleep 30
-                    echo -n "..."
+                    printf '%s' "..."
                     continue
                 fi
             fi
@@ -279,16 +279,16 @@ function check_operator_status(){
             if [[ $retry -eq ${maxRetry} ]]; then
             printf "\n"
             warning "Timeout Waiting for IBM BAI Foundation operator to start"
-            echo -e "\x1B[1mCheck the status of Pod by issuing the following command:\x1B[0m"
+            printf '%b\n' "\x1B[1mCheck the status of Pod by issuing the following command:\x1B[0m"
             echo "${CLI_CMD} describe pod $(${CLI_CMD} get pod -n $project_name|grep ibm-bai-foundation-operator|awk '{print $1}') -n $project_name"
             printf "\n"
-            echo -e "\x1B[1mCheck the status of ReplicaSet by issuing the following command:\x1B[0m"
+            printf '%b\n' "\x1B[1mCheck the status of ReplicaSet by issuing the following command:\x1B[0m"
             echo "${CLI_CMD} describe rs $(${CLI_CMD} get rs -n $project_name|grep ibm-bai-foundation-operator|awk '{print $1}') -n $project_name"
             printf "\n"
             exit 1
             else
             sleep 30
-            echo -n "..."
+            printf '%s' "..."
             continue
             fi
         elif [[ $isReady == "Succeeded" ]]; then
@@ -413,7 +413,7 @@ function check_bai_deployment_status(){
 
 function show_bai_upgrade_status() {
     printf '%s %s\n' "$(date)" "[refresh interval: 30s]"
-    echo -en "[Press Ctrl+C to exit] \t\t"
+    printf '%b' "[Press Ctrl+C to exit] \t\t"
     check_bai_deployment_status "${BAI_SERVICES_NS}"
 
     printf "\n"

@@ -38,7 +38,7 @@ optional_component_arr=()
 optional_component_cr_arr=()
 
 function show_help() {
-    echo -e "\nUsage: bai-prerequisites.sh -m [modetype] -n [BAI-NAMESPACE] [options]\n"
+    printf '%b\n' "\nUsage: bai-prerequisites.sh -m [modetype] -n [BAI-NAMESPACE] [options]\n"
     echo "Options:"
     echo "  -h  Display help"
     echo "  -m  The valid mode types are: [property], [generate], or [validate]"
@@ -55,15 +55,15 @@ function show_help() {
 function prompt_license(){
     # clear
 
-    echo -e "\x1B[1;31mIMPORTANT: Review the IBM Business Automation Insights stand-alone license information here: \n\x1B[0m"
-    echo -e "\x1B[1;31mhttps://www14.software.ibm.com/cgi-bin/weblap/lap.pl?li_formnum=L-PSZC-SHQFWS\n\x1B[0m"
+    printf '%b\n' "\x1B[1;31mIMPORTANT: Review the IBM Business Automation Insights stand-alone license information here: \n\x1B[0m"
+    printf '%b\n' "\x1B[1;31mhttps://www14.software.ibm.com/cgi-bin/weblap/lap.pl?li_formnum=L-PSZC-SHQFWS\n\x1B[0m"
 
     prompt_press_any_key_to_continue
 
     printf "\n"
     while true; do
         printf "\x1B[1mDo you accept the IBM Business Automation Insights stand-alone license (Yes/No, default: No): \x1B[0m"
-        read -rp "" ans
+        read -erp "" ans
         case "$ans" in
         "y"|"Y"|"yes"|"Yes"|"YES")
             printf "\n"
@@ -72,11 +72,11 @@ function prompt_license(){
             break
             ;;
         "n"|"N"|"no"|"No"|"NO"|"")
-            echo -e "The license agreement was not accepted. The license agreement must be accepted to continue. The script is exiting...\n"
+            printf '%b\n' "The license agreement was not accepted. The license agreement must be accepted to continue. The script is exiting...\n"
             exit 0
             ;;
         *)
-            echo -e "Answer must be \"Yes\" or \"No\"\n"
+            printf '%b\n' "Answer must be \"Yes\" or \"No\"\n"
             ;;
         esac
     done
@@ -85,10 +85,10 @@ function prompt_license(){
 function validate_utility_tool_for_validation(){
     which kubectl &>/dev/null
     if [[ $? -ne 0 ]]; then
-        echo -e  "\x1B[1;31mUnable to locate Kubernetes CLI. You must install it to run this script.\x1B[0m" && \
+        printf '%b\n'  "\x1B[1;31mUnable to locate Kubernetes CLI. You must install it to run this script.\x1B[0m" && \
         while true; do
             printf "\x1B[1mDo you want install the Kubernetes CLI by the bai-prerequisites.sh script? (Yes/No): \x1B[0m"
-            read -rp "" ans
+            read -erp "" ans
             case "$ans" in
             "y"|"Y"|"yes"|"Yes"|"YES")
                 install_kubectl_cli
@@ -99,7 +99,7 @@ function validate_utility_tool_for_validation(){
                 exit 1
                 ;;
             *)
-                echo -e "Answer must be \"Yes\" or \"No\"\n"
+                printf '%b\n' "Answer must be \"Yes\" or \"No\"\n"
                 ;;
             esac
         done
@@ -111,10 +111,10 @@ function validate_utility_tool_for_validation(){
 
     which openssl &>/dev/null
     if [[ $? -ne 0 ]]; then
-        echo -e  "\x1B[1;31mUnable to locate openssl. You must install it to run this script.\x1B[0m" && \
+        printf '%b\n'  "\x1B[1;31mUnable to locate openssl. You must install it to run this script.\x1B[0m" && \
         while true; do
             printf "\x1B[1mDo you want install the OpenSSL by the bai-prerequisites.sh script? (Yes/No): \x1B[0m"
-            read -rp "" ans
+            read -erp "" ans
             case "$ans" in
             "y"|"Y"|"yes"|"Yes"|"YES")
                 install_openssl
@@ -125,7 +125,7 @@ function validate_utility_tool_for_validation(){
                 exit 1
                 ;;
             *)
-                echo -e "Answer must be \"Yes\" or \"No\"\n"
+                printf '%b\n' "Answer must be \"Yes\" or \"No\"\n"
                 ;;
             esac
         done
@@ -159,11 +159,11 @@ function select_flink_job(){
         for ((j=0;j<${#options_cr_val[@]};j++));
         do [ "${options_cr_val[$j]}" = "$1" ] && { i=$j; break; }
         done
-        echo $i
+        echo "$i"
     }
     menu() {
         clear
-        echo -e "\x1B[1mWhich are the components you want to enable the Flink job for: \x1B[0m"
+        printf '%b\n' "\x1B[1mWhich are the components you want to enable the Flink job for: \x1B[0m"
         for i in ${!options[@]}; do
             containsElement "${options_cr_val[i]}" "${EXISTING_PATTERN_ARR[@]}"
             retVal=$?
@@ -182,9 +182,9 @@ function select_flink_job(){
         containsElement "(Selected)" "${choices_pattern[@]}"
         retVal=$?
         if [ $retVal -ne 0 ]; then
-            echo -e "${tips1}"
+            printf '%b\n' "${tips1}"
         else
-            echo -e "${tips2}"
+            printf '%b\n' "${tips2}"
         fi
 # ##########################DEBUG############################
 #     for i in "${!choices_pattern[@]}"; do
@@ -195,7 +195,7 @@ function select_flink_job(){
 
     prompt="Enter a valid option [1 to ${#options[@]}]: "
 
-    while menu && read -rp "$prompt" num && [[ "$num" ]]; do
+    while menu && read -erp "$prompt" num && [[ "$num" ]]; do
         [[ "$num" != *[![:digit:]]* ]] &&
         (( num > 0 && num <= ${#options[@]} )) ||
         { msg="Invalid option: $num"; continue; }
@@ -209,7 +209,7 @@ function select_flink_job(){
     for i in ${!options[@]}; do
         [[ "${choices_pattern[i]}" ]] && { flink_job_arr=( "${flink_job_arr[@]}" "${options[i]}" ); flink_job_cr_arr=( "${flink_job_cr_arr[@]}" "${options_cr_val[i]}" ); msg=""; }
     done
-    # echo -e "$msg"
+    # printf '%b\n' "$msg"
 
     if [ "${#flink_job_arr[@]}" -eq "0" ]; then
         FLINK_JOB_SELECTED="None"
@@ -342,7 +342,7 @@ function check_property_file(){
     
     if [[ $SELECTED_LDAP == "Yes" ]]; then
         tmp_flag=$(sed -e 's/^"//' -e 's/"$//' <<<"$(prop_ldap_property_file LDAP_SSL_ENABLED)")
-        tmp_flag=$(echo $tmp_flag | tr '[:upper:]' '[:lower:]')
+        tmp_flag=$(echo "$tmp_flag" | tr '[:upper:]' '[:lower:]')
         if [[ ${tmp_flag} =~ ^(no|n|false)$ ]]; then
             OPTIONAL_PARAMETERS_LIST+=("LDAP_SSL_SECRET_NAME")
             OPTIONAL_PARAMETERS_LIST+=("LDAP_SSL_CERT_FILE_FOLDER")
@@ -351,7 +351,7 @@ function check_property_file(){
 
     if [[ $SET_EXT_LDAP == "Yes" ]]; then
         tmp_ext_flag=$(sed -e 's/^"//' -e 's/"$//' <<<"$(prop_ext_ldap_property_file LDAP_SSL_ENABLED)")
-        tmp_ext_flag=$(echo $tmp_ext_flag | tr '[:upper:]' '[:lower:]')
+        tmp_ext_flag=$(echo "$tmp_ext_flag" | tr '[:upper:]' '[:lower:]')
         if [[ ${tmp_ext_flag} =~ ^(no|n|false)$ ]]; then
             OPTIONAL_PARAMETERS_LIST+=("EXT_LDAP_SSL_SECRET_NAME")
             OPTIONAL_PARAMETERS_LIST+=("EXT_LDAP_SSL_CERT_FILE_FOLDER")
@@ -393,7 +393,7 @@ function check_property_file(){
     # IM metastore external Postgres DB
     cert_dir_array=()
     tmp_flag=$(sed -e 's/^"//' -e 's/"$//' <<<"$(prop_tmp_property_file EXTERNAL_POSTGRESDB_FOR_IM_FLAG)")
-    tmp_flag=$(echo $tmp_flag | tr '[:upper:]' '[:lower:]')
+    tmp_flag=$(echo "$tmp_flag" | tr '[:upper:]' '[:lower:]')
     if [[ $tmp_flag == "true" || $tmp_flag == "yes" || $tmp_flag == "y" ]]; then
         im_external_db_cert_folder="$(prop_user_profile_property_file BAI.IM_EXTERNAL_POSTGRES_DATABASE_SSL_CERT_FILE_FOLDER)"
         im_external_db_cert_folder=$(sed -e 's/^"//' -e 's/"$//' <<<"$im_external_db_cert_folder")
@@ -402,7 +402,7 @@ function check_property_file(){
 
     # Zen metastore external Postgres DB
     tmp_flag=$(sed -e 's/^"//' -e 's/"$//' <<<"$(prop_tmp_property_file EXTERNAL_POSTGRESDB_FOR_ZEN_FLAG)")
-    tmp_flag=$(echo $tmp_flag | tr '[:upper:]' '[:lower:]')
+    tmp_flag=$(echo "$tmp_flag" | tr '[:upper:]' '[:lower:]')
     if [[ $tmp_flag == "true" || $tmp_flag == "yes" || $tmp_flag == "y" ]]; then
         zen_external_db_cert_folder="$(prop_user_profile_property_file BAI.ZEN_EXTERNAL_POSTGRES_DATABASE_SSL_CERT_FILE_FOLDER)"
         zen_external_db_cert_folder=$(sed -e 's/^"//' -e 's/"$//' <<<"$zen_external_db_cert_folder")
@@ -411,7 +411,7 @@ function check_property_file(){
 
     # BTS metastore external Postgres DB
     tmp_flag=$(sed -e 's/^"//' -e 's/"$//' <<<"$(prop_tmp_property_file EXTERNAL_POSTGRESDB_FOR_BTS_FLAG)")
-    tmp_flag=$(echo $tmp_flag | tr '[:upper:]' '[:lower:]')
+    tmp_flag=$(echo "$tmp_flag" | tr '[:upper:]' '[:lower:]')
     if [[ $tmp_flag == "true" || $tmp_flag == "yes" || $tmp_flag == "y" ]]; then
         bts_external_db_cert_folder="$(prop_user_profile_property_file BAI.BTS_EXTERNAL_POSTGRES_DATABASE_SSL_CERT_FILE_FOLDER)"
         bts_external_db_cert_folder=$(sed -e 's/^"//' -e 's/"$//' <<<"$bts_external_db_cert_folder")
@@ -498,7 +498,7 @@ function create_prerequisites() {
     if [[ $SELECTED_LDAP == "Yes" ]]; then
         # LDAP SSL Enabled
         tmp_flag=$(sed -e 's/^"//' -e 's/"$//' <<<"$(prop_ldap_property_file LDAP_SSL_ENABLED)")
-        tmp_flag=$(echo $tmp_flag | tr '[:upper:]' '[:lower:]')
+        tmp_flag=$(echo "$tmp_flag" | tr '[:upper:]' '[:lower:]')
         while true; do
             case "$tmp_flag" in
             "true"|"yes"|"y")
@@ -531,7 +531,7 @@ function create_prerequisites() {
         # External LDAP SSL Enabled
         if [[ $SET_EXT_LDAP == "Yes" ]]; then
             tmp_flag=$(sed -e 's/^"//' -e 's/"$//' <<<"$(prop_ext_ldap_property_file LDAP_SSL_ENABLED)")
-            tmp_flag=$(echo $tmp_flag | tr '[:upper:]' '[:lower:]')
+            tmp_flag=$(echo "$tmp_flag" | tr '[:upper:]' '[:lower:]')
             while true; do
                 case "$tmp_flag" in
                 "true"|"yes"|"y")
@@ -565,7 +565,7 @@ function create_prerequisites() {
 
     # Create Secret/configMap for IM metastore external Postgres DB
     tmp_flag=$(sed -e 's/^"//' -e 's/"$//' <<<"$(prop_tmp_property_file EXTERNAL_POSTGRESDB_FOR_IM_FLAG)")
-    tmp_flag=$(echo $tmp_flag | tr '[:upper:]' '[:lower:]')
+    tmp_flag=$(echo "$tmp_flag" | tr '[:upper:]' '[:lower:]')
     if [[ $tmp_flag == "true" || $tmp_flag == "yes" || $tmp_flag == "y" ]]; then
         create_im_external_db_secret_template
         #  replace secret file folder
@@ -605,7 +605,7 @@ function create_prerequisites() {
 
     # Create Secret/configMap for Zen metastore external Postgres DB
     tmp_flag=$(sed -e 's/^"//' -e 's/"$//' <<<"$(prop_tmp_property_file EXTERNAL_POSTGRESDB_FOR_ZEN_FLAG)")
-    tmp_flag=$(echo $tmp_flag | tr '[:upper:]' '[:lower:]')
+    tmp_flag=$(echo "$tmp_flag" | tr '[:upper:]' '[:lower:]')
     if [[ $tmp_flag == "true" || $tmp_flag == "yes" || $tmp_flag == "y" ]]; then
         create_zen_external_db_secret_template
         #  replace secret file folder
@@ -656,7 +656,7 @@ function create_prerequisites() {
 
     # Create Secret/configMap for BTS metastore external Postgres DB
     tmp_flag=$(sed -e 's/^"//' -e 's/"$//' <<<"$(prop_tmp_property_file EXTERNAL_POSTGRESDB_FOR_BTS_FLAG)")
-    tmp_flag=$(echo $tmp_flag | tr '[:upper:]' '[:lower:]')
+    tmp_flag=$(echo "$tmp_flag" | tr '[:upper:]' '[:lower:]')
     if [[ $tmp_flag == "true" || $tmp_flag == "yes" || $tmp_flag == "y" ]]; then
         create_bts_external_db_secret_template
         #  replace secret file folder
@@ -828,7 +828,7 @@ function create_property_file(){
         tip="## Property file for ${LDAP_TYPE} ##"
 
         echo "###########################" >> ${LDAP_PROPERTY_FILE}
-        echo $tip >> ${LDAP_PROPERTY_FILE}
+        echo "$tip" >> ${LDAP_PROPERTY_FILE}
         echo "###########################" >> ${LDAP_PROPERTY_FILE}
         for i in "${!LDAP_COMMON_PROPERTY[@]}"; do
             echo "${COMMENTS_LDAP_PROPERTY[i]}" >> ${LDAP_PROPERTY_FILE}
@@ -893,7 +893,7 @@ function create_property_file(){
     # Add global property into user_profile for BAI stand-alone
     tip="##           USER Property for BAI stand-alone               ##"
     echo "####################################################" >> ${USER_PROFILE_PROPERTY_FILE}
-    echo $tip >> ${USER_PROFILE_PROPERTY_FILE}
+    echo "$tip" >> ${USER_PROFILE_PROPERTY_FILE}
     echo "####################################################" >> ${USER_PROFILE_PROPERTY_FILE}
     # license
     echo "## Use this parameter to specify the license for the BAI stand-alone deployment and" >> ${USER_PROFILE_PROPERTY_FILE}
@@ -913,6 +913,14 @@ function create_property_file(){
     echo "BAI_STANDALONE.MEDIUM_FILE_STORAGE_CLASSNAME=\"$MEDIUM_STORAGE_CLASS_NAME\"" >> ${USER_PROFILE_PROPERTY_FILE}
     echo "BAI_STANDALONE.FAST_FILE_STORAGE_CLASSNAME=\"$FAST_STORAGE_CLASS_NAME\"" >> ${USER_PROFILE_PROPERTY_FILE}
     echo "BAI_STANDALONE.BLOCK_STORAGE_CLASS_NAME=\"$BLOCK_STORAGE_CLASS_NAME\"" >> ${USER_PROFILE_PROPERTY_FILE}
+    echo "" >> ${USER_PROFILE_PROPERTY_FILE}
+
+    # For some reason this logic to write the restricted internet access property to the user property file was removed.
+    # Adding it back as a part of https://jsw.ibm.com/browse/DBACLD-209176
+    echo "## Enable or disable egress access to external systems." >> ${USER_PROFILE_PROPERTY_FILE}
+    echo "## true: All BAI Standalone pods will not have access any external systems unless custom, curated egress network policy or polices with specific 'matchLabels' are created. Please refer to documentation for more details." >> ${USER_PROFILE_PROPERTY_FILE}
+    echo "## false: All BAI Standalone pods will have unrestricted network access to external systems." >> ${USER_PROFILE_PROPERTY_FILE}
+    echo "BAI_STANDALONE.ENABLE_RESTRICTED_INTERNET_ACCESS=\"$RESTRICTED_INTERNET_ACCESS\"" >> ${USER_PROFILE_PROPERTY_FILE}
     echo "" >> ${USER_PROFILE_PROPERTY_FILE}
 
     echo "## Specify a profile size for BAI stand-alone deployment (valid values are small,medium,large - default is small)." >> ${USER_PROFILE_PROPERTY_FILE}
@@ -1140,7 +1148,7 @@ function create_property_file(){
     
     # Show some tips for property file
     tips
-    echo -e  "Enter the <Required> values in the property files under $PROPERTY_FILE_FOLDER"
+    printf '%b\n'  "Enter the <Required> values in the property files under $PROPERTY_FILE_FOLDER"
     msgRed   "The key name in the property file is created by the bai-prerequisites.sh and is NOT EDITABLE."
     msgRed   "The value in the property file must be within double quotes."
     msgRed   "The value for User/Password in [bai_user_profile.property] file should NOT include special characters: single quotation \"'\""
@@ -1148,14 +1156,14 @@ function create_property_file(){
     
     if [[ $SELECTED_LDAP == "Yes" ]]; then
         msgRed   "The value in [bai_LDAP.property] [bai_user_profile.property] file should NOT include special character '\"'"
-        echo -e  "\x1b[32m* [bai_LDAP.property]:\x1B[0m"
-        echo -e  "  - Properties for the LDAP server that is used by the BAI stand-alone deployment, such as LDAP_SERVER/LDAP_PORT/LDAP_BASE_DN/LDAP_BIND_DN/LDAP_BIND_DN_PASSWORD.\n"
-        echo -e "  - $RED_TEXT[REQUIRED]$RESET_TEXT If you plan to enable SSL-based connections for your LDAP server, retrieve the server certificate file from your remote LDAP server and copy it into the folder \"$LDAP_SSL_CERT_FOLDER\" before running the bai-prerequisites.sh script in \"generate\" mode.$RED_TEXT The certificate must be named ldap-cert.crt. $RESET_TEXT"  
+        printf '%b\n'  "\x1b[32m* [bai_LDAP.property]:\x1B[0m"
+        printf '%b\n'  "  - Properties for the LDAP server that is used by the BAI stand-alone deployment, such as LDAP_SERVER/LDAP_PORT/LDAP_BASE_DN/LDAP_BIND_DN/LDAP_BIND_DN_PASSWORD.\n"
+        printf '%b\n' "  - $RED_TEXT[REQUIRED]$RESET_TEXT If you plan to enable SSL-based connections for your LDAP server, retrieve the server certificate file from your remote LDAP server and copy it into the folder \"$LDAP_SSL_CERT_FOLDER\" before running the bai-prerequisites.sh script in \"generate\" mode.$RED_TEXT The certificate must be named ldap-cert.crt. $RESET_TEXT"  
     fi
 
-    echo -e  "\x1b[32m* [bai_user_profile.property]:\x1B[0m"
-    echo -e  "  - Properties for the global value used by the BAI stand-alone deployment, such as \"sc_deployment_license\".\n"
-    echo -e  "  - Properties for the value used by each component of BAI stand-alone, such as \"sc_deployment_profile_size\"\n"
+    printf '%b\n'  "\x1b[32m* [bai_user_profile.property]:\x1B[0m"
+    printf '%b\n'  "  - Properties for the global value used by the BAI stand-alone deployment, such as \"sc_deployment_license\".\n"
+    printf '%b\n'  "  - Properties for the value used by each component of BAI stand-alone, such as \"sc_deployment_profile_size\"\n"
 
     # show tips for IM metastore external Postgres DB
     if [[ $EXTERNAL_POSTGRESDB_FOR_IM == "true" ]]; then
@@ -1188,27 +1196,27 @@ function select_storage_class(){
     while [[ $sc_medium_file_storage_classname == "" ]] # While get medium storage clase name
     do
         printf "\x1B[1mPlease enter the file storage classname for medium storage(RWX): \x1B[0m"
-        read -rp "" sc_medium_file_storage_classname
+        read -erp "" sc_medium_file_storage_classname
         if [ -z "$sc_medium_file_storage_classname" ]; then
-        echo -e "\x1B[1;31mEnter a valid file storage classname(RWX)\x1B[0m"
+        printf '%b\n' "\x1B[1;31mEnter a valid file storage classname(RWX)\x1B[0m"
         fi
     done
 
     while [[ $sc_fast_file_storage_classname == "" ]] # While get fast storage clase name
     do
         printf "\x1B[1mPlease enter the file storage classname for fast storage(RWX): \x1B[0m"
-        read -rp "" sc_fast_file_storage_classname
+        read -erp "" sc_fast_file_storage_classname
         if [ -z "$sc_fast_file_storage_classname" ]; then
-        echo -e "\x1B[1;31mEnter a valid file storage classname(RWX)\x1B[0m"
+        printf '%b\n' "\x1B[1;31mEnter a valid file storage classname(RWX)\x1B[0m"
         fi
     done
 
     while [[ $block_storage_class_name == "" ]] # While get block storage clase name
     do
         printf "\x1B[1mPlease enter the block storage classname for Zen(RWO): \x1B[0m"
-        read -rp "" block_storage_class_name
+        read -erp "" block_storage_class_name
         if [ -z "$block_storage_class_name" ]; then
-        echo -e "\x1B[1;31mEnter a valid block storage classname(RWO)\x1B[0m"
+        printf '%b\n' "\x1B[1;31mEnter a valid block storage classname(RWO)\x1B[0m"
         fi
     done
 
@@ -1237,7 +1245,7 @@ function select_external_postgresdb_for_im(){
     echo ""
     while true; do
         printf "\x1B[1mDo you want to use an external Postgres DB \x1B[0m${RED_TEXT}[YOU NEED TO CREATE THIS POSTGRESQL DB BY YOURSELF FIRST BEFORE YOU APPLY THE BAI CUSTOM RESOURCE]${RESET_TEXT}${GREEN_TEXT}PLEASE REFER THE KNOWLEDGE CENTER: https://www.ibm.com/docs/en/cloud-paks/foundational-services/$CS_CHANNEL_KC?topic=im-setting-up-external-edb-postgresql-database-server#dbcreate ${RESET_TEXT}]\x1B[1mas IM metastore DB for this BAI deployment?\x1B[0m ${YELLOW_TEXT}(Notes: IM service can use an external Postgres DB to store IM data. If you select \"Yes\", IM service uses an external Postgres DB as IM metastore DB. If you select \"No\", IM service uses an embedded cloud native postgresql DB as IM metastore DB.)${RESET_TEXT} (Yes/No, default: No):  "
-        read -rp "" ans
+        read -erp "" ans
         case "$ans" in
         "y"|"Y"|"yes"|"Yes"|"YES")
             EXTERNAL_POSTGRESDB_FOR_IM="true"
@@ -1248,7 +1256,7 @@ function select_external_postgresdb_for_im(){
             break
             ;;
         *)
-            echo -e "Answer must be \"Yes\" or \"No\"\n"
+            printf '%b\n' "Answer must be \"Yes\" or \"No\"\n"
             ;;
         esac
     done
@@ -1261,7 +1269,7 @@ function select_external_postgresdb_for_zen(){
         # Updating this question to reflect zen instead of BTS
         # DBACLD-166156
         printf "\x1B[1mDo you want to use an external Postgres DB \x1B[0m${RED_TEXT}[YOU NEED TO CREATE THIS POSTGRESQL DB BY YOURSELF FIRST BEFORE YOU APPLY THE BAI CUSTOM RESOURCE]${RESET_TEXT}${GREEN_TEXT}PLEASE REFER THE KNOWLEDGE CENTER: https://www.ibm.com/docs/en/cloud-paks/foundational-services/$CS_CHANNEL_KC?topic=im-setting-up-external-edb-postgresql-database-server#dbcreate ${RESET_TEXT}]\x1B[1m as Zen metastore DB for this BAI deployment?\x1B[0m ${YELLOW_TEXT}(Notes: Zen stores all metadata such as users, groups, service instances, vault integration and secret references in metastore DB. If you select \"Yes\", Zen service uses an external Postgres DB as Zen metastore DB.. If you select \"No\", Zen service uses an embedded cloud native postgresql DB as Zen metastore DB )${RESET_TEXT} (Yes/No, default: No): "
-        read -rp "" ans
+        read -erp "" ans
         case "$ans" in
         "y"|"Y"|"yes"|"Yes"|"YES")
             EXTERNAL_POSTGRESDB_FOR_ZEN="true"
@@ -1272,7 +1280,7 @@ function select_external_postgresdb_for_zen(){
             break
             ;;
         *)
-            echo -e "Answer must be \"Yes\" or \"No\"\n"
+            printf '%b\n' "Answer must be \"Yes\" or \"No\"\n"
             ;;
         esac
     done
@@ -1283,7 +1291,7 @@ function select_external_postgresdb_for_bts(){
     echo ""
     while true; do
         printf "\x1B[1mDo you want to use an external Postgres DB \x1B[0m${RED_TEXT}[YOU NEED TO CREATE THIS POSTGRESQL DB BY YOURSELF FIRST BEFORE APPLY BAI CUSTOM RESOURCE]${RESET_TEXT}${GREEN_TEXT}PLEASE REFER THE KNOWLEDGE CENTER: https://www.ibm.com/docs/en/cloud-paks/foundational-services/$CS_CHANNEL_KC?topic=im-setting-up-external-edb-postgresql-database-server#dbcreate ${RESET_TEXT}]\x1B[1m as BTS metastore DB for this BAI deployment?\x1B[0m ${YELLOW_TEXT}(Notes: BTS service can use an external Postgres DB to store meta data. If select \"Yes\", BTS service uses an external Postgres DB as BTS metastore DB. If select \"No\", BTS service uses an embedded cloud native postgresql DB as BTS metastore DB )${RESET_TEXT} (Yes/No, default: No): "
-        read -rp "" ans
+        read -erp "" ans
         case "$ans" in
         "y"|"Y"|"yes"|"Yes"|"YES")
             EXTERNAL_POSTGRESDB_FOR_BTS="true"
@@ -1294,7 +1302,7 @@ function select_external_postgresdb_for_bts(){
             break
             ;;
         *)
-            echo -e "Answer must be \"Yes\" or \"No\"\n"
+            printf '%b\n' "Answer must be \"Yes\" or \"No\"\n"
             ;;
         esac
     done
@@ -1306,7 +1314,7 @@ function select_restricted_internet_access(){
     echo ""
     while true; do
         printf "\x1B[1mDo you want to restrict network egress to unknown external destination for this BAI stand-alone deployment?\x1B[0m ${YELLOW_TEXT}(Notes: BAI stand-alone $BAI_RELEASE_BASE prevents all network egress to unknown destinations by default. You can either (1) enable all egress or (2) accept the new default and create network policies to allow your specific communication targets as documented in the knowledge center.)${RESET_TEXT} (Yes/No, default: Yes): "
-        read -rp "" ans
+        read -erp "" ans
         case "$ans" in
         "y"|"Y"|"yes"|"Yes"|"YES"|"")
             RESTRICTED_INTERNET_ACCESS="true"
@@ -1317,7 +1325,7 @@ function select_restricted_internet_access(){
             break
             ;;
         *)
-            echo -e "Answer must be \"Yes\" or \"No\"\n"
+            printf '%b\n' "Answer must be \"Yes\" or \"No\"\n"
             ;;
         esac
     done
@@ -1327,24 +1335,24 @@ function select_project() {
     while [[ $TARGET_PROJECT_NAME == "" ]]; 
     do
         printf "\n"
-        echo -e "\x1B[1mWhere do you want to deploy IBM Business Automation Insights stand-alone?\x1B[0m"
-        read -p "Enter the name for an existing project (namespace): " TARGET_PROJECT_NAME
+        printf '%b\n' "\x1B[1mWhere do you want to deploy IBM Business Automation Insights stand-alone?\x1B[0m"
+        read -erp "Enter the name for an existing project (namespace): " TARGET_PROJECT_NAME
         if [ -z "$TARGET_PROJECT_NAME" ]; then
-            echo -e "\x1B[1;31mEnter a valid project name, project name can not be blank\x1B[0m"
+            printf '%b\n' "\x1B[1;31mEnter a valid project name, project name can not be blank\x1B[0m"
         elif [[ "$TARGET_PROJECT_NAME" == openshift* ]]; then
-            echo -e "\x1B[1;31mEnter a valid project name, project name should not be 'openshift' or start with 'openshift' \x1B[0m"
+            printf '%b\n' "\x1B[1;31mEnter a valid project name, project name should not be 'openshift' or start with 'openshift' \x1B[0m"
             TARGET_PROJECT_NAME=""
         elif [[ "$TARGET_PROJECT_NAME" == kube* ]]; then
-            echo -e "\x1B[1;31mEnter a valid project name, project name should not be 'kube' or start with 'kube' \x1B[0m"
+            printf '%b\n' "\x1B[1;31mEnter a valid project name, project name should not be 'kube' or start with 'kube' \x1B[0m"
             TARGET_PROJECT_NAME=""
         else
             isProjExists=`${CLI_CMD} get project $TARGET_PROJECT_NAME --ignore-not-found | wc -l`  >/dev/null 2>&1
 
             if [ "$isProjExists" -ne 2 ] ; then
-                echo -e "\x1B[1;31mInvalid project name, please enter a existing project name ...\x1B[0m"
+                printf '%b\n' "\x1B[1;31mInvalid project name, please enter a existing project name ...\x1B[0m"
                 TARGET_PROJECT_NAME=""
             else
-                echo -e "\x1B[1mUsing project ${TARGET_PROJECT_NAME}...\x1B[0m"
+                printf '%b\n' "\x1B[1mUsing project ${TARGET_PROJECT_NAME}...\x1B[0m"
             fi
         fi
     done
@@ -1360,7 +1368,7 @@ function select_fips_enable(){
         printf "\n"
         while true; do
             printf "\x1B[1mYour OCP cluster has FIPS enabled, do you want to enable FIPS with this BAI stand-alone deployment？\x1B[0m (Yes/No, default: No): "
-            read -rp "" ans
+            read -erp "" ans
             case "$ans" in
             "y"|"Y"|"yes"|"Yes"|"YES")
                 if [[ (" ${optional_component_cr_arr[@]}" =~ "bai") && (! " ${optional_component_cr_arr[@]}" =~ "kafka") ]]; then
@@ -1376,7 +1384,7 @@ function select_fips_enable(){
                     FIPS_ENABLED="true"
                 fi
                 if [[ $FIPS_ENABLED == "false" ]]; then
-                    echo -e "${YELLOW_TEXT}[ATTENTION]: ${RESET_TEXT}\x1B[1;31mBecause \"$msg_tmp\" selected does not support FIPS enabled, the script will disable FIPS mode for this BAI stand-alone deployment (shared_configuration.enable_fips: false).\x1B[0m"
+                    printf '%b\n' "${YELLOW_TEXT}[ATTENTION]: ${RESET_TEXT}\x1B[1;31mBecause \"$msg_tmp\" selected does not support FIPS enabled, the script will disable FIPS mode for this BAI stand-alone deployment (shared_configuration.enable_fips: false).\x1B[0m"
                     sleep 3
                 fi
                 break
@@ -1386,7 +1394,7 @@ function select_fips_enable(){
                 break
                 ;;
             *)
-                echo -e "Answer must be \"Yes\" or \"No\"\n"
+                printf '%b\n' "Answer must be \"Yes\" or \"No\"\n"
                 ;;
             esac
         done
@@ -1399,7 +1407,7 @@ function select_ldap_type(){
     printf "\n"
     while true; do
         printf "\x1B[1mDo you want to configure an LDAP for this IBM Business Automation Insights stand-alone deployment? (Yes/No, default: Yes): \x1B[0m"
-        read -rp "" ans
+        read -erp "" ans
         case "$ans" in
         "y"|"Y"|"yes"|"Yes"|"YES"|"")
             SELECTED_LDAP="Yes"
@@ -1411,7 +1419,7 @@ function select_ldap_type(){
             ;;
         *)
             SELECTED_LDAP=""
-            echo -e "Answer must be \"Yes\" or \"No\"\n"
+            printf '%b\n' "Answer must be \"Yes\" or \"No\"\n"
             ;;
         esac
     done
@@ -1420,7 +1428,7 @@ function select_ldap_type(){
         select_ldap_user_for_zen
         printf "\n"
         COLUMNS=12
-        echo -e "\x1B[1mWhat is the LDAP type that will be used for this deployment? \x1B[0m"
+        printf '%b\n' "\x1B[1mWhat is the LDAP type that will be used for this deployment? \x1B[0m"
         options=("Microsoft Active Directory" "IBM Tivoli Directory Server / Security Directory Server")
         PS3='Enter a valid option [1 to 2]: '
         select opt in "${options[@]}"
@@ -1446,13 +1454,13 @@ function select_ldap_user_for_zen(){
     printf "\n"
     LDAP_USER_NAME=""
 
-    echo -e  "${YELLOW_TEXT}For BAI stand-alone, if you select LDAP, then provide one ldap user here for onboarding ZEN.${RESET_TEXT}"    
+    printf '%b\n'  "${YELLOW_TEXT}For BAI stand-alone, if you select LDAP, then provide one ldap user here for onboarding ZEN.${RESET_TEXT}"    
     while [[ $LDAP_USER_NAME == "" ]] # While get medium storage clase name
     do
         printf "\x1B[1mPlease enter one LDAP user for BAI stand-alone: \x1B[0m"
-        read -rp "" LDAP_USER_NAME
+        read -erp "" LDAP_USER_NAME
         if [ -z "$LDAP_USER_NAME" ]; then
-        echo -e "\x1B[1;31mEnter a valid LDAP user\x1B[0m"
+        printf '%b\n' "\x1B[1;31mEnter a valid LDAP user\x1B[0m"
         fi
     done
 }
@@ -1460,9 +1468,9 @@ function select_ldap_user_for_zen(){
 function select_iam_default_admin(){
     printf "\n"
     while true; do
-        echo -e "\x1B[33;5mATTENTION: \x1B[0m\x1B[1;31mIf you are unable to use [cpadmin] as the default IAM admin user due to it being already used in your LDAP Directory, you need to change the Cloud Pak administrator username. See: \" https://www.ibm.com/docs/en/cloud-paks/foundational-services/$CS_CHANNEL_KC?topic=configurations-changing-cluster-administrator-access-credentials#name\"\x1B[0m"
+        printf '%b\n' "\x1B[33;5mATTENTION: \x1B[0m\x1B[1;31mIf you are unable to use [cpadmin] as the default IAM admin user due to it being already used in your LDAP Directory, you need to change the Cloud Pak administrator username. See: \" https://www.ibm.com/docs/en/cloud-paks/foundational-services/$CS_CHANNEL_KC?topic=configurations-changing-cluster-administrator-access-credentials#name\"\x1B[0m"
         printf "\x1B[1mDo you want to use the default IAM admin user: [cpadmin] (Yes/No, default: Yes): \x1B[0m"
-        read -rp "" ans
+        read -erp "" ans
         case "$ans" in
         "y"|"Y"|"yes"|"Yes"|"YES"|"")
             USE_DEFAULT_IAM_ADMIN="Yes"
@@ -1473,21 +1481,21 @@ function select_iam_default_admin(){
             while [[ $NON_DEFAULT_IAM_ADMIN == "" ]]; 
             do
                 printf "\n"
-                echo -e "\x1B[1mWhat is the non default IAM admin user you renamed?\x1B[0m"
-                read -p "Enter the admin user name: " NON_DEFAULT_IAM_ADMIN
+                printf '%b\n' "\x1B[1mWhat is the non default IAM admin user you renamed?\x1B[0m"
+                read -erp "Enter the admin user name: " NON_DEFAULT_IAM_ADMIN
             
                 if [ -z "$NON_DEFAULT_IAM_ADMIN" ]; then
-                    echo -e "\x1B[1;31mEnter a valid admin user name, user name can not be blank\x1B[0m"
+                    printf '%b\n' "\x1B[1;31mEnter a valid admin user name, user name can not be blank\x1B[0m"
                     NON_DEFAULT_IAM_ADMIN=""
                 elif [[ "$NON_DEFAULT_IAM_ADMIN" == "cpadmin" ]]; then
-                    echo -e "\x1B[1;31mEnter a valid admin user name, user name should not be 'cpadmin'\x1B[0m"
+                    printf '%b\n' "\x1B[1;31mEnter a valid admin user name, user name should not be 'cpadmin'\x1B[0m"
                     NON_DEFAULT_IAM_ADMIN=""
                 fi
             done
             break
             ;;
         *)
-            echo -e "Answer must be \"Yes\" or \"No\"\n"
+            printf '%b\n' "Answer must be \"Yes\" or \"No\"\n"
             ;;
         esac
     done
@@ -1495,7 +1503,7 @@ function select_iam_default_admin(){
 
 function select_platform(){
     printf "\n"
-    echo -e "\x1B[1mSelect the cloud platform to deploy: \x1B[0m"
+    printf '%b\n' "\x1B[1mSelect the cloud platform to deploy: \x1B[0m"
     COLUMNS=12
     # options=("RedHat OpenShift Kubernetes Service (ROKS) - Public Cloud" "Openshift Container Platform (OCP) - Private Cloud" "Other ( Certified Kubernetes Cloud Platform / CNCF)")
     # PS3='Enter a valid option [1 to 3]: '
@@ -1526,7 +1534,7 @@ function select_platform(){
 function select_profile_type(){
     printf "\n"
     COLUMNS=12
-    echo -e "\x1B[1mPlease select the deployment profile (default: small).  Refer to the documentation in BAI stand-alone Knowledge Center for details on profile.\x1B[0m"
+    printf '%b\n' "\x1B[1mPlease select the deployment profile (default: small).  Refer to the documentation in BAI stand-alone Knowledge Center for details on profile.\x1B[0m"
     options=("small" "medium" "large")
     if [ -z "$existing_profile_type" ]; then
         PS3='Enter a valid option [1 to 3]: '
@@ -1557,8 +1565,8 @@ function select_profile_type(){
                 printf "%1d) %s\n" $((i+1)) "${options[i]}"
             fi
         done
-        echo -e "\x1B[1;31mExisting profile size type found in CR: \"$existing_profile_type\"\x1B[0m"
-        # echo -e "\x1B[1;31mDo not need to select again.\n\x1B[0m"
+        printf '%b\n' "\x1B[1;31mExisting profile size type found in CR: \"$existing_profile_type\"\x1B[0m"
+        # printf '%b\n' "\x1B[1;31mDo not need to select again.\n\x1B[0m"
         read -rsn1 -p"Press Enter/Return to continue ...";echo        
     fi
 }
@@ -1764,7 +1772,7 @@ function validate_prerequisites(){
         tmp_serverport=$(sed -e 's/^"//' -e 's/"$//' <<<"$tmp_serverport")
         tmp_basdn=$(sed -e 's/^"//' -e 's/"$//' <<<"$tmp_basdn")
         tmp_ldapssl=$(sed -e 's/^"//' -e 's/"$//' <<<"$tmp_ldapssl")
-        tmp_ldapssl=$(echo $tmp_ldapssl | tr '[:upper:]' '[:lower:]')
+        tmp_ldapssl=$(echo "$tmp_ldapssl" | tr '[:upper:]' '[:lower:]')
         tmp_user=$(sed -e 's/^"//' -e 's/"$//' <<<"$tmp_user")
         tmp_userpwd=$(sed -e 's/^"//' -e 's/"$//' <<<"$tmp_userpwd")
 
@@ -1776,7 +1784,7 @@ function validate_prerequisites(){
     local DB_CONNECTION_JAR_PATH=${CUR_DIR}/helper/verification/postgresql
 
     tmp_flag=$(sed -e 's/^"//' -e 's/"$//' <<<"$(prop_tmp_property_file EXTERNAL_POSTGRESDB_FOR_IM_FLAG)")
-    tmp_flag=$(echo $tmp_flag | tr '[:upper:]' '[:lower:]')
+    tmp_flag=$(echo "$tmp_flag" | tr '[:upper:]' '[:lower:]')
     if [[ $tmp_flag == "true" || $tmp_flag == "yes" || $tmp_flag == "y" ]]; then
         printf "\n"
         im_external_db_cert_folder="$(prop_user_profile_property_file BAI.IM_EXTERNAL_POSTGRES_DATABASE_SSL_CERT_FILE_FOLDER)"
@@ -1803,7 +1811,7 @@ function validate_prerequisites(){
 
         output=$($JAVA_CMD -Dsemeru.fips=$fips_flag -Duser.language=$BAI_AUTO_LANGUAGE -Duser.country=$BAI_AUTO_REGION -Dcom.ibm.jsse2.overrideDefaultTLS=true -Djavax.net.ssl.trustStoreType=PKCS12 -cp "${DB_JDBC_NAME}/postgresql-42.7.2.jar:${DB_CONNECTION_JAR_PATH}/PostgresJDBCConnection.jar" PostgresConnection -h $dbserver -p $dbport -db $dbname -u $dbuser -pwd $dbuserpwd -sslmode verify-ca -ca $postgres_cafile -clientkey ${im_external_db_cert_folder}/clientkey.pk8 -clientcert $postgres_clientcertfile 2>&1)
         retVal_verify_db_tmp=$?
-        connection_time=$(echo $output | awk -F 'Round Trip time: ' '{print $2}' | awk '{print $1}')
+        connection_time=$(echo "$output" | awk -F 'Round Trip time: ' '{print $2}' | awk '{print $1}')
         if [[ ! -z $connection_time ]]; then
             display_latency_warning $connection_time "Database"
         fi
@@ -1816,7 +1824,7 @@ function validate_prerequisites(){
     fi
 
     tmp_flag=$(sed -e 's/^"//' -e 's/"$//' <<<"$(prop_tmp_property_file EXTERNAL_POSTGRESDB_FOR_ZEN_FLAG)")
-    tmp_flag=$(echo $tmp_flag | tr '[:upper:]' '[:lower:]')
+    tmp_flag=$(echo "$tmp_flag" | tr '[:upper:]' '[:lower:]')
     if [[ $tmp_flag == "true" || $tmp_flag == "yes" || $tmp_flag == "y" ]]; then
         printf "\n"
         zen_external_db_cert_folder="$(prop_user_profile_property_file BAI.ZEN_EXTERNAL_POSTGRES_DATABASE_SSL_CERT_FILE_FOLDER)"
@@ -1843,7 +1851,7 @@ function validate_prerequisites(){
 
         output=$($JAVA_CMD -Dsemeru.fips=$fips_flag -Duser.language=$BAI_AUTO_LANGUAGE -Duser.country=$BAI_AUTO_REGION -Dcom.ibm.jsse2.overrideDefaultTLS=true -Djavax.net.ssl.trustStoreType=PKCS12 -cp "${DB_JDBC_NAME}/postgresql-42.7.2.jar:${DB_CONNECTION_JAR_PATH}/PostgresJDBCConnection.jar" PostgresConnection -h $dbserver -p $dbport -db $dbname -u $dbuser -pwd $dbuserpwd -sslmode verify-ca -ca $postgres_cafile -clientkey ${zen_external_db_cert_folder}/clientkey.pk8 -clientcert $postgres_clientcertfile 2>&1)
         retVal_verify_db_tmp=$?
-        connection_time=$(echo $output | awk -F 'Round Trip time: ' '{print $2}' | awk '{print $1}')
+        connection_time=$(echo "$output" | awk -F 'Round Trip time: ' '{print $2}' | awk '{print $1}')
         if [[ ! -z $connection_time ]]; then
             display_latency_warning $connection_time "Database"
         fi
@@ -1856,7 +1864,7 @@ function validate_prerequisites(){
     fi
 
     tmp_flag=$(sed -e 's/^"//' -e 's/"$//' <<<"$(prop_tmp_property_file EXTERNAL_POSTGRESDB_FOR_BTS_FLAG)")
-    tmp_flag=$(echo $tmp_flag | tr '[:upper:]' '[:lower:]')
+    tmp_flag=$(echo "$tmp_flag" | tr '[:upper:]' '[:lower:]')
     if [[ $tmp_flag == "true" || $tmp_flag == "yes" || $tmp_flag == "y" ]]; then
         printf "\n"
         bts_external_db_cert_folder="$(prop_user_profile_property_file BAI.BTS_EXTERNAL_POSTGRES_DATABASE_SSL_CERT_FILE_FOLDER)"
@@ -1883,7 +1891,7 @@ function validate_prerequisites(){
 
         output=$($JAVA_CMD -Dsemeru.fips=$fips_flag -Duser.language=$BAI_AUTO_LANGUAGE -Duser.country=$BAI_AUTO_REGION -Dcom.ibm.jsse2.overrideDefaultTLS=true -Djavax.net.ssl.trustStoreType=PKCS12 -cp "${DB_JDBC_NAME}/postgresql-42.7.2.jar:${DB_CONNECTION_JAR_PATH}/PostgresJDBCConnection.jar" PostgresConnection -h $dbserver -p $dbport -db $dbname -u $dbuser -pwd $dbuserpwd -sslmode verify-ca -ca $postgres_cafile -clientkey ${bts_external_db_cert_folder}/clientkey.pk8 -clientcert $postgres_clientcertfile 2>&1)
         retVal_verify_db_tmp=$?
-        connection_time=$(echo $output | awk -F 'Round Trip time: ' '{print $2}' | awk '{print $1}')
+        connection_time=$(echo "$output" | awk -F 'Round Trip time: ' '{print $2}' | awk '{print $1}')
         if [[ ! -z $connection_time ]]; then
             display_latency_warning $connection_time "Database"
         fi
@@ -1929,15 +1937,15 @@ function parse_arguments() {
             TARGET_PROJECT_NAME="${args[$i]}"
             case "$TARGET_PROJECT_NAME" in
             "")
-                echo -e "\x1B[1;31mEnter a valid namespace name, namespace name can not be blank\x1B[0m"
+                printf '%b\n' "\x1B[1;31mEnter a valid namespace name, namespace name can not be blank\x1B[0m"
                 exit 1
                 ;;
             "openshift"*)
-                echo -e "\x1B[1;31mEnter a valid project name, project name should not be 'openshift' or start with 'openshift' \x1B[0m"
+                printf '%b\n' "\x1B[1;31mEnter a valid project name, project name should not be 'openshift' or start with 'openshift' \x1B[0m"
                 exit 1
                 ;;
             "kube"*)
-                echo -e "\x1B[1;31mEnter a valid project name, project name should not be 'kube' or start with 'kube' \x1B[0m"
+                printf '%b\n' "\x1B[1;31mEnter a valid project name, project name should not be 'kube' or start with 'kube' \x1B[0m"
                 exit 1
                 ;;
             *)
@@ -1946,10 +1954,10 @@ function parse_arguments() {
                 # Check project name
                 isProjExists=`${CLI_CMD} get namespace $TARGET_PROJECT_NAME --ignore-not-found | wc -l`  >/dev/null 2>&1
                 if [ $isProjExists -ne 2 ] ; then
-                    echo -e "\x1B[1;31mInvalid project name \"$TARGET_PROJECT_NAME\", please set a existing project name.\x1B[0m"
+                    printf '%b\n' "\x1B[1;31mInvalid project name \"$TARGET_PROJECT_NAME\", please set a existing project name.\x1B[0m"
                     exit 1
                 fi
-                echo -n
+                : # Null command - validation passed, continue execution
                 ;;
             esac
             ;;
@@ -1966,7 +1974,7 @@ function parse_arguments() {
             CUSTOM_JAVA_PATH="${args[$i]}"
             # Verify the path exists
             if [ ! -d "$CUSTOM_JAVA_PATH" ]; then
-                echo -e "\x1B[1;31mThe specified Java (JRE) path does not exist: ${CUSTOM_JAVA_PATH}\x1B[0m"
+                printf '%b\n' "\x1B[1;31mThe specified Java (JRE) path does not exist: ${CUSTOM_JAVA_PATH}\x1B[0m"
                 exit 1
             fi
             ;;
@@ -1978,7 +1986,7 @@ function parse_arguments() {
             fi
             # Verify the path exists
             if [ ! -d "$CUSTOM_JAVA_PATH" ]; then
-                echo -e "\x1B[1;31mThe specified Java (JRE) path does not exist: ${CUSTOM_JAVA_PATH}\x1B[0m"
+                printf '%b\n' "\x1B[1;31mThe specified Java (JRE) path does not exist: ${CUSTOM_JAVA_PATH}\x1B[0m"
                 exit 1
             fi
             ;;
@@ -1998,12 +2006,12 @@ function parse_arguments() {
 
 parse_arguments "$@"
 if [[ -z "$RUNTIME_MODE" ]]; then
-    echo -e "\x1B[1;31mPlease input value for \"-m <MODE_TYPE>\" option.\n\x1B[0m"
+    printf '%b\n' "\x1B[1;31mPlease input value for \"-m <MODE_TYPE>\" option.\n\x1B[0m"
     show_help
     exit 1
 fi
 if [[ -z "$TARGET_PROJECT_NAME" ]]; then
-    echo -e "\x1B[1;31mPlease input value for \"-n <BAI_NAMESPACE>\" option.\n\x1B[0m"
+    printf '%b\n' "\x1B[1;31mPlease input value for \"-n <BAI_NAMESPACE>\" option.\n\x1B[0m"
     show_help
     exit 1
 fi
@@ -2052,9 +2060,9 @@ if [[ $RUNTIME_MODE == "generate" ]]; then
 fi
 
 if [[ $RUNTIME_MODE == "validate" ]]; then
-    echo  "*****************************************************"
-    echo  "Validating the prerequisites before you install BAI stand-alone"
-    echo  "*****************************************************"
+    echo "*****************************************************"
+    echo "Validating the prerequisites before you install BAI stand-alone"
+    echo "*****************************************************"
     # Check separation of duties
     check_bai_separate_operand $TARGET_PROJECT_NAME # Function Definition can be found in helper/upgrade/upgrade_check_status.sh 
 

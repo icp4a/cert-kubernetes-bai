@@ -36,9 +36,9 @@ EOF
   
     # CREATE_PVC_CMD="kubectl apply -f ${STORAGE_CLASS_SAMPLE}"
     # if $CREATE_PVC_CMD ; then
-    #     echo -e "\x1B[1mDone\x1B[0m"
+    #     printf '%b\n' "\x1B[1mDone\x1B[0m"
     # else
-    #     echo -e "\x1B[1;31mFailed\x1B[0m"
+    #     printf '%b\n' "\x1B[1;31mFailed\x1B[0m"
     # fi
    # Check Operator Persistent Volume status every 5 seconds (max 1 minutes) until allocate.
     kubectl apply -f ${STORAGE_CLASS_SAMPLE} >/dev/null 2>&1
@@ -48,7 +48,7 @@ EOF
     info "Checking the storage class: \"${sc_name}\"..."
     until kubectl get pvc | grep ${sample_pvc_name}| grep -q -m 1 "Bound" || [ $ATTEMPTS -eq $TIMEOUT ]; do
         ATTEMPTS=$((ATTEMPTS + 1))
-        echo -e "......"
+        printf '%b\n' "......"
         sleep 5
         if [ $ATTEMPTS -eq $TIMEOUT ] ; then
             fail "Failed to allocate the persistent volumes using storage class: \"${sc_name}\"!"
@@ -97,7 +97,7 @@ function verify_ldap_connection(){
     if [[ "$output" == *"Connected to: ldaps://$ldap_server:$ldap_port"* ]]; then
         success "Connected to LDAP \"$ldap_server\" using BindDN:\"$ldap_binddn\" successfully, PASSED!"
         printf "\n"
-        connection_time=$(echo $output | awk -F 'Round Trip time: ' '{print $2}' | awk '{print $1}')
+        connection_time=$(echo "$output" | awk -F 'Round Trip time: ' '{print $2}' | awk '{print $1}')
         if [[ ! -z $connection_time ]]; then
           display_latency_warning $connection_time "LDAP"
         fi
@@ -114,7 +114,7 @@ else
     if [[ "$output" == *"Connected to: ldap://$ldap_server:$ldap_port"* ]]; then
         success "Connected to LDAP \"$ldap_server\" using BindDN:\"$ldap_binddn\" successfully, PASSED!"
         printf "\n"
-        connection_time=$(echo $output | awk -F 'Round Trip time: ' '{print $2}' | awk '{print $1}')
+        connection_time=$(echo "$output" | awk -F 'Round Trip time: ' '{print $2}' | awk '{print $1}')
         if [[ ! -z $connection_time ]]; then
           display_latency_warning $connection_time "LDAP"
         fi

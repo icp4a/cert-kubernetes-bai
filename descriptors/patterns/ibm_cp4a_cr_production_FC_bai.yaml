@@ -60,7 +60,7 @@ spec:
     images:
       keytool_init_container:
         repository: cp.icr.io/cp/cp4a/bai/dba-keytool-initcontainer
-        tag: "BAIS-24.0.1-IF006"
+        tag: "24.0.1-IF007"
 
       ## All CP4A components should use this pull_policy as the default, but it can override by each component
       pull_policy: IfNotPresent
@@ -304,7 +304,7 @@ spec:
     application_setup:
       image:
         repository: cp.icr.io/cp/cp4a/bai/insights-engine-application-setup
-        tag: "BAIS-24.0.1-IF006"
+        tag: "24.0.1-IF007"
       # The back-off limit property specifies the number of retries before the setup job is considered failed. Default: 6.
       backoff_limit: 7
       resources:
@@ -328,7 +328,7 @@ spec:
     setup:
       image:
         repository: cp.icr.io/cp/cp4a/bai/bai-setup
-        tag: "BAIS-24.0.1-IF006"
+        tag: "24.0.1-IF007"
       # The back-off limit property specifies the number of retries before the setup job is considered failed. Default: 6.
       backoff_limit: 7
       resources:
@@ -351,11 +351,11 @@ spec:
     management:
       image:
         repository: cp.icr.io/cp/cp4a/bai/insights-engine-management
-        tag: "BAIS-24.0.1-IF006"
+        tag: "24.0.1-IF007"
       backend:
         image:
           repository: cp.icr.io/cp/cp4a/bai/insights-engine-management-backend
-          tag: "BAIS-24.0.1-IF006"
+          tag: "24.0.1-IF007"
       # You can use this parameter to customize the hostname of the management service route.
       # If not set, the value of shared_configuration.sc_deployment_hostname_suffix is used.
       # hostname: "management.bai.{{ shared_configuration.sc_deployment_hostname_suffix }}"
@@ -390,6 +390,10 @@ spec:
       # Set this parameter to true to increase log verbosity when Flink jobs process fixed-format events.
       # Valid values: true and false. Default: false
       verbose_logs: true
+
+      ## This flag enable or disable Pod Disruption Budget (PDB) creation for Flink components (JobManager and TaskManager).  This flag will override the shared_configuration.sc_enable_pdb flag.  Default is true
+      ## PDBs for flink (JobManager and TaskManager) will be created with a `minAvailable: 1` only if the replica count is greater than 1.  Otherwise, the PDB will have `minAvailable: 0` if the replica is 1.
+      enable_pdb: true
 
       # The total size of the Flink task manager process.
       # Corresponding Flink parameter: taskmanager.memory.process.size
@@ -468,7 +472,7 @@ spec:
       install: false
       image:
         repository: cp.icr.io/cp/cp4a/bai/bai-bpmn
-        tag: "BAIS-24.0.1-IF006"
+        tag: "24.0.1-IF007"
       # The path to the savepoint or checkpoint from which a job will recover.
       # You can use this path to restart the job from a previous state in case of failure.
       # To use the default workflow of the job, leave this option empty.
@@ -506,7 +510,7 @@ spec:
       install: false
       image:
         repository: cp.icr.io/cp/cp4a/bai/bai-bawadv
-        tag: "BAIS-24.0.1-IF006"
+        tag: "24.0.1-IF007"
       # The path to the savepoint or checkpoint from which a job will recover.
       # You can use this path to restart the job from a previous state in case of failure.
       # To use the default workflow of the job, leave this option empty.
@@ -539,7 +543,7 @@ spec:
       install: false
       image:
         repository: cp.icr.io/cp/cp4a/bai/bai-icm
-        tag: "BAIS-24.0.1-IF006"
+        tag: "24.0.1-IF007"
       # The path to the savepoint or checkpoint from which a job will recover.
       # You can use this path to restart the job from a previous state in case of failure.
       # To use the default workflow of the job, leave this option empty.
@@ -577,7 +581,7 @@ spec:
       install: false
       image:
         repository: cp.icr.io/cp/cp4a/bai/bai-flink
-        tag: "BAIS-24.0.1-IF006"
+        tag: "24.0.1-IF007"
       # The path to the savepoint or checkpoint from which a job will recover.
       # You can use this path to restart the job from a previous state in case of failure.
       # To use the default workflow of the job, leave this option empty.
@@ -609,7 +613,7 @@ spec:
       install: false
       image:
         repository: cp.icr.io/cp/cp4a/bai/bai-flink
-        tag: "BAIS-24.0.1-IF006"
+        tag: "24.0.1-IF007"
       # The path to the savepoint or checkpoint from which a job will recover.
       # You can use this path to restart the job from a previous state in case of failure.
       # To use the default workflow of the job, leave this option empty.
@@ -641,7 +645,7 @@ spec:
       install: false
       image:
         repository: cp.icr.io/cp/cp4a/bai/bai-flink
-        tag: "BAIS-24.0.1-IF006"
+        tag: "24.0.1-IF007"
       # The path to the savepoint or checkpoint from which a job will recover.
       # You can use this path to restart the job from a previous state in case of failure.
       # To use the default workflow of the job, leave this option empty.
@@ -674,7 +678,7 @@ spec:
       install: false
       image:
         repository: cp.icr.io/cp/cp4a/bai/bai-flink
-        tag: "BAIS-24.0.1-IF006"
+        tag: "24.0.1-IF007"
       # The path to the savepoint or checkpoint from which a job will recover.
       # You can use this path to restart the job from a previous state in case of failure.
       # To use the default workflow of the job, leave this option empty.
@@ -702,13 +706,13 @@ spec:
     init_image:
       image:
         repository: cp.icr.io/cp/cp4a/bai/bai-init
-        tag: "BAIS-24.0.1-IF006"
+        tag: "24.0.1-IF007"
 
     # Business data dashboarding.
     business_performance_center:
       image:
         repository: cp.icr.io/cp/cp4a/bai/insights-engine-cockpit
-        tag: "BAIS-24.0.1-IF006"
+        tag: "24.0.1-IF007"
       # Set to false to disable Business Performance Center. Default: true.
       install: true
 
@@ -733,7 +737,7 @@ spec:
       # init_ums:
       #   image:
       #     repository: cp.icr.io/cp/cp4a/aae/dba-umsregistration-initjob
-      #     tag: "BAIS-24.0.1-IF006"
+      #     tag: "24.0.1-IF007"
       ## For SaaS
       # oidc:
       #   # The internal communication with single-sign-on (SSO) service.
