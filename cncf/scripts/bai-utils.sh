@@ -474,22 +474,22 @@ function upgrade_bai_subscription() {
     local old_channel=$1
     local new_channel=$2
 
-    local sub=$(${CLI_CMD} get sub ibm-bai-${old_channel} -n ${bai_namespace} -o jsonpath='{.metadata.name}')
+    local sub=$(${CLI_CMD} get subscription.operators.coreos.com ibm-bai-${old_channel} -n ${bai_namespace} -o jsonpath='{.metadata.name}')
     ${CLI_CMD} delete sub ${sub} -n ${bai_namespace}
 
-    sub=$(${CLI_CMD} get sub -n ${bai_namespace} | grep ibm-common-service-operator | cut -d ' ' -f 1)
+    sub=$(${CLI_CMD} get subscription.operators.coreos.com -n ${bai_namespace} | grep ibm-common-service-operator | cut -d ' ' -f 1)
     ${CLI_CMD} delete sub ${sub} -n ${bai_namespace}
 
-    sub=$(${CLI_CMD} get sub -n ${bai_namespace} | grep ibm-im-operator | cut -d ' ' -f 1)
+    sub=$(${CLI_CMD} get subscription.operators.coreos.com -n ${bai_namespace} | grep ibm-im-operator | cut -d ' ' -f 1)
     ${CLI_CMD} delete sub ${sub} -n ${bai_namespace}
 
-    sub=$(${CLI_CMD} get sub -n ${bai_namespace} | grep ibm-idp-config-ui-operator | cut -d ' ' -f 1)
+    sub=$(${CLI_CMD} get subscription.operators.coreos.com -n ${bai_namespace} | grep ibm-idp-config-ui-operator | cut -d ' ' -f 1)
     ${CLI_CMD} delete sub ${sub} -n ${bai_namespace}
 
-    sub=$(${CLI_CMD} get sub -n ${bai_namespace} | grep ibm-platformui-operator | cut -d ' ' -f 1)
+    sub=$(${CLI_CMD} get subscription.operators.coreos.com -n ${bai_namespace} | grep ibm-platformui-operator | cut -d ' ' -f 1)
     ${CLI_CMD} delete sub ${sub} -n ${bai_namespace}
 
-    sub=$(${CLI_CMD} get sub -n ${bai_namespace} | grep operand-deployment-lifecycle-manager | cut -d ' ' -f 1)
+    sub=$(${CLI_CMD} get subscription.operators.coreos.com -n ${bai_namespace} | grep operand-deployment-lifecycle-manager | cut -d ' ' -f 1)
     ${CLI_CMD} delete sub ${sub} -n ${bai_namespace}
     
     local csv=$(${CLI_CMD} get csv -n ${bai_namespace} | grep ibm-bai-kn-operator.${old_channel} | cut -d ' ' -f 1)

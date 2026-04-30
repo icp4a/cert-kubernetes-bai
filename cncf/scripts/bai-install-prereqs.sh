@@ -176,7 +176,7 @@ function check_cert_manager() {
     CERT_MANAGER_CONFIGS=$(${CLI_CMD} get certmanagerconfig -n "$CERT_MANAGER_NAMESPACE" --no-headers -o custom-columns=":metadata.name")
 
     # Check for Subscription
-    SUBSCRIPTION_EXISTS=$(${CLI_CMD} get subscription ibm-cert-manager-operator -n "$CERT_MANAGER_NAMESPACE" --ignore-not-found)
+    SUBSCRIPTION_EXISTS=$(${CLI_CMD} get subscription.operators.coreos.com ibm-cert-manager-operator -n "$CERT_MANAGER_NAMESPACE" --ignore-not-found)
 
     # Check for CSV
     CSV_NAME=$(${CLI_CMD} get csv -n "$CERT_MANAGER_NAMESPACE" | grep ibm-cert-manager | awk '{print $1}')

@@ -22,7 +22,7 @@
 # This function is called by the input_information function
 function select_platform(){
     printf "\n"
-    echo -e "\x1B[1mSelect the cloud platform to deploy: \x1B[0m"
+    printf '%b\n' "\x1B[1mSelect the cloud platform to deploy: \x1B[0m"
     COLUMNS=12
     # options=("RedHat OpenShift Kubernetes Service (ROKS) - Public Cloud" "Openshift Container Platform (OCP) - Private Cloud" "Other ( Certified Kubernetes Cloud Platform / CNCF)")
     # PS3='Enter a valid option [1 to 3]: '
@@ -73,7 +73,7 @@ function select_ldap_type(){
             ;;
         *)
             SELECTED_LDAP=""
-            echo -e "Answer must be \"Yes\" or \"No\"\n"
+            printf '%b\n' "Answer must be \"Yes\" or \"No\"\n"
             ;;
         esac
     done
@@ -82,7 +82,7 @@ function select_ldap_type(){
         select_ldap_user_for_zen
         printf "\n"
         COLUMNS=12
-        echo -e "\x1B[1mWhat is the LDAP type that will be used for this deployment? \x1B[0m"
+        printf '%b\n' "\x1B[1mWhat is the LDAP type that will be used for this deployment? \x1B[0m"
         options=("Microsoft Active Directory" "IBM Tivoli Directory Server / Security Directory Server")
         PS3='Enter a valid option [1 to 2]: '
         select opt in "${options[@]}"
@@ -111,13 +111,13 @@ function select_ldap_user_for_zen(){
     printf "\n"
     LDAP_USER_NAME=""
 
-    echo -e  "${YELLOW_TEXT}For BAI stand-alone, if you select LDAP, then provide one ldap user here for onboarding ZEN.${RESET_TEXT}"    
+    printf '%b\n'  "${YELLOW_TEXT}For BAI stand-alone, if you select LDAP, then provide one ldap user here for onboarding ZEN.${RESET_TEXT}"    
     while [[ $LDAP_USER_NAME == "" ]] # While get medium storage clase name
     do
         printf "\x1B[1mPlease enter one LDAP user for BAI stand-alone: \x1B[0m"
         read -rp "" LDAP_USER_NAME
         if [ -z "$LDAP_USER_NAME" ]; then
-        echo -e "\x1B[1;31mEnter a valid LDAP user\x1B[0m"
+        printf '%b\n' "\x1B[1;31mEnter a valid LDAP user\x1B[0m"
         fi
     done
 }
@@ -141,7 +141,7 @@ function select_storage_class(){
         printf "\x1B[1mPlease enter the file storage classname for medium storage(RWX): \x1B[0m"
         read -rp "" sc_medium_file_storage_classname
         if [ -z "$sc_medium_file_storage_classname" ]; then
-        echo -e "\x1B[1;31mEnter a valid file storage classname(RWX)\x1B[0m"
+        printf '%b\n' "\x1B[1;31mEnter a valid file storage classname(RWX)\x1B[0m"
         fi
     done
 
@@ -150,7 +150,7 @@ function select_storage_class(){
         printf "\x1B[1mPlease enter the file storage classname for fast storage(RWX): \x1B[0m"
         read -rp "" sc_fast_file_storage_classname
         if [ -z "$sc_fast_file_storage_classname" ]; then
-        echo -e "\x1B[1;31mEnter a valid file storage classname(RWX)\x1B[0m"
+        printf '%b\n' "\x1B[1;31mEnter a valid file storage classname(RWX)\x1B[0m"
         fi
     done
 
@@ -159,7 +159,7 @@ function select_storage_class(){
         printf "\x1B[1mPlease enter the block storage classname for Zen(RWO): \x1B[0m"
         read -rp "" block_storage_class_name
         if [ -z "$block_storage_class_name" ]; then
-        echo -e "\x1B[1;31mEnter a valid block storage classname(RWO)\x1B[0m"
+        printf '%b\n' "\x1B[1;31mEnter a valid block storage classname(RWO)\x1B[0m"
         fi
     done
 
@@ -177,7 +177,7 @@ function select_profile_type(){
     printf "\n"
     COLUMNS=12
     PROFILE_TYPE="small" # Question defaults to small so initializing this value to small
-    echo -e "\x1B[1mPlease select the deployment profile (default: small).  Refer to the documentation in BAI stand-alone Knowledge Center for details on profile.\x1B[0m"
+    printf '%b\n' "\x1B[1mPlease select the deployment profile (default: small).  Refer to the documentation in BAI stand-alone Knowledge Center for details on profile.\x1B[0m"
     options=("small" "medium" "large")
     if [ -z "$existing_profile_type" ]; then
         PS3='Enter a valid option [1 to 3]: '
@@ -208,8 +208,8 @@ function select_profile_type(){
                 printf "%1d) %s\n" $((i+1)) "${options[i]}"
             fi
         done
-        echo -e "\x1B[1;31mExisting profile size type found in CR: \"$existing_profile_type\"\x1B[0m"
-        # echo -e "\x1B[1;31mDo not need to select again.\n\x1B[0m"
+        printf '%b\n' "\x1B[1;31mExisting profile size type found in CR: \"$existing_profile_type\"\x1B[0m"
+        # printf '%b\n' "\x1B[1;31mDo not need to select again.\n\x1B[0m"
         prompt_press_any_key_to_continue        
     fi
 }
@@ -219,7 +219,7 @@ function select_profile_type(){
 function select_iam_default_admin(){
     printf "\n"
     while true; do
-        echo -e "\x1B[33;5mATTENTION: \x1B[0m\x1B[1;31mIf you are unable to use [cpadmin] as the default IAM admin user due to it being already used in your LDAP Directory, you need to change the Cloud Pak administrator username. See: \" https://www.ibm.com/docs/en/cloud-paks/foundational-services/$CS_CHANNEL_KC?topic=configurations-changing-cluster-administrator-access-credentials#name\"\x1B[0m"
+        printf '%b\n' "\x1B[33;5mATTENTION: \x1B[0m\x1B[1;31mIf you are unable to use [cpadmin] as the default IAM admin user due to it being already used in your LDAP Directory, you need to change the Cloud Pak administrator username. See: \" https://www.ibm.com/docs/en/cloud-paks/foundational-services/$CS_CHANNEL_KC?topic=configurations-changing-cluster-administrator-access-credentials#name\"\x1B[0m"
         printf "\x1B[1mDo you want to use the default IAM admin user: [cpadmin] (Yes/No, default: Yes): \x1B[0m"
         read -rp "" ans
         case "$ans" in
@@ -232,21 +232,21 @@ function select_iam_default_admin(){
             while [[ $NON_DEFAULT_IAM_ADMIN == "" ]]; 
             do
                 printf "\n"
-                echo -e "\x1B[1mWhat is the non default IAM admin user you renamed?\x1B[0m"
+                printf '%b\n' "\x1B[1mWhat is the non default IAM admin user you renamed?\x1B[0m"
                 read -p "Enter the admin user name: " NON_DEFAULT_IAM_ADMIN
             
                 if [ -z "$NON_DEFAULT_IAM_ADMIN" ]; then
-                    echo -e "\x1B[1;31mEnter a valid admin user name, user name can not be blank\x1B[0m"
+                    printf '%b\n' "\x1B[1;31mEnter a valid admin user name, user name can not be blank\x1B[0m"
                     NON_DEFAULT_IAM_ADMIN=""
                 elif [[ "$NON_DEFAULT_IAM_ADMIN" == "cpadmin" ]]; then
-                    echo -e "\x1B[1;31mEnter a valid admin user name, user name should not be 'cpadmin'\x1B[0m"
+                    printf '%b\n' "\x1B[1;31mEnter a valid admin user name, user name should not be 'cpadmin'\x1B[0m"
                     NON_DEFAULT_IAM_ADMIN=""
                 fi
             done
             break
             ;;
         *)
-            echo -e "Answer must be \"Yes\" or \"No\"\n"
+            printf '%b\n' "Answer must be \"Yes\" or \"No\"\n"
             ;;
         esac
     done
@@ -269,7 +269,7 @@ function generate_sample_network_policies(){
             break
             ;;
         *)
-            echo -e "Answer must be \"Yes\" or \"No\"\n"
+            printf '%b\n' "Answer must be \"Yes\" or \"No\"\n"
             ;;
         esac
     done
@@ -292,7 +292,7 @@ function enable_instana_monitoring(){
             break
             ;;
         *)
-            echo -e "Answer must be \"Yes\" or \"No\"\n"
+            printf '%b\n' "Answer must be \"Yes\" or \"No\"\n"
             ;;
         esac
     done
@@ -342,7 +342,7 @@ function select_external_postgresdb_for_im_zen_bts(){
                 break
                 ;;
             *)
-                echo -e "Answer must be \"Yes\" or \"No\"\n"
+                printf '%b\n' "Answer must be \"Yes\" or \"No\"\n"
                 ;;
             esac
         fi
@@ -370,11 +370,11 @@ function select_flink_job(){
         for ((j=0;j<${#options_cr_val[@]};j++));
         do [ "${options_cr_val[$j]}" = "$1" ] && { i=$j; break; }
         done
-        echo $i
+        echo "$i"
     }
     menu() {
         clear
-        echo -e "\x1B[1mFor which components do you want to enable the Flink job for: \x1B[0m"
+        printf '%b\n' "\x1B[1mFor which components do you want to enable the Flink job for: \x1B[0m"
         for i in ${!options[@]}; do
             containsElement "${options_cr_val[i]}" "${EXISTING_PATTERN_ARR[@]}"
             retVal=$?
@@ -393,9 +393,9 @@ function select_flink_job(){
         containsElement "(Selected)" "${choices_pattern[@]}"
         retVal=$?
         if [ $retVal -ne 0 ]; then
-            echo -e "${tips1}"
+            printf '%b\n' "${tips1}"
         else
-            echo -e "${tips2}"
+            printf '%b\n' "${tips2}"
         fi
 # ##########################DEBUG############################
 #     for i in "${!choices_pattern[@]}"; do
@@ -420,7 +420,7 @@ function select_flink_job(){
     for i in ${!options[@]}; do
         [[ "${choices_pattern[i]}" ]] && { flink_job_arr=( "${flink_job_arr[@]}" "${options[i]}" ); flink_job_cr_arr=( "${flink_job_cr_arr[@]}" "${options_cr_val[i]}" ); msg=""; }
     done
-    # echo -e "$msg"
+    # printf '%b\n' "$msg"
 
     if [ "${#flink_job_arr[@]}" -eq "0" ]; then
         FLINK_JOB_SELECTED="None"
@@ -588,7 +588,7 @@ function create_ldap_property_file(){
     tip="## Property file for ${LDAP_TYPE} ##"
 
     echo "###########################" >> ${LDAP_PROPERTY_FILE}
-    echo $tip >> ${LDAP_PROPERTY_FILE}
+    echo "$tip" >> ${LDAP_PROPERTY_FILE}
     echo "###########################" >> ${LDAP_PROPERTY_FILE}
     for i in "${!LDAP_COMMON_PROPERTY[@]}"; do
         echo "${COMMENTS_LDAP_PROPERTY[i]}" >> ${LDAP_PROPERTY_FILE}
@@ -646,16 +646,13 @@ function create_ldap_property_file(){
     # For https://jsw.ibm.com/browse/DBACLD-154784 The error should be thrown when we select 'yes' to configure one LDAP.
     # Convert SELECTED_LDAP to lowercase so that it will match any variation of "yes"
     if [[ "$(echo "${SELECTED_LDAP}" | tr '[:upper:]' '[:lower:]')" == "yes" ]]; then
-        ${SED_COMMAND} "s|LDAP_BIND_DN_PASSWORD=\"\"|LDAP_BIND_DN_PASSWORD=\"{xor}<Required>\"|g" ${LDAP_PROPERTY_FILE}
+        ${SED_COMMAND} "s|LDAP_BIND_DN_PASSWORD=\"\"|LDAP_BIND_DN_PASSWORD=\"{Base64}<Required>\"|g" ${LDAP_PROPERTY_FILE}
         ${SED_COMMAND} "s|LDAP_SERVER=\"\"|LDAP_SERVER=\"<Required>\"|g" ${LDAP_PROPERTY_FILE}
         ${SED_COMMAND} "s|LDAP_PORT=\"\"|LDAP_PORT=\"<Required>\"|g" ${LDAP_PROPERTY_FILE}
         ${SED_COMMAND} "s|LDAP_BASE_DN=\"\"|LDAP_BASE_DN=\"<Required>\"|g" ${LDAP_PROPERTY_FILE}
         ${SED_COMMAND} "s|LDAP_BIND_DN=\"\"|LDAP_BIND_DN=\"<Required>\"|g" ${LDAP_PROPERTY_FILE}
         ${SED_COMMAND} "s|LDAP_GROUP_BASE_DN=\"\"|LDAP_GROUP_BASE_DN=\"<Required>\"|g" ${LDAP_PROPERTY_FILE}
     fi
-
-    # Added "BAI.BTS_EXTERNAL_POSTGRES_DATABASE_USER_PASSWORD" to OPTIONAL_PARAMETERS_LIST
-    OPTIONAL_PARAMETERS_LIST+=("BAI.BTS_EXTERNAL_POSTGRES_DATABASE_USER_PASSWORD")
     
     # Marks all entries in "OPTIONAL_PARAMETERS_LIST" as optional by appending them to the TEMPORARY_PROPERTY_FILE under "OPTIONAL_PARAMETERS:"
     mark_optional
@@ -670,7 +667,7 @@ function create_user_property_file(){
     # Add global property into user_profile for BAI stand-alone
     tip="##           USER Property for BAI stand-alone               ##"
     echo "####################################################" >> ${USER_PROFILE_PROPERTY_FILE}
-    echo $tip >> ${USER_PROFILE_PROPERTY_FILE}
+    echo "$tip" >> ${USER_PROFILE_PROPERTY_FILE}
     echo "####################################################" >> ${USER_PROFILE_PROPERTY_FILE}
     # license
     echo "## Use this parameter to specify the license for the BAI stand-alone deployment and" >> ${USER_PROFILE_PROPERTY_FILE}
@@ -852,10 +849,6 @@ function create_user_property_file(){
         echo "BAI.BTS_EXTERNAL_POSTGRES_DATABASE_USER_NAME=\"btscnp_user\"" >> ${USER_PROFILE_PROPERTY_FILE}
         echo "" >> ${USER_PROFILE_PROPERTY_FILE}
 
-        echo "## The password of the database user." >> ${USER_PROFILE_PROPERTY_FILE}
-        echo "BAI.BTS_EXTERNAL_POSTGRES_DATABASE_USER_PASSWORD=\"<Optional>\"" >> ${USER_PROFILE_PROPERTY_FILE}
-        echo "" >> ${USER_PROFILE_PROPERTY_FILE}
-
         echo "## Name of the database. The default value is \"btscnpdb\"." >> ${USER_PROFILE_PROPERTY_FILE}
         echo "BAI.BTS_EXTERNAL_POSTGRES_DATABASE_NAME=\"btscnpdb\"" >> ${USER_PROFILE_PROPERTY_FILE}
         echo "" >> ${USER_PROFILE_PROPERTY_FILE}
@@ -960,7 +953,7 @@ function create_property_file(){
     
     # Show some tips for property file
     tips
-    echo -e  "Enter the <Required> values in the property files under $PROPERTY_FILE_FOLDER"
+    printf '%b\n'  "Enter the <Required> values in the property files under $PROPERTY_FILE_FOLDER"
     msgRed   "The key name in the property file is created by the bai-prerequisites.sh and is NOT EDITABLE."
     msgRed   "The value in the property file must be within double quotes."
     msgRed   "The value for User/Password in [bai_user_profile.property] file should NOT include special characters: single quotation \"'\""
@@ -968,14 +961,14 @@ function create_property_file(){
 
     if [[ $SELECTED_LDAP == "Yes" ]]; then
         msgRed   "The value in [bai_LDAP.property] [bai_user_profile.property] file should NOT include special character '\"'"
-        echo -e  "\x1b[32m* [bai_LDAP.property]:\x1B[0m"
-        echo -e  "  - Contains Properties for the LDAP server that is used by the BAI stand-alone deployment, such as LDAP_SERVER/LDAP_PORT/LDAP_BASE_DN/LDAP_BIND_DN/LDAP_BIND_DN_PASSWORD.\n"
-        echo -e " - $RED_TEXT[REQUIRED]$RESET_TEXT If you plan to enable SSL-based connections for your LDAP server, retrieve the server certificate file from your remote LDAP server and copy it into the folder \"$LDAP_SSL_CERT_FOLDER\" before running bai-prerequisites.sh script in \"generate\" mode.$RED_TEXT The certificate must be named ldap-cert.crt. $RESET_TEXT"
+        printf '%b\n'  "\x1b[32m* [bai_LDAP.property]:\x1B[0m"
+        printf '%b\n'  "  - Contains Properties for the LDAP server that is used by the BAI stand-alone deployment, such as LDAP_SERVER/LDAP_PORT/LDAP_BASE_DN/LDAP_BIND_DN/LDAP_BIND_DN_PASSWORD.\n"
+        printf '%b\n' " - $RED_TEXT[REQUIRED]$RESET_TEXT If you plan to enable SSL-based connections for your LDAP server, retrieve the server certificate file from your remote LDAP server and copy it into the folder \"$LDAP_SSL_CERT_FOLDER\" before running bai-prerequisites.sh script in \"generate\" mode.$RED_TEXT The certificate must be named ldap-cert.crt. $RESET_TEXT"
     fi
     echo
-    echo -e  "\x1b[32m* [bai_user_profile.property]:\x1B[0m"
-    echo -e  "  - Contains Properties for the global value used by the BAI stand-alone deployment, such as \"sc_deployment_license\".\n"
-    echo -e  "  - Contains Properties for the value used by each component of BAI stand-alone, such as \"sc_deployment_profile_size\"\n"
+    printf '%b\n'  "\x1b[32m* [bai_user_profile.property]:\x1B[0m"
+    printf '%b\n'  "  - Contains Properties for the global value used by the BAI stand-alone deployment, such as \"sc_deployment_license\".\n"
+    printf '%b\n'  "  - Contains Properties for the value used by each component of BAI stand-alone, such as \"sc_deployment_profile_size\"\n"
 
     # show tips for IM metastore external Postgres DB
     if [[ $EXTERNAL_POSTGRESDB_FOR_IM == "true" ]]; then

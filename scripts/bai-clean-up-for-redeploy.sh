@@ -28,7 +28,7 @@ function select_platform(){
     printf "\n"
     # clear
     COLUMNS=12
-    echo -e "\x1B[1mSelect the cloud platform where BAI Standalone has been deployed: \x1B[0m"
+    printf '%b\n' "\x1B[1mSelect the cloud platform where BAI Standalone has been deployed: \x1B[0m"
 
     # Adding the Rancher / Tanzu option
     # DBACLD-168151
@@ -92,7 +92,7 @@ function get_namespace() {
 
     while [ -z "$BAI_NAMESPACE" ] && [ $attempts -lt $max_attempts ]; do
         printf "\x1B[1mEnter namespace of your BAI deployment: \x1B[0m"
-        read -rp "" ans
+        read -erp "" ans
         BAI_NAMESPACE=$ans
         if [[ $CLI_CMD == "kubectl" ]]; then
             namespace_check_command="${CLI_CMD} get namespace ${BAI_NAMESPACE} -o name"
@@ -100,7 +100,7 @@ function get_namespace() {
             namespace_check_command="${CLI_CMD} get project ${BAI_NAMESPACE} -o name"
         fi
         if [ -z "$($namespace_check_command 2>/dev/null)" ]; then
-            echo -e "\x1B[1;31mError: Namespace ${BAI_NAMESPACE} does not exist. Please re-enter the namespace.\x1B[0m"
+            printf '%b\n' "\x1B[1;31mError: Namespace ${BAI_NAMESPACE} does not exist. Please re-enter the namespace.\x1B[0m"
             BAI_NAMESPACE=""
             attempts=$((attempts + 1))
         fi
@@ -123,7 +123,7 @@ function separation_of_duties_check() {
         max_retries=0
         while [ $max_retries -lt 4 ]; do
             printf "\x1B[1m\nDid you install BAI Standalone with Separation of Duties? (Yes/No, default: No) \x1B[0m"
-            read -rp "" ans
+            read -erp "" ans
             # If the user provides no input, set the default to 'No'
             if [ -z "$ans" ]; then
                 ans="No"
@@ -135,10 +135,10 @@ function separation_of_duties_check() {
                     max_counter=0
                     while [ $max_counter -lt 4 ]; do
                         printf "\x1B[1mEnter Operand namespace of your BAI deployment: \x1B[0m"
-                        read -rp "" ans 
+                        read -erp "" ans 
                         BAI_SERVICE_NAMESPACE=$ans
                         if [ -z "$(${CLI_CMD} get project "${BAI_SERVICE_NAMESPACE}" 2>/dev/null)" ]; then
-                            echo -e "\x1B[1;31mError: Namespace ${BAI_SERVICE_NAMESPACE} does not exist. Please re-enter the namespace.\x1B[0m"
+                            printf '%b\n' "\x1B[1;31mError: Namespace ${BAI_SERVICE_NAMESPACE} does not exist. Please re-enter the namespace.\x1B[0m"
                             BAI_SERVICE_NAMESPACE=""
                             max_counter=$(($max_counter + 1))
                         else
@@ -150,10 +150,10 @@ function separation_of_duties_check() {
                         error "Maximum retries for incorrect inputs exceeded. The script will now exit.."
                         exit
                     fi
-                    echo -e "\x1B[1mGetting Operator Namespace... \x1B[0m"
+                    printf '%b\n' "\x1B[1mGetting Operator Namespace... \x1B[0m"
                     BAI_NAMESPACE=$(${CLI_CMD} get cm ibm-cp4ba-common-config -n $BAI_SERVICE_NAMESPACE --ignore-not-found -o jsonpath="{ .data.operators_namespace}")
                     if [[ -z "$BAI_NAMESPACE" ]]; then
-                        echo -e "\x1B[31;5mError: ibm-cp4ba-common-config ConfigMap not found in ${BAI_SERVICE_NAMESPACE} \x1B[0m\n"
+                        printf '%b\n' "\x1B[31;5mError: ibm-cp4ba-common-config ConfigMap not found in ${BAI_SERVICE_NAMESPACE} \x1B[0m\n"
                         exit 1
                     fi
                     break
@@ -177,31 +177,31 @@ function separation_of_duties_check() {
 function check_namespace_validity(){
     # Check for namespace to prvent accidental deletion to other important namespaces.
     if [[ "$BAI_SERVICE_NAMESPACE" == openshift* ]]; then
-        echo -e "\x1B[1;31mThe current namespace should not be 'openshift' or start with 'openshift'. It should be the namespace where BAI is installed. The script aborted. \x1B[0m"
+        printf '%b\n' "\x1B[1;31mThe current namespace should not be 'openshift' or start with 'openshift'. It should be the namespace where BAI is installed. The script aborted. \x1B[0m"
         exit 1
     elif [[ "$BAI_SERVICE_NAMESPACE" == kube* ]]; then
-        echo -e "\x1B[1;31mThe current namespace should not be 'kube' or start with 'kube'. It should be the namespace where BAI is installed. The script aborted. \x1B[0m"
+        printf '%b\n' "\x1B[1;31mThe current namespace should not be 'kube' or start with 'kube'. It should be the namespace where BAI is installed. The script aborted. \x1B[0m"
         exit 1
     elif [[ "$BAI_SERVICE_NAMESPACE" == "services" ]]; then
-        echo -e "\x1B[1;31mThe current namespace should not be 'services'. It should be the namespace where BAI is installed. The script aborted. \x1B[0m"
+        printf '%b\n' "\x1B[1;31mThe current namespace should not be 'services'. It should be the namespace where BAI is installed. The script aborted. \x1B[0m"
         exit 1
     elif [[ "$BAI_SERVICE_NAMESPACE" == "default" ]]; then
-        echo -e "\x1B[1;31mThe current namespace should not be 'default'. It should be the namespace where BAI is installed. The script aborted. \x1B[0m"
+        printf '%b\n' "\x1B[1;31mThe current namespace should not be 'default'. It should be the namespace where BAI is installed. The script aborted. \x1B[0m"
         exit 1
     elif [[ "$BAI_SERVICE_NAMESPACE" == "calico-system" ]]; then
-        echo -e "\x1B[1;31mThe current namespace should not be 'calico-system'. It should be the namespace where BAI is installed. The script aborted. \x1B[0m"
+        printf '%b\n' "\x1B[1;31mThe current namespace should not be 'calico-system'. It should be the namespace where BAI is installed. The script aborted. \x1B[0m"
         exit 1
     elif [[ "$BAI_SERVICE_NAMESPACE" == "ibm-cert-store" ]]; then
-        echo -e "\x1B[1;31mThe current namespace should not be 'ibm-cert-store'. It should be the namespace where BAI is installed. The script aborted. \x1B[0m"
+        printf '%b\n' "\x1B[1;31mThe current namespace should not be 'ibm-cert-store'. It should be the namespace where BAI is installed. The script aborted. \x1B[0m"
         exit 1
     elif [[ "$BAI_SERVICE_NAMESPACE" == "ibm-observe" ]]; then
-        echo -e "\x1B[1;31mThe current namespace should not be 'ibm-observe'. It should be the namespace where BAI is installed. The script aborted. \x1B[0m"
+        printf '%b\n' "\x1B[1;31mThe current namespace should not be 'ibm-observe'. It should be the namespace where BAI is installed. The script aborted. \x1B[0m"
         exit 1
     elif [[ "$BAI_SERVICE_NAMESPACE" == "ibm-odf-validation-webhook" ]]; then
-        echo -e "\x1B[1;31mThe current namespace should not be 'default'. It should be the namespace where BAI is installed. The script aborted. \x1B[0m"
+        printf '%b\n' "\x1B[1;31mThe current namespace should not be 'default'. It should be the namespace where BAI is installed. The script aborted. \x1B[0m"
         exit 1
     elif [[ "$BAI_SERVICE_NAMESPACE" == "ibm-system" ]]; then
-        echo -e "\x1B[1;31mThe current namespace should not be 'ibm-system'. It should be the namespace where BAI is installed. The script aborted. \x1B[0m"
+        printf '%b\n' "\x1B[1;31mThe current namespace should not be 'ibm-system'. It should be the namespace where BAI is installed. The script aborted. \x1B[0m"
         exit 1
     fi
 }
@@ -257,9 +257,9 @@ function delete_bai_operand_requests() {
 function delete_bai_operators() {
     local namespace=$1
     title "Deleting BAI foundation and Insights Engine Operators..."
-    insightsengine_sub=$(${CLI_CMD} get sub --no-headers --ignore-not-found -n ${namespace}|grep insights-engine |awk '{print $1}')
+    insightsengine_sub=$(${CLI_CMD} get subscription.operators.coreos.com --no-headers --ignore-not-found -n ${namespace}|grep insights-engine |awk '{print $1}')
     force_delete $insightsengine_sub "sub" ${namespace}
-    foundation_sub=$(${CLI_CMD} get sub --no-headers --ignore-not-found -n ${namespace}|grep foundation |awk '{print $1}')
+    foundation_sub=$(${CLI_CMD} get subscription.operators.coreos.com --no-headers --ignore-not-found -n ${namespace}|grep foundation |awk '{print $1}')
     force_delete $foundation_sub "sub" ${namespace}
     insightsengine_csv=$(${CLI_CMD} get csv --no-headers --ignore-not-found -n ${namespace}|grep insights-engine |awk '{print $1}')
     force_delete $insightsengine_csv "csv" ${namespace}
@@ -279,16 +279,16 @@ function uninstall_bai_operators(){
     info " The script will now proceed to uninstalling the BAI Standalone Operators. This step will not uninstall any CPFS operators"
     printf "\n"
     printf "\x1B[1mDo you want to proceed with the uninstallation of BAI Standalone Operators (Yes/No, default: No): \x1B[0m"
-    read -rp "" ans
+    read -erp "" ans
     case "$ans" in
     "y"|"Y"|"yes"|"Yes"|"YES")
         uninstall_bai_operators_flag=true
         printf "\n"
-        echo -e "Proceeding with uninstalling the BAI Standalone Operators... "
+        printf '%b\n' "Proceeding with uninstalling the BAI Standalone Operators... "
         printf "\n"
         ;;
     "n"|"N"|"no"|"No"|"NO"|"")
-        echo -e "Skipping the uninstall of BAI Standalone Operators......"
+        printf '%b\n' "Skipping the uninstall of BAI Standalone Operators......"
         printf "\n"
         ;;
     *)
@@ -343,7 +343,7 @@ function pv_pvc_cm_secrets_to_delete(){
 
     # Ask for confirmation
     printf "\x1B[1mDo you want to proceed with deleting these resources (Yes/No, default: No): \x1B[0m"
-    read -rp "" confirm
+    read -erp "" confirm
     if [[ "$confirm" == "yes" || "$confirm" == "y" || "$confirm" == "Y"|| "$confirm" == "yes" || "$confirm" == "Yes" || "$confirm" == "YES" ]]; then
         info "Proceeding with the deletion of Secrets , PVs,PVCs and Service Accounts...."
         delete_resource_type "pvc" "$namespace"
@@ -458,7 +458,7 @@ function cleanup_ibm_licensing() {
     fi
 
     # Delete Subscription
-    SUB_NAME=$(${CLI_CMD} get subscription -n "$IBM_LICENSING_NAMESPACE" --no-headers | awk '/ibm-licensing-operator-app/ {print $1}')
+    SUB_NAME=$(${CLI_CMD} get subscription.operators.coreos.com -n "$IBM_LICENSING_NAMESPACE" --no-headers | awk '/ibm-licensing-operator-app/ {print $1}')
     if [[ -n "$SUB_NAME" ]]; then
         echo "Deleting Subscription: $SUB_NAME"
         ${CLI_CMD} delete subscription "$SUB_NAME" -n "$IBM_LICENSING_NAMESPACE"
@@ -467,7 +467,7 @@ function cleanup_ibm_licensing() {
     fi
 
     # Delete Subscription
-    SUB_NAME=$(${CLI_CMD} get subscription -n "$BAI_SERVICE_NAMESPACE" --no-headers | awk '/ibm-licensing-operator-app/ {print $1}')
+    SUB_NAME=$(${CLI_CMD} get subscription.operators.coreos.com -n "$BAI_SERVICE_NAMESPACE" --no-headers | awk '/ibm-licensing-operator-app/ {print $1}')
     if [[ -n "$SUB_NAME" ]]; then
         echo "Deleting Subscription: $SUB_NAME"
         ${CLI_CMD} delete subscription "$SUB_NAME" -n "$BAI_SERVICE_NAMESPACE"
@@ -579,7 +579,7 @@ if [[ "$PLATFORM_SELECTED" == "OCP" || "$PLATFORM_SELECTED" == "ROKS" ]]; then
     separation_of_duties_check
     # Validate BAI_NAMESPACE env var is for existing namespace
     if [ -z "$(${CLI_CMD} get project "${BAI_SERVICE_NAMESPACE}" 2>/dev/null)" ]; then
-        echo -e "\x1B[1;31mError: Namespace ${BAI_SERVICE_NAMESPACE} does not exist. Specify an existing namespace where BAI is deployed.\x1B[0m" && exit 1
+        printf '%b\n' "\x1B[1;31mError: Namespace ${BAI_SERVICE_NAMESPACE} does not exist. Specify an existing namespace where BAI is deployed.\x1B[0m" && exit 1
     fi
 else
     BAI_SERVICE_NAMESPACE=$BAI_NAMESPACE
@@ -587,46 +587,46 @@ fi
 check_namespace_validity
 
 if [[ "$PLATFORM_SELECTED" == "OCP" || "$PLATFORM_SELECTED" == "ROKS" ]]; then
-    echo -e "The BAI namespace entered: ${BAI_SERVICE_NAMESPACE}"
+    printf '%b\n' "The BAI namespace entered: ${BAI_SERVICE_NAMESPACE}"
     if [[ "$BAI_SERVICE_NAMESPACE" != "$BAI_NAMESPACE" ]]; then
-        echo -e "The BAI operator namespace is ${BAI_NAMESPACE}\n"
+        printf '%b\n' "The BAI operator namespace is ${BAI_NAMESPACE}\n"
     fi
 fi
 
-echo -e "\x1B[1mNote: Please make sure you are using the namespace you intent to clean up.\n\x1B[0m"
-echo -e "\x1B[33;5mATTENTION: \x1B[0m\x1B[1;31mThis clean-up script is only intended to be run after you have deleted your InsightsEngine CR instance for your BAI deployment. This clean-up script will delete all Client CRs and zenExtensions, and some secrets that would cause failure in re-deployment. \x1B[0m\n"
+printf '%b\n' "\x1B[1mNote: Please make sure you are using the namespace you intent to clean up.\n\x1B[0m"
+printf '%b\n' "\x1B[33;5mATTENTION: \x1B[0m\x1B[1;31mThis clean-up script is only intended to be run after you have deleted your InsightsEngine CR instance for your BAI deployment. This clean-up script will delete all Client CRs and zenExtensions, and some secrets that would cause failure in re-deployment. \x1B[0m\n"
 
 # Confirm to clean up
-echo -e "\x1B[1mPlease confirm if you would like to proceed with this clean up.\x1B[0m"
+printf '%b\n' "\x1B[1mPlease confirm if you would like to proceed with this clean up.\x1B[0m"
 read -p "Enter Y or y to continue: " -n 1 -r
   echo
   if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-    echo -e "\nYou did not confirm to proceed with this clean up. Exit clean-up script.\n"
+    printf '%b\n' "\nYou did not confirm to proceed with this clean up. Exit clean-up script.\n"
     exit 0
   fi
-  echo -e "You have confirmed to continue this clean up.\n"
+  printf '%b\n' "You have confirmed to continue this clean up.\n"
   sleep 2
 
 
 # Clean up clients
-echo -e "\x1B[1mCleaning up Clients... \x1B[0m\n"
+printf '%b\n' "\x1B[1mCleaning up Clients... \x1B[0m\n"
 delete_resource client "${BAI_SERVICE_NAMESPACE}"
-echo -e "\n\x1B[1mFinsished cleaning up all Clients. \x1B[0m\n"
+printf '%b\n' "\n\x1B[1mFinsished cleaning up all Clients. \x1B[0m\n"
 # Clean up zenExtension
-echo -e "\x1B[1mCleaning up zenExtensions... \x1B[0m\n"
+printf '%b\n' "\x1B[1mCleaning up zenExtensions... \x1B[0m\n"
 delete_resource zenextension "${BAI_SERVICE_NAMESPACE}"
-echo -e "\n\x1B[1mFinsihed cleaning up all zenExtensions. \x1B[0m\n"
+printf '%b\n' "\n\x1B[1mFinsihed cleaning up all zenExtensions. \x1B[0m\n"
 # Clean up zen-metastore-edb secret
-echo -e "\x1B[1mCleaning up zen-metastore-edb secrets... \x1B[0m\n"
+printf '%b\n' "\x1B[1mCleaning up zen-metastore-edb secrets... \x1B[0m\n"
 for i in $(${CLI_CMD} get secrets --no-headers|awk '{print $1}'| grep 'zen-metastore-edb'); do
     ${CLI_CMD} delete secret "$i" -n "$BAI_SERVICE_NAMESPACE"
 done
-echo -e "\n\x1B[1mFinsihed cleaning up all zen-metastore-edb related secrets. \x1B[0m\n"
+printf '%b\n' "\n\x1B[1mFinsihed cleaning up all zen-metastore-edb related secrets. \x1B[0m\n"
 
 # Clean up cs-ca-certificate secret
-echo -e "\x1B[1mCleaning up cs-ca-certificate-secret secret... \x1B[0m\n"
+printf '%b\n' "\x1B[1mCleaning up cs-ca-certificate-secret secret... \x1B[0m\n"
 ${CLI_CMD} delete secret cs-ca-certificate-secret -n "$BAI_SERVICE_NAMESPACE"
-echo -e "\n\x1B[1mFinsihed cleaning up cs-ca-certificate-secret secret. \x1B[0m\n"
+printf '%b\n' "\n\x1B[1mFinsihed cleaning up cs-ca-certificate-secret secret. \x1B[0m\n"
 
 # delete FlinkDeployment CR
 echo "Deleting FlinkDeployment CR"

@@ -80,7 +80,7 @@ function check_missing_quotes(){
 
 ## -- https://jsw.ibm.com/browse/DBACLD-172803 - Function created to improve code
 # Function to check for unfilled <Required> parameters, takes two arguments:
-# 1) The style of <Required> filed, e.g. {Base}<Required>, {xor}<Required>
+# 1) The style of <Required> filed, e.g. {Base64}<Required>
 # 2) The property file name to check.
 function check_required_values(){
     required_field=$1
@@ -118,8 +118,6 @@ function check_property_file(){
     # Check <Required> values for cp4ba_user_profile.property
     check_required_values "<Required>" "${USER_PROFILE_PROPERTY_FILE}"
     check_required_values "{Base64}<Required>" "${USER_PROFILE_PROPERTY_FILE}"
-    ## -- https://jsw.ibm.com/browse/DBACLD-172803 - We are now asking user to use {xor} for special characters in password for some parameters, so we need to check if the "{xor}<Required>" is not filled out.
-    check_required_values "<{xor}<Required>" "${USER_PROFILE_PROPERTY_FILE}"
     
     # Check for empty values in the user profile property file
     validate_property_file_required_fields "${USER_PROFILE_PROPERTY_FILE}"
@@ -146,8 +144,6 @@ function check_property_file(){
     if [[ $selected_ldap_flag == "Yes" ]]; then
         check_required_values "<Required>" "${LDAP_PROPERTY_FILE}"
         check_required_values "{Base64}<Required>" "${LDAP_PROPERTY_FILE}"
-        ## -- https://jsw.ibm.com/browse/DBACLD-172803 - We are now asking user to use {xor} for special characters in password for some parameters, so we need to check if the "{xor}<Required>" is not filled out.
-        check_required_values "{xor}<Required>" "${LDAP_PROPERTY_FILE}"
 
         # Check for empty values in the ldap property file
         validate_property_file_required_fields "${LDAP_PROPERTY_FILE}"
@@ -390,16 +386,7 @@ function generate_external_postgres_secrets_configmaps_for_bts(){
     fi
     ${SED_COMMAND} "s|<cp4a-db-crt-file-in-local>|$bts_external_db_cert_folder|g" ${BTS_SSL_SECRET_FILE}
 
-    #  replace <DatabaseUser>
-    tmp_name="$(prop_user_profile_property_file BAI.BTS_EXTERNAL_POSTGRES_DATABASE_USER_NAME)"
-    tmp_name=$(sed -e 's/^"//' -e 's/"$//' <<<"$tmp_name")
-    ${SED_COMMAND} "s|<USERNAME>|$tmp_name|g" ${BTS_SECRET_FILE}
-
-    #  replace <DatabaseUser_password>
-    tmp_name="$(prop_user_profile_property_file BAI.BTS_EXTERNAL_POSTGRES_DATABASE_USER_PASSWORD)"
-    tmp_name=$(sed -e 's/^"//' -e 's/"$//' <<<"$tmp_name")
-    ${SED_COMMAND} "s|<PASSWORD>|$tmp_name|g" ${BTS_SECRET_FILE}
-
+    
     create_bts_external_db_configmap_template
     #  replace <DatabaseHostName>
     tmp_name="$(prop_user_profile_property_file BAI.BTS_EXTERNAL_POSTGRES_DATABASE_HOSTNAME)"
@@ -415,6 +402,11 @@ function generate_external_postgres_secrets_configmaps_for_bts(){
     tmp_name="$(prop_user_profile_property_file BAI.BTS_EXTERNAL_POSTGRES_DATABASE_NAME)"
     tmp_name=$(sed -e 's/^"//' -e 's/"$//' <<<"$tmp_name")
     ${SED_COMMAND} "s|<DatabaseName>|$tmp_name|g" ${BTS_CONFIGMAP_FILE}
+
+    #  replace <DatabaseUserName>
+    tmp_name="$(prop_user_profile_property_file BAI.BTS_EXTERNAL_POSTGRES_DATABASE_USER_NAME)"
+    tmp_name=$(sed -e 's/^"//' -e 's/"$//' <<<"$tmp_name")
+    ${SED_COMMAND} "s|<DatabaseUserName>|$tmp_name|g" ${BTS_CONFIGMAP_FILE}
 }
 
 #### END - Functions being called by the generate_secrets function ####

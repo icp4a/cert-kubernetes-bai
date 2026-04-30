@@ -55,7 +55,7 @@ function get_pod_name_by_label_name () {
     
     local pod_name=$(${CLI_CMD} get pod -l=${pod_label} -n ${pod_namespace} --no-headers | awk '{print $1}')
     
-    echo ${pod_name}
+    echo "${pod_name}"
 
 }
 
@@ -86,8 +86,8 @@ function retrieve_network_policy_templates() {
 
     for oper_name in "${OPER_LIST[@]}"
     do
-        local label_key=$(echo ${oper_name} | cut -d':' -f1)
-        local label_value=$(echo ${oper_name} | cut -d':' -f2)
+        local label_key=$(echo "${oper_name}" | cut -d':' -f1)
+        local label_value=$(echo "${oper_name}" | cut -d':' -f2)
         local output
 
 
@@ -120,7 +120,7 @@ function retrieve_network_policy_templates() {
 
                     printf "%s\n" "${output}" >> "${LOG_FILE}"
 
-                    if ! echo ${output} | grep -qE "failure|failed"; then
+                    if ! echo "${output}" | grep -qE "failure|failed"; then
                         failed_copy=false
                         echo " - Copied to dir ${target_template_path_list[$i]} ..."
                     fi

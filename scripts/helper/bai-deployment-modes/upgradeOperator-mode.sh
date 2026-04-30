@@ -34,19 +34,19 @@ function check_and_created_sharedinfo_configmap(){
             ${SED_COMMAND} "s|<csv_version>|$bai_operator_csv_version|g" ${UPGRADE_BAI_SHARED_INFO_CM_FILE}
             ${SED_COMMAND} "s|<cr_version>|$cr_version|g" ${UPGRADE_BAI_SHARED_INFO_CM_FILE}
 
-            ${CLI_CMD} apply -f $UPGRADE_BAI_SHARED_INFO_CM_FILE  >/dev/null 2>&1
+            ${CLI_CMD} apply -f $UPGRADE_BAI_SHARED_INFO_CM_FILE >&3 2>&3
             if [ $? -eq 0 ]; then
                 success "Created ibm-bai-shared-info configMap in the project \"$BAI_SERVICES_NS\"!"
-                ${CLI_CMD} patch configmap ibm-bai-shared-info -n $BAI_SERVICES_NS --type=json -p="[{'op': 'add', 'path': '/data/bai_original_csv_ver_for_upgrade_script', 'value': '$(echo $bai_operator_csv_version)'}]" >/dev/null 2>&1
-                ${CLI_CMD} patch configmap ibm-bai-shared-info -n $BAI_SERVICES_NS --type=json -p="[{'op': 'add', 'path': '/data/cpfs_original_csv_ver_for_upgrade_script', 'value': '$(echo $cpfs_operator_csv_version)'}]" >/dev/null 2>&1
+                ${CLI_CMD} patch configmap ibm-bai-shared-info -n $BAI_SERVICES_NS --type=json -p="[{'op': 'add', 'path': '/data/bai_original_csv_ver_for_upgrade_script', 'value': '$(echo "$bai_operator_csv_version")'}]" >&3 2>&3
+                ${CLI_CMD} patch configmap ibm-bai-shared-info -n $BAI_SERVICES_NS --type=json -p="[{'op': 'add', 'path': '/data/cpfs_original_csv_ver_for_upgrade_script', 'value': '$(echo "$cpfs_operator_csv_version")'}]" >&3 2>&3
                 bai_original_csv_ver_for_upgrade_script=$bai_operator_csv_version
             else
                 fail "Failed to create ibm-bai-shared-info configMap in the project \"$BAI_SERVICES_NS\"!"
             fi
         else
             success "Found ibm-bai-shared-info configMap under \"$BAI_SERVICES_NS\"!"
-            ${CLI_CMD} patch configmap ibm-bai-shared-info -n $BAI_SERVICES_NS --type=json -p="[{'op': 'add', 'path': '/data/bai_original_csv_ver_for_upgrade_script', 'value': '$(echo $bai_operator_csv_version)'}]" >/dev/null 2>&1
-            ${CLI_CMD} patch configmap ibm-bai-shared-info -n $BAI_SERVICES_NS --type=json -p="[{'op': 'add', 'path': '/data/cpfs_original_csv_ver_for_upgrade_script', 'value': '$(echo $cpfs_operator_csv_version)'}]" >/dev/null 2>&1
+            ${CLI_CMD} patch configmap ibm-bai-shared-info -n $BAI_SERVICES_NS --type=json -p="[{'op': 'add', 'path': '/data/bai_original_csv_ver_for_upgrade_script', 'value': '$(echo "$bai_operator_csv_version")'}]" >&3 2>&3
+            ${CLI_CMD} patch configmap ibm-bai-shared-info -n $BAI_SERVICES_NS --type=json -p="[{'op': 'add', 'path': '/data/cpfs_original_csv_ver_for_upgrade_script', 'value': '$(echo "$cpfs_operator_csv_version")'}]" >&3 2>&3
             bai_original_csv_ver_for_upgrade_script=$bai_operator_csv_version
         fi
     fi
@@ -70,7 +70,7 @@ function select_private_catalog_bai(){
             ;;
         *)
             PRIVATE_CATALOG=""
-            echo -e "Answer must be \"Yes\" or \"No\"\n"
+            printf '%b\n' "Answer must be \"Yes\" or \"No\"\n"
             ;;
         esac
     done
@@ -82,11 +82,11 @@ function get_catalog_type(){
     # Check if --enable-private-catalog is set or not
     # shared to shared code can be removed
     # Call select_private_catalog_bai if --enable-private-catalog option is not set
-    if ${CLI_CMD} get catalogsource -n $TARGET_PROJECT_NAME --no-headers --ignore-not-found | grep ibm-bai-operator-catalog >/dev/null 2>&1; then
+    if ${CLI_CMD} get catalogsource -n $TARGET_PROJECT_NAME --no-headers --ignore-not-found | grep ibm-bai-operator-catalog >&3 2>&3; then
         PRIVATE_CATALOG_FOUND="Yes"
         ENABLE_PRIVATE_CATALOG=1
         info "This BAI Standalone deployment is installed using private catalog in the project \"$TARGET_PROJECT_NAME\""
-    elif ${CLI_CMD} get catalogsource -n openshift-marketplace --no-headers --ignore-not-found | grep ibm-bai-operator-catalog >/dev/null 2>&1; then
+    elif ${CLI_CMD} get catalogsource -n openshift-marketplace --no-headers --ignore-not-found | grep ibm-bai-operator-catalog >&3 2>&3; then
         PRIVATE_CATALOG_FOUND="No"
         info "This BAI deployment is installed using global catalog in the project \"openshift-marketplace\""
         if [[ $ENABLE_PRIVATE_CATALOG -eq 1 && $UPGRADE_MODE == "shared2shared" ]]; then
@@ -128,7 +128,7 @@ function get_catalog_type(){
 # RUN_BAI_SAVEPOINT gets set to yes only for a major release upgrade
 # This Function also provides a way to check if subscriptions are present before proceeding
 function check_subscription(){
-    sub_inst_list=$(${CLI_CMD} get subscriptions.operators.coreos.com -n $TEMP_OPERATOR_PROJECT_NAME|grep ibm-bai-operator-catalog|awk '{if(NR>0){if(NR==1){ arr=$1; }else{ arr=arr" "$1; }} } END{ print arr }')
+    sub_inst_list=$(${CLI_CMD} get subscription.operators.coreos.com -n $TEMP_OPERATOR_PROJECT_NAME|grep ibm-bai-operator-catalog|awk '{if(NR>0){if(NR==1){ arr=$1; }else{ arr=arr" "$1; }} } END{ print arr }')
     if [[ -z $sub_inst_list ]]; then
         info "No existing BAI Standalone subscriptions have been found, continuing ..."
         exit 1
@@ -138,8 +138,8 @@ function check_subscription(){
     for i in ${!sub_array[@]}; do
         if [[ ! -z "${sub_array[i]}" ]]; then
             if [[ ${sub_array[i]} = ibm-bai-operator-catalog* || ${sub_array[i]} = ibm-bai-foundation-operator* ]]; then
-                current_version=$(${CLI_CMD} get subscriptions.operators.coreos.com ${sub_array[i]} --no-headers --ignore-not-found -n $TEMP_OPERATOR_PROJECT_NAME -o 'jsonpath={.status.currentCSV}') >/dev/null 2>&1
-                installed_version=$(${CLI_CMD} get subscriptions.operators.coreos.com ${sub_array[i]} --no-headers --ignore-not-found -n $TEMP_OPERATOR_PROJECT_NAME -o 'jsonpath={.status.installedCSV}') >/dev/null 2>&1
+                current_version=$(${CLI_CMD} get subscription.operators.coreos.com ${sub_array[i]} --no-headers --ignore-not-found -n $TEMP_OPERATOR_PROJECT_NAME -o 'jsonpath={.status.currentCSV}') >&3 2>&3
+                installed_version=$(${CLI_CMD} get subscription.operators.coreos.com ${sub_array[i]} --no-headers --ignore-not-found -n $TEMP_OPERATOR_PROJECT_NAME -o 'jsonpath={.status.installedCSV}') >&3 2>&3
                 if [[ -z $current_version || -z $installed_version ]]; then
                     error "Failed to retrieve installed or current CSV. Aborting the upgrade procedure. Check the subscription status of ${sub_array[i]}."
                     exit 1
@@ -198,16 +198,16 @@ function create_bai_savepoints(){
 
         # Create BAI save points
         info "Checking for any BAI save points"
-        mkdir -p ${TEMP_FOLDER} >/dev/null 2>&1
+        mkdir -p ${TEMP_FOLDER} >&3 2>&3
         # Check the jq install on MacOS
         if [[ "$machine" == "Mac" ]]; then
             which jq &>/dev/null
             [[ $? -ne 0 ]] && \
-            echo -e  "\x1B[1;31mUnable to locate the jq CLI. You must install it to run this script on MacOS.\x1B[0m" && \
+            printf '%b\n'  "\x1B[1;31mUnable to locate the jq CLI. You must install it to run this script on MacOS.\x1B[0m" && \
             exit 1
         fi
         info "Creating the BAI savepoints for recovery path used for updating the custom resource file"
-        ${CLI_CMD} get crd |grep insightsengines.bai.ibm.com >/dev/null 2>&1
+        ${CLI_CMD} get crd |grep insightsengines.bai.ibm.com >&3 2>&3
         if [ $? -eq 0 ]; then
             INSIGHTS_ENGINE_CR=$(${CLI_CMD} get insightsengines.bai.ibm.com --no-headers --ignore-not-found -n ${BAI_SERVICES_NS} -o name)
         fi
@@ -223,12 +223,12 @@ function create_bai_savepoints(){
                 error "Can not create the BAI savepoints for recovery path."
                 # exit 1
             else
-                # rm -rf ${UPGRADE_DEPLOYMENT_CR}/bai.json >/dev/null 2>&1
-                touch ${UPGRADE_DEPLOYMENT_BAI_TMP} >/dev/null 2>&1
+                # rm -rf ${UPGRADE_DEPLOYMENT_CR}/bai.json >&3 2>&3
+                touch ${UPGRADE_DEPLOYMENT_BAI_TMP} >&3 2>&3
                 if [[ -e ${UPGRADE_DEPLOYMENT_CR}/bai.json ]]; then
                     [ "$(cat ${UPGRADE_DEPLOYMENT_CR}/bai.json)" != "[]" ] && mkdir -p ${UPGRADE_DEPLOYMENT_CR}/bai-json-backup && cp ${UPGRADE_DEPLOYMENT_CR}/bai.json ${UPGRADE_DEPLOYMENT_CR}/bai-json-backup/bai_$(date +'%Y%m%d%H%M%S').json
                 fi
-                curl -X POST -k -u ${MANAGEMENT_USERNAME}:${MANAGEMENT_PASSWORD} "${MANAGEMENT_URL}/api/v1/processing/jobs/savepoints" -o ${UPGRADE_DEPLOYMENT_CR}/bai.json >/dev/null 2>&1
+                curl -X POST -k -u ${MANAGEMENT_USERNAME}:${MANAGEMENT_PASSWORD} "${MANAGEMENT_URL}/api/v1/processing/jobs/savepoints" -o ${UPGRADE_DEPLOYMENT_CR}/bai.json >&3 2>&3
 
                 json_file_content="[]"
                 if [ "$json_file_content" == "$(cat ${UPGRADE_DEPLOYMENT_CR}/bai.json)" ] ;then
@@ -340,7 +340,7 @@ function create_bai_savepoints(){
 
 # Function to switch to a private catalog
 function switch_to_private_catalog(){
-    sub_inst_list=$(${CLI_CMD} get subscriptions.operators.coreos.com -n $TARGET_PROJECT_NAME|grep ibm-bai-operator-catalog|awk '{if(NR>0){if(NR==1){ arr=$1; }else{ arr=arr" "$1; }} } END{ print arr }')
+    sub_inst_list=$(${CLI_CMD} get subscription.operators.coreos.com -n $TARGET_PROJECT_NAME|grep ibm-bai-operator-catalog|awk '{if(NR>0){if(NR==1){ arr=$1; }else{ arr=arr" "$1; }} } END{ print arr }')
     if [[ -z $sub_inst_list ]]; then
         info "No existing BAI Standalone subscriptions found, continuing ..."
         # exit 1
@@ -350,7 +350,7 @@ function switch_to_private_catalog(){
     for i in ${!sub_array[@]}; do
         if [[ ! -z "${sub_array[i]}" ]]; then
             if [[ ${sub_array[i]} = ibm-bai-operator-catalog* || ${sub_array[i]} = ibm-bai-foundation-operator* ]]; then
-                ${CLI_CMD} patch subscriptions.operators.coreos.com ${sub_array[i]} -n $TARGET_PROJECT_NAME -p '{"spec":{"sourceNamespace":"'"$TARGET_PROJECT_NAME"'"}}' --type=merge >/dev/null 2>&1
+                ${CLI_CMD} patch subscription.operators.coreos.com ${sub_array[i]} -n $TARGET_PROJECT_NAME -p '{"spec":{"sourceNamespace":"'"$TARGET_PROJECT_NAME"'"}}' --type=merge >&3 2>&3
                 if [ $? -eq 0 ]
                 then
                     sleep 1
@@ -369,7 +369,7 @@ function switch_to_private_catalog(){
 
 # Function that patches the channel version of the BAI Standalone operator to the latest channel
 function patch_channel_version(){
-    sub_inst_list=$(${CLI_CMD} get subscriptions.operators.coreos.com -n $TARGET_PROJECT_NAME|grep ibm-bai-operator-catalog|awk '{if(NR>0){if(NR==1){ arr=$1; }else{ arr=arr" "$1; }} } END{ print arr }')
+    sub_inst_list=$(${CLI_CMD} get subscription.operators.coreos.com -n $TARGET_PROJECT_NAME|grep ibm-bai-operator-catalog|awk '{if(NR>0){if(NR==1){ arr=$1; }else{ arr=arr" "$1; }} } END{ print arr }')
     if [[ -z $sub_inst_list ]]; then
         info "No existing BAI Standalone subscriptions found, continuing ..."
         # exit 1
@@ -379,7 +379,7 @@ function patch_channel_version(){
     for i in ${!sub_array[@]}; do
         if [[ ! -z "${sub_array[i]}" ]]; then
             if [[ ${sub_array[i]} = ibm-bai-operator-catalog* || ${sub_array[i]} = ibm-bai-foundation-operator* ]]; then
-                ${CLI_CMD} patch subscriptions.operators.coreos.com ${sub_array[i]} -n $TARGET_PROJECT_NAME -p "{\"spec\":{\"channel\":\"$BAI_CHANNEL_VERSION\"}}" --type=merge >/dev/null 2>&1
+                ${CLI_CMD} patch subscription.operators.coreos.com ${sub_array[i]} -n $TARGET_PROJECT_NAME -p "{\"spec\":{\"channel\":\"$BAI_CHANNEL_VERSION\"}}" --type=merge >&3 2>&3
                 if [ $? -eq 0 ]
                 then
                     success "Updated the channel of subscription '${sub_array[i]}' to $BAI_CHANNEL_VERSION"
@@ -401,27 +401,27 @@ function create_project() {
     local project_name=$1
     project_name=$(sed -e 's/^"//' -e 's/"$//' <<<"$project_name")
 
-    isProjExists=`${CLI_CMD} get namespace $project_name --ignore-not-found | wc -l`  >/dev/null 2>&1
+    isProjExists=`${CLI_CMD} get namespace $project_name --ignore-not-found | wc -l`  >&3 2>&3
 
     if [ $isProjExists -ne 2 ] ; then
-        ${CLI_CMD} create namespace ${project_name} >/dev/null 2>&1
+        ${CLI_CMD} create namespace ${project_name} >&3 2>&3
         returnValue=$?
         if [ "$returnValue" == 1 ]; then
             if [ -z "$BAI_AUTO_NAMESPACE" ]; then
-                echo -e "\x1B[1;31mInvalid project name, enter a valid name...\x1B[0m"
+                printf '%b\n' "\x1B[1;31mInvalid project name, enter a valid name...\x1B[0m"
                 project_name=""
                 return 1
             else
-                echo -e "\x1B[1;31mInvalid project name \"$BAI_AUTO_NAMESPACE\", set a valid name...\x1B[0m"
+                printf '%b\n' "\x1B[1;31mInvalid project name \"$BAI_AUTO_NAMESPACE\", set a valid name...\x1B[0m"
                 project_name=""
                 exit 1
             fi
         else
-            echo -e "\x1B[1mUsing project ${project_name}...\x1B[0m"
+            printf '%b\n' "\x1B[1mUsing project ${project_name}...\x1B[0m"
             return 0
         fi
     else
-        echo -e "\x1B[1mProject \"${project_name}\" already exists! Continuing...\x1B[0m"
+        printf '%b\n' "\x1B[1mProject \"${project_name}\" already exists! Continuing...\x1B[0m"
         return 0
     fi
 }
@@ -449,7 +449,7 @@ function apply_new_catalog_sources(){
         fi
 
         # Additionally, we would check if cs-control namespace exists.
-        isProjExists=`${CLI_CMD} get project $DEDICATED_CS_PROJECT --no-headers --ignore-not-found | wc -l`  >/dev/null 2>&1
+        isProjExists=`${CLI_CMD} get project $DEDICATED_CS_PROJECT --no-headers --ignore-not-found | wc -l`  >&3 2>&3
         if [ $isProjExists -eq 1 ] ; then
             # If it exists, we will deploy the same ibm-licensing-catalog into cs-control namespace.
             if [[ $machine == "Linux" ]]; then
@@ -479,14 +479,14 @@ function apply_new_catalog_sources(){
             # replace openshift-marketplace for ibm-licensing-catalog with cs-control
             ${SED_COMMAND} "/name: ibm-licensing-catalog/{n;s/namespace: .*/namespace: \"$DEDICATED_CS_PROJECT\"/;}" ${TMP_LICENSING_OLM_CATALOG}
 
-            ${CLI_CMD} apply -f $TMP_LICENSING_OLM_CATALOG >/dev/null 2>&1
+            ${CLI_CMD} apply -f $TMP_LICENSING_OLM_CATALOG >&3 2>&3
             if [ $? -eq 0 ]; then
                 echo "Create IBM License Manager Catalog source in project \"$DEDICATED_CS_PROJECT\"!"
             else
                 echo "Generic Operator catalog source update failed"
                 exit 1
             fi
-            rm -rf $TMP_LICENSING_OLM_CATALOG >/dev/null 2>&1
+            rm -rf $TMP_LICENSING_OLM_CATALOG >&3 2>&3
         fi
 
         sed "s/REPLACE_CATALOG_SOURCE_NAMESPACE/$CATALOG_NAMESPACE/g" ${OLM_CATALOG} > ${OLM_CATALOG_TMP}
@@ -557,7 +557,7 @@ function apply_new_catalog_sources(){
         done
 
         OLM_CATALOG=${PARENT_DIR}/descriptors/op-olm/catalog_source.yaml
-        ${CLI_CMD} apply -f $OLM_CATALOG >/dev/null 2>&1
+        ${CLI_CMD} apply -f $OLM_CATALOG >&3 2>&3
         if [ $? -ne 0 ]; then
             echo "IBM Business Automation Insights Catalog source updated!"
             exit 1
@@ -579,7 +579,6 @@ function check_catalog_pod_status(){
     maxRetry=50
     for ((retry=0;retry<=${maxRetry};retry++)); do
         bai_catalog_pod_name=$(${CLI_CMD} get pod -l=olm.catalogSource=ibm-bai-operator-catalog -n $TEMP_CATALOG_PROJECT_NAME -o 'custom-columns=NAME:.metadata.name,PHASE:.status.phase,READY:.status.containerStatuses[0].ready,DELETED:.metadata.deletionTimestamp' --no-headers | grep 'Running' | grep 'true' | grep '<none>' | head -1 | awk '{print $1}')
-        postgresql_catalog_pod_name=$(${CLI_CMD} get pod -l=olm.catalogSource=cloud-native-postgresql-catalog -n $TEMP_CATALOG_PROJECT_NAME -o 'custom-columns=NAME:.metadata.name,PHASE:.status.phase,READY:.status.containerStatuses[0].ready,DELETED:.metadata.deletionTimestamp' --no-headers | grep 'Running' | grep 'true' | grep '<none>' | head -1 | awk '{print $1}')
         cs_catalog_pod_name=$(${CLI_CMD} get pod -l=olm.catalogSource=$CS_CATALOG_VERSION -n $TEMP_CATALOG_PROJECT_NAME -o 'custom-columns=NAME:.metadata.name,PHASE:.status.phase,READY:.status.containerStatuses[0].ready,DELETED:.metadata.deletionTimestamp' --no-headers | grep 'Running' | grep 'true' | grep '<none>' | head -1 | awk '{print $1}')
         if [ $ENABLE_PRIVATE_CATALOG -eq 1 ]; then
             cert_mgr_catalog_pod_name=$(${CLI_CMD} get pod -l=olm.catalogSource=ibm-cert-manager-catalog -n $CERT_MANAGER_PROJECT -o 'custom-columns=NAME:.metadata.name,PHASE:.status.phase,READY:.status.containerStatuses[0].ready,DELETED:.metadata.deletionTimestamp' --no-headers | grep 'Running' | grep 'true' | grep '<none>' | head -1 | awk '{print $1}')
@@ -588,13 +587,11 @@ function check_catalog_pod_status(){
             cert_mgr_catalog_pod_name=$(${CLI_CMD} get pod -l=olm.catalogSource=ibm-cert-manager-catalog -n openshift-marketplace -o 'custom-columns=NAME:.metadata.name,PHASE:.status.phase,READY:.status.containerStatuses[0].ready,DELETED:.metadata.deletionTimestamp' --no-headers | grep 'Running' | grep 'true' | grep '<none>' | head -1 | awk '{print $1}')
             license_catalog_pod_name=$(${CLI_CMD} get pod -l=olm.catalogSource=ibm-licensing-catalog -n openshift-marketplace -o 'custom-columns=NAME:.metadata.name,PHASE:.status.phase,READY:.status.containerStatuses[0].ready,DELETED:.metadata.deletionTimestamp' --no-headers | grep 'Running' | grep 'true' | grep '<none>' | head -1 | awk '{print $1}')
         fi
-        if [[ ( -z $cert_mgr_catalog_pod_name) || ( -z $license_catalog_pod_name) || ( -z $cs_catalog_pod_name) || (-z $postgresql_catalog_pod_name) ]]; then
+        if [[ ( -z $cert_mgr_catalog_pod_name) || ( -z $license_catalog_pod_name) || ( -z $cs_catalog_pod_name) ]]; then
             if [[ $retry -eq ${maxRetry} ]]; then
                 printf "\n"
                 if [[ -z $bai_catalog_pod_name ]]; then
                     warning "Timeout waiting for ibm-bai-operator-catalog catalog pod to be ready in the project \"$TEMP_CATALOG_PROJECT_NAME\""
-                elif [[ -z $postgresql_catalog_pod_name ]]; then
-                    warning "Timeout waiting for cloud-native-postgresql-catalog catalog pod to be ready in the project \"$TEMP_CATALOG_PROJECT_NAME\""
                 elif [[ -z $cs_catalog_pod_name ]]; then
                     warning "Timeout waiting for $CS_CATALOG_VERSION catalog pod to be ready in the project \"$TEMP_CATALOG_PROJECT_NAME\""
                 elif [[ -z $cert_mgr_catalog_pod_name ]]; then
@@ -605,7 +602,7 @@ function check_catalog_pod_status(){
                 exit 1
             else
                 sleep 30
-                echo -n "..."
+                printf '%s' "..."
                 continue
             fi
         else
@@ -620,7 +617,7 @@ function check_catalog_pod_status(){
 function upgrade_cpfs_operator(){
     if [[ $UPGRADE_MODE == "dedicated2dedicated" && $ENABLE_PRIVATE_CATALOG -eq 1 ]]; then
         # Additionally, we would check if cs-control namespace exists.
-        isProjExists=`${CLI_CMD} get project $DEDICATED_CS_PROJECT --no-headers --ignore-not-found | wc -l`  >/dev/null 2>&1
+        isProjExists=`${CLI_CMD} get project $DEDICATED_CS_PROJECT --no-headers --ignore-not-found | wc -l`  >&3 2>&3
         if [ $isProjExists -eq 1 ] ; then
             # If it exists, we will deploy the same ibm-licensing-catalog into cs-control namespace.
             if [[ $machine == "Linux" ]]; then
@@ -650,14 +647,14 @@ function upgrade_cpfs_operator(){
             # replace openshift-marketplace for ibm-licensing-catalog with cs-control
             ${SED_COMMAND} "/name: ibm-licensing-catalog/{n;s/namespace: .*/namespace: \"$DEDICATED_CS_PROJECT\"/;}" ${TMP_LICENSING_OLM_CATALOG}
 
-            ${CLI_CMD} apply -f $TMP_LICENSING_OLM_CATALOG >/dev/null 2>&1
+            ${CLI_CMD} apply -f $TMP_LICENSING_OLM_CATALOG
             if [ $? -eq 0 ]; then
                 echo "Created IBM License Manager Catalog source in project \"$DEDICATED_CS_PROJECT\"!"
             else
                 echo "Generic Operator catalog source update failed"
                 exit 1
             fi
-            rm -rf $TMP_LICENSING_OLM_CATALOG >/dev/null 2>&1
+            rm -rf $TMP_LICENSING_OLM_CATALOG >&3 2>&3
         fi
 
         # Upgrading Cert-Manager and Licensing Service
@@ -814,7 +811,7 @@ function cncf_wait_for_operator_upgrade() {
     local channel=$3
     local key="${package_name}.${namespace}"
     # k8s label name length limit to 64 characters
-    local length_limited_key=$(echo ${key:0:63})
+    local length_limited_key=$(echo "${key:0:63}")
     local condition="${CLI_CMD} get subscription.operators.coreos.com -l operators.coreos.com/${length_limited_key}='' -n ${namespace} -o yaml -o jsonpath='{.items[*].status.installedCSV}' | grep -w $channel"
     local debug_condition="${CLI_CMD} get subscription.operators.coreos.com -l operators.coreos.com/${length_limited_key}='' -n ${namespace} -o jsonpath='{.items[*].status.conditions}'"
 
@@ -840,7 +837,7 @@ function cncf_wait_for_csv() {
     local namespace=$1
     local package_name=$2
     local key="${package_name}.${namespace}"
-    local length_limited_key=$(echo ${key:0:63})
+    local length_limited_key=$(echo "${key:0:63}")
     local condition="${CLI_CMD} get subscription.operators.coreos.com -l operators.coreos.com/${length_limited_key}='' -n ${namespace} -o yaml -o jsonpath='{.items[*].status.installedCSV}'"
     local debug_condition="${CLI_CMD} get subscription.operators.coreos.com -l operators.coreos.com/${length_limited_key}='' -n ${namespace} -o jsonpath='{.items[*].status.conditions}'"
     
@@ -875,10 +872,10 @@ function upgrade_cpfs_operator_on_cncf(){
         info "There is an ibm-common-service-operator Subscription already\n"
         local key="${package_name}.${TARGET_PROJECT_NAME}"
         # k8s label name length limit to 64 characters
-        local length_limited_key=$(echo ${key:0:63})
+        local length_limited_key=$(echo "${key:0:63}")
         local sub_name=$(${CLI_CMD} get subscription.operators.coreos.com -n ${TARGET_PROJECT_NAME} -l operators.coreos.com/${length_limited_key}='' --no-headers | awk '{print $1}')
-        ${CLI_CMD} patch subscription $sub_name --type merge -p '{"spec": {"source": "'${CS_CATALOG_VERSION}'"}}' -n $TARGET_PROJECT_NAME
-        ${CLI_CMD} patch subscription $sub_name --type merge -p '{"spec": {"channel": "'${CS_CHANNEL_VERSION}'"}}' -n $TARGET_PROJECT_NAME
+        ${CLI_CMD} patch subscription.operators.coreos.com $sub_name --type merge -p '{"spec": {"source": "'${CS_CATALOG_VERSION}'"}}' -n $TARGET_PROJECT_NAME
+        ${CLI_CMD} patch subscription.operators.coreos.com $sub_name --type merge -p '{"spec": {"channel": "'${CS_CHANNEL_VERSION}'"}}' -n $TARGET_PROJECT_NAME
         cncf_wait_for_operator_upgrade $TARGET_PROJECT_NAME $package_name $CS_CHANNEL_VERSION
         cncf_wait_for_csv "$TARGET_PROJECT_NAME" "ibm-odlm"
         cncf_wait_for_operator "$TARGET_PROJECT_NAME" "operand-deployment-lifecycle-manager"
@@ -893,7 +890,7 @@ function upgrade_cpfs_operator_on_cncf(){
 # Function that validates the BAI Standalone CSV version after the operators are upgraded
 function validate_csv_version(){
     # Checking BAI operator CSV
-    sub_inst_list=$(${CLI_CMD} get subscriptions.operators.coreos.com -n $TEMP_OPERATOR_PROJECT_NAME|grep ibm-bai-operator-catalog|awk '{if(NR>0){if(NR==1){ arr=$1; }else{ arr=arr" "$1; }} } END{ print arr }')
+    sub_inst_list=$(${CLI_CMD} get subscription.operators.coreos.com -n $TEMP_OPERATOR_PROJECT_NAME|grep ibm-bai-operator-catalog|awk '{if(NR>0){if(NR==1){ arr=$1; }else{ arr=arr" "$1; }} } END{ print arr }')
     if [[ -z $sub_inst_list ]]; then
         fail "No existing BAI Standalone subscriptions found (version $BAI_CSV_VERSION), exiting ..."
         exit 1
@@ -904,15 +901,15 @@ function validate_csv_version(){
         if [[ ! -z "${sub_array[i]}" ]]; then
             if [[ ${sub_array[i]} = ibm-bai-insights-engine-operator* || ${sub_array[i]} = ibm-bai-foundation-operator* ]]; then
             info "Checking the channel of subscription '${sub_array[i]}'!"
-            currentChannel=$(${CLI_CMD} get subscriptions.operators.coreos.com ${sub_array[i]} -n $TEMP_OPERATOR_PROJECT_NAME -o 'jsonpath={.spec.channel}') >/dev/null 2>&1
+            currentChannel=$(${CLI_CMD} get subscription.operators.coreos.com ${sub_array[i]} -n $TEMP_OPERATOR_PROJECT_NAME -o 'jsonpath={.spec.channel}') >&3 2>&3
                 if [[ "$currentChannel" == "$BAI_CHANNEL_VERSION" ]];then
                     success "The channel of subscription '${sub_array[i]}' is $currentChannel!"
                     printf "\n"
                     maxRetry=40
                     info "Waiting for the \"${sub_array[i]}\" subscription be upgraded to the ClusterServiceVersions(CSV) \"v$target_csv_version\""
                     for ((retry=0;retry<=${maxRetry};retry++)); do
-                        current_version=$(${CLI_CMD} get subscriptions.operators.coreos.com ${sub_array[i]} --no-headers --ignore-not-found -n $TEMP_OPERATOR_PROJECT_NAME -o 'jsonpath={.status.currentCSV}') >/dev/null 2>&1
-                        installed_version=$(${CLI_CMD} get subscriptions.operators.coreos.com ${sub_array[i]} --no-headers --ignore-not-found -n $TEMP_OPERATOR_PROJECT_NAME -o 'jsonpath={.status.installedCSV}') >/dev/null 2>&1
+                        current_version=$(${CLI_CMD} get subscription.operators.coreos.com ${sub_array[i]} --no-headers --ignore-not-found -n $TEMP_OPERATOR_PROJECT_NAME -o 'jsonpath={.status.currentCSV}') >&3 2>&3
+                        installed_version=$(${CLI_CMD} get subscription.operators.coreos.com ${sub_array[i]} --no-headers --ignore-not-found -n $TEMP_OPERATOR_PROJECT_NAME -o 'jsonpath={.status.installedCSV}') >&3 2>&3
                         if [[ -z $current_version || -z $installed_version ]]; then
                             error "Failed to retrieve installed or current CSV, abort the upgrade procedure. Check the subscription status of ${sub_array[i]}."
                             exit 1
@@ -939,7 +936,7 @@ function validate_csv_version(){
                                 break
                             else
                                 sleep 10
-                                echo -n "..."
+                                printf '%s' "..."
                                 continue
                             fi
                         else
@@ -1053,8 +1050,8 @@ function upgradeoperator_mode(){
     # Sourcing the messages function
     source ${CUR_DIR}/helper/messages.sh
 
-    mkdir -p ${UPGRADE_DEPLOYMENT_CR} >/dev/null 2>&1
-    mkdir -p ${TEMP_FOLDER} >/dev/null 2>&1
+    mkdir -p ${UPGRADE_DEPLOYMENT_CR} >&3 2>&3
+    mkdir -p ${TEMP_FOLDER} >&3 2>&3
 
     ##### End of Definition of ENV variables required for this mode ######
 
@@ -1082,12 +1079,12 @@ function upgradeoperator_mode(){
                 exit 1
                 ;;
             *)
-                echo -e "Answer must be \"Yes\" or \"No\"\n"
+                printf '%b\n' "Answer must be \"Yes\" or \"No\"\n"
                 ;;
             esac
         done
     fi
-    PLATFORM_SELECTED=$(eval echo $(${CLI_CMD} get insightsengine $(${CLI_CMD} get insightsengine --no-headers --ignore-not-found -n $BAI_SERVICES_NS | grep NAME -v | awk '{print $1}') --no-headers --ignore-not-found -n $BAI_SERVICES_NS -o yaml | grep sc_deployment_platform | tail -1 | cut -d ':' -f 2))
+    PLATFORM_SELECTED=$(eval echo "$(${CLI_CMD} get insightsengine $(${CLI_CMD} get insightsengine --no-headers --ignore-not-found -n $BAI_SERVICES_NS | grep NAME -v | awk '{print $1}') --no-headers --ignore-not-found -n $BAI_SERVICES_NS -o yaml | grep sc_deployment_platform | tail -1 | cut -d ':' -f 2)")
     if [[ -z $PLATFORM_SELECTED ]]; then
         fail "No custom resource found for BAI Standalone under project \"$BAI_SERVICES_NS\", exiting"
         exit 1
@@ -1112,10 +1109,10 @@ function upgradeoperator_mode(){
         fi
     fi
     # checking existing catalog type
-    if ${CLI_CMD} get catalogsource -n openshift-marketplace --no-headers --ignore-not-found | grep ibm-bai-operator-catalog >/dev/null 2>&1; then
+    if ${CLI_CMD} get catalogsource -n openshift-marketplace --no-headers --ignore-not-found | grep ibm-bai-operator-catalog >&3 2>&3; then
         CATALOG_FOUND="Yes"
         PINNED="Yes"
-    elif ${CLI_CMD} get catalogsource -n openshift-marketplace --no-headers --ignore-not-found | grep ibm-operator-catalog >/dev/null 2>&1; then
+    elif ${CLI_CMD} get catalogsource -n openshift-marketplace --no-headers --ignore-not-found | grep ibm-operator-catalog >&3 2>&3; then
         CATALOG_FOUND="Yes"
         PINNED="No"
     else
@@ -1249,7 +1246,7 @@ function upgradeoperator_mode(){
         cloud_native_postgresql_ready="Yes"
         ibm_bts_operator_ready="Yes"
         valid_bai_operator_version=true
-        #ibm_bts_operator_flag=$(${CLI_CMD} get subscriptions.operators.coreos.com ibm-bts-operator --no-headers --ignore-not-found -n $cs_service_target_namespace | wc -l)
+        #ibm_bts_operator_flag=$(${CLI_CMD} get subscription.operators.coreos.com ibm-bts-operator --no-headers --ignore-not-found -n $cs_service_target_namespace | wc -l)
     elif [[ $ENABLE_PRIVATE_CATALOG -eq 1 ]]; then
         # For shared2dedicated/dedicated2dedicated enable private catalog, we do not switch common service catalog source in ibm-common-services project.
         ibm_bts_operator_ready="Yes"
@@ -1277,7 +1274,7 @@ function upgradeoperator_mode(){
         # Check if without option --enable-private-catalog, the catalog is in target project, set the private catalog as default.
         info "Checking if ibm-bai-operator-catalog catalog source is global or private namespace scoped"
         if [[ $ENABLE_PRIVATE_CATALOG -eq 0 ]]; then
-            if ${CLI_CMD} get catalogsource -n $TARGET_PROJECT_NAME --no-headers --ignore-not-found | grep ibm-bai-operator-catalog >/dev/null 2>&1; then
+            if ${CLI_CMD} get catalogsource -n $TARGET_PROJECT_NAME --no-headers --ignore-not-found | grep ibm-bai-operator-catalog >&3 2>&3; then
                 ENABLE_PRIVATE_CATALOG=1
             else
                 info "ibm-bai-operator-catalog catalog source is not found under target project \"$TARGET_PROJECT_NAME\""
@@ -1303,16 +1300,16 @@ function upgradeoperator_mode(){
             if [[ $retry -eq ${maxRetry} ]]; then
             printf "\n"
             warning "Timeout waiting for IBM Cloud Pak foundational operator to start"
-            echo -e "\x1B[1mCheck the status of Pod by issuing the following command:\x1B[0m"
+            printf '%b\n' "\x1B[1mCheck the status of Pod by issuing the following command:\x1B[0m"
             echo "${CLI_CMD} describe pod $(${CLI_CMD} get pod -n $TEMP_OPERATOR_PROJECT_NAME|grep ibm-common-service-operator|awk '{print $1}') -n $TEMP_OPERATOR_PROJECT_NAME"
             printf "\n"
-            echo -e "\x1B[1mCheck the status of ReplicaSet by issuing the following command:\x1B[0m"
+            printf '%b\n' "\x1B[1mCheck the status of ReplicaSet by issuing the following command:\x1B[0m"
             echo "${CLI_CMD} describe rs $(${CLI_CMD} get rs -n $TEMP_OPERATOR_PROJECT_NAME|grep ibm-common-service-operator|awk '{print $1}') -n $TEMP_OPERATOR_PROJECT_NAME"
             printf "\n"
             exit 1
             else
             sleep 30
-            echo -n "..."
+            printf '%s' "..."
             continue
             fi
         elif [[ $isReady == "Succeeded" ]]; then

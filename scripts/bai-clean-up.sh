@@ -37,12 +37,19 @@ SEPARATION_DUTY="false"
 ALL_NAMESPACE="false"
 IS_SHARED_CPFS="false"
 
+CS_MAPS_YAML=""
+CS_NAMESPACE_COUNT=0
+SHARED_NAMESPACE_COUNT=0
+CS_MAP_INDEX=""
+REQUEST_NS_INDEX=""
+NAMESPACES_MAPPED_TO_CS=""
+
 # Function to check which platform is to be used for deletion, based on this the CLI_CMD is different
 function select_platform(){
     printf "\n"
     # clear
     COLUMNS=12
-    echo -e "\x1B[1mSelect the cloud platform where BAI Standalone has been deployed: \x1B[0m"
+    printf '%b\n' "\x1B[1mSelect the cloud platform where BAI Standalone has been deployed: \x1B[0m"
 
     otherOption="Other - Cloud Native Computing Foundation ( CNCF )"
     options=("RedHat OpenShift Kubernetes Service (ROKS) - Public Cloud" "Openshift Container Platform (OCP) - Private Cloud" "$otherOption")
@@ -117,6 +124,12 @@ fi
 select_platform
 cli_check
 
+# Check if jq is installed
+which jq &>/dev/null
+[[ $? -ne 0 ]] && \
+printf '%b\n'  "\x1B[1;31mUnable to locate the jq CLI. You must install it to run this script.\x1B[0m" && \
+exit 1
+
 if [[ "$PLATFORM_SELECTED" == "OCP" || "$PLATFORM_SELECTED" == "ROKS" ]]; then
     check_cluster_login
 fi
@@ -164,11 +177,11 @@ if [ -z "$(${CLI_CMD} get namespace "${BAI_NAMESPACE}" 2>/dev/null)" ]; then
 fi
 
 # Display namespace information
-echo -e "The BAI namespace entered:\n- ${BAI_NAMESPACE}\n"
-echo -e "Note: Please ensure you are using the intended namespace for cleanup.\n"
+printf '%b\n' "The BAI namespace entered:\n- ${BAI_NAMESPACE}\n"
+printf '%b\n' "Note: Please ensure you are using the intended namespace for cleanup.\n"
 success "All prerequisites passed. Ready for clean up."
 echo
-echo -e "\x1B[33;5m[ATTENTION]: \x1B[0m\x1B[1;33mThis script is only intended to delete any remaining resources in the Business Automation Insights and Cloud Pak foundational services namespace(s), and it is not intended for uninstalling Business Automation Insights and Cloud Pak foundational services deployment. The script also does not support cleaning up shared Cloud Pak foundational services.\x1B[0m\n"
+printf '%b\n' "\x1B[33;5m[ATTENTION]: \x1B[0m\x1B[1;33mThis script is only intended to delete any remaining resources in the Business Automation Insights and Cloud Pak foundational services namespace(s), and it is not intended for uninstalling Business Automation Insights and Cloud Pak foundational services deployment. The script also does not support cleaning up shared Cloud Pak foundational services.\x1B[0m\n"
 
 #  User need to provide the service namespace in separation of duties
 # Check if ibm-cp4ba-common-config is present in the namespace
@@ -202,18 +215,37 @@ if [[ "$SEPARATION_DUTY" == "true" ]]; then
 fi
 rm "$BAI_CM_CONFIG_YAML"
 
+# CPFS detection (supports both <4.17 using kube-public/common-service-maps CM and 4.17+ using CommonService CR).
 # Check for Cloud Pak foundational services mapping
 if [[ "$ALL_NAMESPACE" == "false" ]]; then
-    # CPFS shared check
-	CS_MAP=$(${CLI_CMD} get configmap "${COMMON_SERVICES_CM_DEDICATED_NAME}" -n kube-public -o jsonpath="{ .data['common-service-maps\.yaml']}" 2>/dev/null)
-	if [[ -z $CS_MAP ]]; then
-		error "No Cloud Pak foundational services mapping was detected, Cloud Pak foundational services could be shared or does not exist. The script aborted."
-		exit 1
+    CS_MAP=$(${CLI_CMD} get configmap "${COMMON_SERVICES_CM_DEDICATED_NAME}" -n "${COMMON_SERVICES_CM_NAMESPACE}" -o jsonpath="{ .data['common-service-maps\.yaml']}" 2>/dev/null)
+
+	if [[ -z "$CS_MAP" ]]; then
+		info "No common-service-maps ConfigMap found in ${COMMON_SERVICES_CM_NAMESPACE}. Checking for CommonService CR."
+		CS_CR_NAME=$(${CLI_CMD} get commonservice -n "${BAI_SERVICES_NAMESPACE}" -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)
+
+		if [[ -n "${CS_CR_NAME}" ]]; then
+			CPFS_SHARED_NAMESPACE=$(${CLI_CMD} get commonservice "${CS_CR_NAME}" -n "${BAI_SERVICES_NAMESPACE}" -o jsonpath='{.spec.servicesNamespace}' 2>/dev/null)		
+			if [[ -z "${CPFS_SHARED_NAMESPACE}" ]]; then
+				info "CommonService/${CS_CR_NAME} found but spec.servicesNamespace is empty. Skipping CPFS cleanup."
+				CLEAN_CPFS="false"
+				IS_SHARED_CPFS="false"
+				CS_NAMESPACE_COUNT=0
+			else
+				CLEAN_CPFS="true"
+				IS_SHARED_CPFS="false"
+				CS_NAMESPACE_COUNT=1
+				success "CPFS namespace detected from CommonService CR: ${CPFS_SHARED_NAMESPACE}."
+			fi
+		else
+			error "The BAI Namespace \"${BAI_NAMESPACE}\" does not map to any Cloud Pak foundational services (not in common-service-maps ConfigMap and no CommonService CR found). Please make sure the namespace you entered is correct. The script aborted."
+			exit 1
+		fi
 	else
 		CS_MAPS_YAML=$(mktemp)
 		echo "$CS_MAP" > "$CS_MAPS_YAML"
 		CS_NAMESPACE_COUNT=$(${YQ_CMD} r "$CS_MAPS_YAML" "namespaceMapping" -l)
-		for (( i = 0; i < $CS_NAMESPACE_COUNT; i++ )); do
+		for(( i = 0; i < CS_NAMESPACE_COUNT; i++ )); do
             # Get CS namespace
             CS_NS=$(${YQ_CMD} r "$CS_MAPS_YAML" "namespaceMapping[${i}].map-to-common-service-namespace")
             # Get CS control namespace
@@ -236,15 +268,37 @@ if [[ "$ALL_NAMESPACE" == "false" ]]; then
         done
 
         # Check if CPFS Namespace is found
-        if [[ -z ${CPFS_SHARED_NAMESPACE} ]]; then
-            error "The BAI Namespace \"${BAI_NAMESPACE}\" does not map to any Cloud Pak foundational services, please make sure the namespace you entered is correct. The script aborted."
-            exit 1
+	if [[ -z "${CPFS_SHARED_NAMESPACE}" ]]; then
+		# Namespace not found in ConfigMap - try CPFS 4.17+ path as fallback
+		info "Namespace \"${BAI_NAMESPACE}\" not found in common-service-maps ConfigMap. Checking for CPFS CommonService CR"
+
+		CS_CR_NAME=$(${CLI_CMD} get commonservice -n "${BAI_SERVICES_NAMESPACE}" -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)
+
+		if [[ -n "${CS_CR_NAME}" ]]; then
+			CPFS_SHARED_NAMESPACE=$(${CLI_CMD} get commonservice "${CS_CR_NAME}" -n "${BAI_SERVICES_NAMESPACE}" -o jsonpath='{.spec.servicesNamespace}' 2>/dev/null)
+
+			if [[ -z "${CPFS_SHARED_NAMESPACE}" ]]; then
+				info "CommonService/${CS_CR_NAME} found but spec.servicesNamespace is empty. Skipping CPFS cleanup."
+				CLEAN_CPFS="false"
+				IS_SHARED_CPFS="false"
+				CS_NAMESPACE_COUNT=0
+			else
+				# For CPFS 4.17+, assume dedicated CPFS (no way to detect sharing without common-service-maps)
+				CLEAN_CPFS="true"
+				IS_SHARED_CPFS="false"
+				CS_NAMESPACE_COUNT=1
+				success "CPFS namespace detected from CommonService CR: ${CPFS_SHARED_NAMESPACE}."
+			fi
+		else
+			error "The BAI Namespace \"${BAI_NAMESPACE}\" does not map to any Cloud Pak foundational services (not in common-service-maps ConfigMap and no CommonService CR found). Please make sure the namespace you entered is correct. The script aborted."
+			exit 1
+		fi
         else
             # CPFS mapped to BAI namespace found
-            echo -e "\nCloud Pak foundational services namespace:\n- ${CPFS_SHARED_NAMESPACE}"
+            printf '%b\n' "\nCloud Pak foundational services namespace:\n- ${CPFS_SHARED_NAMESPACE}"
             if [[ "${SHARED_NAMESPACE_COUNT}" -gt 0 ]]; then
-                echo -e "\nList of namespace(s) that use Cloud Pak foundational services:"
-                echo -e "$NAMESPACES_MAPPED_TO_CS"
+                printf '%b\n' "\nList of namespace(s) that use Cloud Pak foundational services:"
+                printf '%b\n' "$NAMESPACES_MAPPED_TO_CS"
             fi
 
             if [[ "${SHARED_NAMESPACE_COUNT}" -gt 1 && "${SEPARATION_DUTY}" == "false" ]]; then
@@ -254,13 +308,17 @@ if [[ "$ALL_NAMESPACE" == "false" ]]; then
             fi
         fi
     fi
-    success "Cloud Pak foundational services mapping detected. Clean-up may continue."
+    if [[ "${CLEAN_CPFS}" == "true" && -n "${CPFS_SHARED_NAMESPACE}" ]]; then
+		success "Cloud Pak foundational services detected. Clean-up may continue."
+	else
+		info "Cloud Pak foundational services cleanup will be skipped."
+	fi
 fi
 
 # Check if Multiple BAI are installed in the same cluster
 while true; do
-	echo -e "\x1B[1m\nAre there multiple BAI deployments on your cluster? (Yes/No, default: Yes)\x1B[0m"
-	read -rp "" ans 
+	printf '%b\n' "\x1B[1m\nAre there multiple BAI deployments on your cluster? (Yes/No, default: Yes)\x1B[0m"
+	read -erp "" ans 
 	ans=$(echo "${ans}" | tr '[:upper:]' '[:lower:]')
 	case "$ans" in
 	"y"|"yes"|"")
@@ -268,7 +326,7 @@ while true; do
 	break
 	;;
 	"n"|"no")
-		info "There is only one BAI deployment, CustomResourceDefinitions will be cleaned up."
+		info "Since there is only one BAI deployment, the script will also clean up CustomResourceDefinitions (CRD)."
 		CLEAN_CRDS="true"
 	break
 	;;
@@ -297,8 +355,8 @@ function delete_resource() {
 	if [ $? -eq 0 ]; then
 		for i in $(${CLI_CMD} get "${RESOURCE_NAME}" --no-headers -n "${NAMESPACE_NAME}" --ignore-not-found=true | awk '{print $1}'); do
 			# Remove finalizers to ensure deletion
-			${CLI_CMD} patch "${RESOURCE_NAME}"/$i -n "${NAMESPACE_NAME}" -p '{"metadata":{"finalizers":[]}}' --type=merge
-			${CLI_CMD} delete "${RESOURCE_NAME}" $i -n "${NAMESPACE_NAME}" --ignore-not-found=true
+			${CLI_CMD} patch "${RESOURCE_NAME}"/$i -n "${NAMESPACE_NAME}" -p '{"metadata":{"finalizers":[]}}' --type=merge 2>/dev/null
+			${CLI_CMD} delete "${RESOURCE_NAME}" $i -n "${NAMESPACE_NAME}" --ignore-not-found=true --wait=false 2>/dev/null
 		done
 	fi
 }
@@ -321,6 +379,39 @@ function delete_specific_resource() {
            info "${RESOURCE_NAME} ${OBJECT_NAME} is still found.  Removing finalizer..."
            ${CLI_CMD} patch "${RESOURCE_NAME}"/"${OBJECT_NAME}" -n "${NAMESPACE_NAME}" -p '{"metadata":{"finalizers":[]}}' --type=merge
         fi
+    fi
+}
+
+# Function to check if webhook belongs to the operators namespace being cleaned
+function webhook_belongs_to_namespace() {
+    local webhook_name=$1
+    local webhook_type=$2
+
+    # Get the namespaces referenced by this webhook
+    local namespaces=$(${CLI_CMD} get ${webhook_type} ${webhook_name} \
+        -o jsonpath='{.webhooks[*].clientConfig.service.namespace}' 2>/dev/null)
+
+    # Check if the operators namespace we're cleaning is the webhook's namespace
+    if echo "$namespaces" | grep -qw "${BAI_OPERATORS_NAMESPACE}"; then
+        return 0  # Webhook point to operators namespace
+    else
+        return 1  # Webhook point to different namespace
+    fi
+}
+
+# Function to delete subscription and its CSV
+function delete_subscription_and_csv() {
+    local subName=$1
+    local csvName
+
+    csvName=$(${CLI_CMD} get subscription.operators.coreos.com "$subName" -n "${BAI_OPERATORS_NAMESPACE}" -o=jsonpath='{.status.installedCSV}' 2>/dev/null)
+
+    if [ -n "$csvName" ]; then
+        INFO "Removing subscription: $subName in namespace: ${BAI_OPERATORS_NAMESPACE}"
+        ${CLI_CMD} delete subscription.operators.coreos.com "$subName" -n "${BAI_OPERATORS_NAMESPACE}" --ignore-not-found=true 2>/dev/null || true
+
+        INFO "Removing CSV: $csvName in namespace: ${BAI_OPERATORS_NAMESPACE}"
+        ${CLI_CMD} delete clusterserviceversion "$csvName" -n "${BAI_OPERATORS_NAMESPACE}" --ignore-not-found=true 2>/dev/null || true
     fi
 }
 
@@ -418,6 +509,29 @@ else
 	done
 fi
 
+# Define BAI webhook patterns
+INFO "GET BAI webhook"
+BAI_WEBHOOK_PATTERNS_VALIDATING="validationwebhook.flink.ibm.com|vbusinessteamsservice"
+BAI_WEBHOOK_PATTERNS_MUTATING="mutationwebhook.flink.ibm.com"
+
+webhook_configs=$(${CLI_CMD} get ValidatingWebhookConfiguration -o custom-columns=:metadata.name --no-headers 2>/dev/null | grep -E "$BAI_WEBHOOK_PATTERNS_VALIDATING" || true)
+for webhook in $webhook_configs; do
+	[ -n "$webhook" ] || continue
+	# Only list webhooks that point to the namespace being cleaned
+	if webhook_belongs_to_namespace "$webhook" "ValidatingWebhookConfiguration"; then
+		echo -e "ValidatingWebhookConfiguration/${webhook}"
+	fi
+done
+
+webhook_configs=$(${CLI_CMD} get MutatingWebhookConfiguration -o custom-columns=:metadata.name --no-headers 2>/dev/null | grep -E "$BAI_WEBHOOK_PATTERNS_MUTATING" || true)
+for webhook in $webhook_configs; do
+	[ -n "$webhook" ] || continue
+	# Only list webhooks that point to the namespace being cleaned
+	if webhook_belongs_to_namespace "$webhook" "MutatingWebhookConfiguration"; then
+		echo -e "MutatingWebhookConfiguration/${webhook}"
+	fi
+done
+
 # Define resources to clean up in the CPFS namespace
 CPFS_RESOURCES=(
 	"operandrequest"
@@ -457,7 +571,7 @@ if [[ $CLEAN_CPFS == "true" ]]; then
 
 	#Check CPFS Control namespace exist
 	${CLI_CMD} get namespace ${CPFS_CONTROL_NAMESPACE} &>/dev/null
-	if [ $? -eq 0 -a $CS_NAMESPACE_COUNT -eq 1 ]; then
+	if [ $? -eq 0 -a "${CS_NAMESPACE_COUNT}" -eq 1 ]; then
 		# Get CPFS Control namespace resources
 		INFO "Resource in Namespace: ${CPFS_CONTROL_NAMESPACE}"
 		for RESOURCE in "${CPFS_RESOURCES[@]}"; do
@@ -466,7 +580,7 @@ if [[ $CLEAN_CPFS == "true" ]]; then
 	fi
 
 	#Retrieve webhook configurations
-	INFO "Webhook"
+	INFO "Common service Webhooks"
 	pattern2="ibm-cs-ns-mapping-webhook-configuration"
 	pattern3="ibm-common-service-validating-webhook"
 	pattern4="namespace-admission-config"
@@ -476,12 +590,12 @@ if [[ $CLEAN_CPFS == "true" ]]; then
 	# Retrieve ValidatingWebhookConfiguration resources
 	webhook_configs=$(${CLI_CMD} get ValidatingWebhookConfiguration -o custom-columns=:metadata.name --no-headers | grep -E "$pattern2|$pattern3")
 	for webhook in $webhook_configs; do
-		echo -e "ValidatingWebhookConfiguration/${webhook}"
+		printf '%b\n' "ValidatingWebhookConfiguration/${webhook}"
 	done
 
 	webhook_configs=$(${CLI_CMD} get MutatingWebhookConfiguration -o custom-columns=:metadata.name --no-headers | grep -E "$pattern4|$pattern5|$pattern6")
 	for webhook in $webhook_configs; do
-		echo -e "MutatingWebhookConfiguration/${webhook}"
+		printf '%b\n' "MutatingWebhookConfiguration/${webhook}"
 	done
 fi
 
@@ -556,6 +670,45 @@ if [[ $SKIP_CONFIRM == "false" ]]; then
 	sleep 2
 	echo
 fi
+
+INFO "Delete all CSV and Subscriptions to prevent webhook recreation"
+# Delete all subscriptions and their CSVs in operator namespace
+${CLI_CMD} get subscription.operators.coreos.com -n "${BAI_OPERATORS_NAMESPACE}" -o=jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}' 2>/dev/null | while read -r subName; do
+    if [ -n "$subName" ]; then
+        delete_subscription_and_csv "$subName"
+    fi
+done
+
+INFO "Wait 5 seconds for operators to be fully removed"
+sleep 5
+
+INFO "Delete BAI webhooks that point to operators namespace: ${BAI_OPERATORS_NAMESPACE}"
+
+# Delete Validating webhooks that point to operators namespace
+webhook_configs=$(${CLI_CMD} get ValidatingWebhookConfiguration -o custom-columns=:metadata.name --no-headers 2>/dev/null | grep -E "$BAI_WEBHOOK_PATTERNS_VALIDATING" || true)
+for webhook in $webhook_configs; do
+    [ -n "$webhook" ] || continue
+
+    # Check if this webhook points to the operators namespace
+    if webhook_belongs_to_namespace "$webhook" "ValidatingWebhookConfiguration"; then
+        INFO "Deleting ValidatingWebhookConfiguration: $webhook points to ${BAI_OPERATORS_NAMESPACE}"
+        ${CLI_CMD} delete ValidatingWebhookConfiguration "$webhook" --ignore-not-found=true || true
+    fi
+done
+
+# Delete Mutating webhooks that point to operators namespace
+webhook_configs=$(${CLI_CMD} get MutatingWebhookConfiguration -o custom-columns=:metadata.name --no-headers 2>/dev/null | grep -E "$BAI_WEBHOOK_PATTERNS_MUTATING" || true)
+for webhook in $webhook_configs; do
+    [ -n "$webhook" ] || continue
+
+    # Check if this webhook points to the operators namespace
+    if webhook_belongs_to_namespace "$webhook" "MutatingWebhookConfiguration"; then
+        INFO "Deleting MutatingWebhookConfiguration: $webhook points to ${BAI_OPERATORS_NAMESPACE}"
+        ${CLI_CMD} delete MutatingWebhookConfiguration "$webhook" --ignore-not-found=true || true
+    fi
+done
+
+sleep 5
 
 # BAI clean up
 if [[ "$SEPARATION_DUTY" == "true" ]]; then
@@ -638,9 +791,9 @@ if [[ $CLEAN_CPFS == "true" ]]; then
 	pattern4="vcommonservice"
 
 	webhook_configs=$(${CLI_CMD} get ValidatingWebhookConfiguration -o custom-columns=:metadata.name --no-headers | grep -E "$pattern2|$pattern3|$pattern4 &>/dev/null")
-	if [ $? -eq 0 ]; then
+	if [ -n "$webhook_configs" ]; then
 		for webhook in $webhook_configs; do
-			${CLI_CMD} delete ValidatingWebhookConfiguration "$webhook"
+			${CLI_CMD} delete ValidatingWebhookConfiguration "$webhook" --ignore-not-found=true
 		done
 	fi
 
@@ -649,13 +802,13 @@ if [[ $CLEAN_CPFS == "true" ]]; then
 	pattern7="ibm-common-service-webhook-configuration"
 
 	webhook_configs=$(${CLI_CMD} get MutatingWebhookConfiguration -o custom-columns=:metadata.name --no-headers | grep -E "$pattern5|$pattern6|$pattern7 &>/dev/null")
-	if [ $? -eq 0 ]; then
+	if [ -n "$webhook_configs" ]; then
 		for webhook in $webhook_configs; do
-			${CLI_CMD} delete MutatingWebhookConfiguration "$webhook"
+			${CLI_CMD} delete MutatingWebhookConfiguration "$webhook" --ignore-not-found=true
 		done
 	fi
 	# Cleaning up Role related resources
-	${CLI_CMD} delete ClusterRoleBinding ibm-common-service-webhook secretshare-ibm-common-services $(${CLI_CMD} get ClusterRoleBinding | grep nginx-ingress-clusterrole | awk '{print $1}') --ignore-not-found
+	${CLI_CMD} delete ClusterRoleBinding ibm-common-service-webhook secretshare-ibm-common-services $(${CLI_CMD} get ClusterRoleBinding 2>/dev/null | grep nginx-ingress-clusterrole | awk '{print $1}') --ignore-not-found
 	${CLI_CMD} delete ClusterRole ibm-common-service-webhook secretshare nginx-ingress-clusterrole --ignore-not-found
 	${CLI_CMD} delete RoleBinding ibmcloud-cluster-info ibmcloud-cluster-ca-cert -n "${COMMON_SERVICES_CM_NAMESPACE}" --ignore-not-found
 	${CLI_CMD} delete Role ibmcloud-cluster-info ibmcloud-cluster-ca-cert -n "${COMMON_SERVICES_CM_NAMESPACE}" --ignore-not-found
@@ -675,43 +828,36 @@ if [[ $CLEAN_CPFS == "true" ]]; then
 fi
 
 ### <https://jsw.ibm.com/browse/DBACLD-185523> - Check if shared CPfs and update common-service-maps accordingly
-# Update/delete configmaps in kube-public
-if [[ $IS_SHARED_CPFS == "true" ]]; then
-	INFO "Remove mapping from ${COMMON_SERVICES_CM_NAMESPACE} namespace"
-	# Remove mapping from common-service-maps.yaml and apply it back
-	NEW_CS_MAPS=$(${YQ_CMD} d "$CS_MAPS_YAML" "namespaceMapping[${CS_MAP_INDEX}].requested-from-namespace[${REQUEST_NS_INDEX}]")
-	padded_yaml=$(echo "$NEW_CS_MAPS" | awk '$0="    "$0')
-	NEW_CS_MAPS_YAML="$(
-	cat <<EOF
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: common-service-maps
-  namespace: kube-public
-data:
-  common-service-maps.yaml: |
-${padded_yaml}
-EOF
-)"
-	echo "$NEW_CS_MAPS_YAML" | ${CLI_CMD} apply -f -
-else
-	INFO "Remove mapping from ${COMMON_SERVICES_CM_NAMESPACE} namespace"
-	# Remove mapping from common-service-maps.yaml and apply it back
-	NEW_CS_MAPS=$(${YQ_CMD} d "$CS_MAPS_YAML" "namespaceMapping[${CS_MAP_INDEX}]")
-	padded_yaml=$(echo "$NEW_CS_MAPS" | awk '$0="    "$0')
-	NEW_CS_MAPS_YAML="$(
-		cat <<EOF
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: common-service-maps
-  namespace: kube-public
-data:
-  common-service-maps.yaml: |
-${padded_yaml}
-EOF
-)"
-	echo "$NEW_CS_MAPS_YAML" | ${CLI_CMD} apply -f -
+# Update/delete kube-public/common-service-maps ONLY when legacy CM exists.For CPFS 4.17+ there is no CM to patch.
+if [[ "${IS_SHARED_CPFS}" == "true" ]]; then
+	if [[ -n "${CS_MAPS_YAML:-}" && -f "${CS_MAPS_YAML}" ]]; then
+		INFO "Remove mapping from ${COMMON_SERVICES_CM_NAMESPACE} namespace"
+		NEW_CS_MAPS=$(${YQ_CMD} d "$CS_MAPS_YAML" "namespaceMapping[${CS_MAP_INDEX}].requested-from-namespace[${REQUEST_NS_INDEX}]")
+		PATCH=$(jq -n --arg v "$NEW_CS_MAPS" \
+  		'[{"op":"replace","path":"/data/common-service-maps.yaml","value":$v}]')
+		${CLI_CMD} patch configmap common-service-maps -n "${COMMON_SERVICES_CM_NAMESPACE}" --type=json -p "$PATCH"
+  fi
+
+elif [[ "${CLEAN_CPFS}" == "true" ]]; then
+	if [[ -n "${CS_MAPS_YAML:-}" && -f "${CS_MAPS_YAML}" && -n "${CS_MAP_INDEX:-}" ]]; then
+		INFO "Remove mapping from ${COMMON_SERVICES_CM_NAMESPACE} namespace"
+  		# Check if there are other namespace mappings besides the one being deleted
+		REMAINING_MAPPINGS=$(${YQ_CMD} r "$CS_MAPS_YAML" "namespaceMapping" -l)
+		if [[ $REMAINING_MAPPINGS -gt 1 ]]; then
+  			# <https://jsw.ibm.com/browse/DBACLD-201104> If there are multiple deployments, only remove this specific mapping
+			info "Multiple BAI deployments detected. Removing only the mapping for namespace: ${BAI_NAMESPACE}"
+			NEW_CS_MAPS=$(${YQ_CMD} d "$CS_MAPS_YAML" "namespaceMapping[${CS_MAP_INDEX}]")
+			PATCH=$(jq -n --arg v "$NEW_CS_MAPS" \
+				'[{"op":"replace","path":"/data/common-service-maps.yaml","value":$v}]')
+			${CLI_CMD} patch configmap common-service-maps -n "${COMMON_SERVICES_CM_NAMESPACE}" --type=json -p "$PATCH"
+		else
+			INFO "Only one CP4BA deployment detected, deleting common-service-maps ConfigMap"
+			${CLI_CMD} delete configmap common-service-maps -n "${COMMON_SERVICES_CM_NAMESPACE}" --ignore-not-found=true
+		fi
+	else
+		# This is the last deployment, delete the entire ConfigMap
+		info "Namespace not present in common-service-maps. No ConfigMap update required."
+	fi
 fi
 
 # Delete resource in openshift-operator namespace
@@ -856,7 +1002,7 @@ if [[ $CLEAN_CPFS == "true" ]]; then
 		fi
 	done
 	${CLI_CMD} get namespace "${CPFS_CONTROL_NAMESPACE}" &>/dev/null
-	if [ $? -eq 0 -a $CS_NAMESPACE_COUNT -eq 1 ]; then
+	if [ $? -eq 0 -a "${CS_NAMESPACE_COUNT}" -eq 1 ]; then
 		# Delete CPfs Control namespace if namespace exists and if there is only one deployment using CPfs
 		INFO "Cleaning up all pods before deleting CPfs control namespace."
 		${CLI_CMD} delete pod --all -n "${CPFS_CONTROL_NAMESPACE}" --grace-period=0 --force
@@ -944,7 +1090,9 @@ if [[ $SELECT_ALL == "true" ]]; then
 	done
 fi
 
-# Delete common-service-maps.yaml temp file
-rm "$CS_MAPS_YAML"
+# Delete common-service-maps.yaml temp file if it exists
+if [[ -n "${CS_MAPS_YAML:-}" && -f "${CS_MAPS_YAML}" ]]; then
+	rm -f "${CS_MAPS_YAML}"
+fi
 
 success "Clean up has completed."

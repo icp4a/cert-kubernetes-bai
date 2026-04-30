@@ -38,18 +38,33 @@ optional_component_arr=()
 optional_component_cr_arr=()
 
 function show_help() {
-    echo -e "\nUsage: bai-prerequisites.sh -m [modetype] -n [BAI-NAMESPACE] [options]\n"
+    printf '%b\n' "\nUsage: bai-prerequisites.sh -m [modetype] -n [BAI-NAMESPACE] [options]\n"
     echo "Options:"
     echo "  -h  Display help"
     echo "  -m  The valid mode types are: [property], [generate], or [validate]"
     echo "  -n  The target namespace of the BAI deployment."
     echo " --java-path Optional path to Java (JRE) $REQUIRED_JAVA_MAJOR_VERSION or higher installation directory"
+    echo " --run-storage-validation Run Storage Validation without prompting (validate mode only)"
+    echo " --run-storage-performance-validation Run Storage Performance Validation without prompting (validate mode only)"
     echo ""
     echo "  STEP1: Run the script in [property] mode. It creates property files (LDAP property file) with default values (BASE DN/BIND DN ...)."
     echo "  STEP2: Modify the LDAP/user property files with your values."
     echo "  STEP3: Run the script in [generate] mode. Generates the YAML templates for the secrets based on the values in the property files."
     echo "  STEP4: Create the secrets by using the modified YAML templates for the secrets."
     echo "  STEP5: Run the script in [validate] mode. Checks the secrets are created before you install IBM Business Automation Insights."
+    echo ""
+    echo "Non-interactive validation examples:"
+    echo "  Run validation with both storage validations:"
+    echo "    ./bai-prerequisites.sh -m validate -n \$NAMESPACE --run-storage-validation --run-storage-performance-validation"
+    echo ""
+    echo "  Run validation skipping both storage validations:"
+    echo "    ./bai-prerequisites.sh -m validate -n \$NAMESPACE"
+    echo ""
+    echo "  Run validation with Storage Validation only:"
+    echo "    ./bai-prerequisites.sh -m validate -n \$NAMESPACE --run-storage-validation"
+    echo ""
+    echo "  Run validation with Performance Validation only:"
+    echo "    ./bai-prerequisites.sh -m validate -n \$NAMESPACE --run-storage-performance-validation"
 }
 
 
@@ -58,24 +73,24 @@ function show_help() {
 #    while [[ $TARGET_PROJECT_NAME == "" ]]; 
 #    do
 #        printf "\n"
-#        echo -e "\x1B[1mWhere do you want to deploy IBM Business Automation Insights stand-alone?\x1B[0m"
+#        printf '%b\n' "\x1B[1mWhere do you want to deploy IBM Business Automation Insights stand-alone?\x1B[0m"
 #        read -p "Enter the name for an existing project (namespace): " TARGET_PROJECT_NAME
 #        if [ -z "$TARGET_PROJECT_NAME" ]; then
-#            echo -e "\x1B[1;31mEnter a valid project name, project name can not be blank\x1B[0m"
+#            printf '%b\n' "\x1B[1;31mEnter a valid project name, project name can not be blank\x1B[0m"
 #        elif [[ "$TARGET_PROJECT_NAME" == openshift* ]]; then
-#            echo -e "\x1B[1;31mEnter a valid project name, project name should not be 'openshift' or start with 'openshift' \x1B[0m"
+#            printf '%b\n' "\x1B[1;31mEnter a valid project name, project name should not be 'openshift' or start with 'openshift' \x1B[0m"
 #            TARGET_PROJECT_NAME=""
 #        elif [[ "$TARGET_PROJECT_NAME" == kube* ]]; then
-#            echo -e "\x1B[1;31mEnter a valid project name, project name should not be 'kube' or start with 'kube' \x1B[0m"
+#            printf '%b\n' "\x1B[1;31mEnter a valid project name, project name should not be 'kube' or start with 'kube' \x1B[0m"
 #            TARGET_PROJECT_NAME=""
 #        else
 #            isProjExists=`kubectl get namespace $TARGET_PROJECT_NAME --ignore-not-found | wc -l`  >/dev/null 2>&1
 #
 #            if [ "$isProjExists" -ne 2 ] ; then
-#                echo -e "\x1B[1;31mInvalid project name, please enter a existing project name ...\x1B[0m"
+#                printf '%b\n' "\x1B[1;31mInvalid project name, please enter a existing project name ...\x1B[0m"
 #                TARGET_PROJECT_NAME=""
 #            else
-#                echo -e "\x1B[1mUsing project ${TARGET_PROJECT_NAME}...\x1B[0m"
+#                printf '%b\n' "\x1B[1mUsing project ${TARGET_PROJECT_NAME}...\x1B[0m"
 #            fi
 #        fi
 #    done
@@ -109,7 +124,7 @@ function show_help() {
 #                    FIPS_ENABLED="true"
 #                fi
 #                if [[ $FIPS_ENABLED == "false" ]]; then
-#                    echo -e "${YELLOW_TEXT}[ATTENTION]: ${RESET_TEXT}\x1B[1;31mBecause \"$msg_tmp\" selected does not support FIPS enabled, the script will disable FIPS mode for this BAI stand-alone deployment (shared_configuration.enable_fips: false).\x1B[0m"
+#                    printf '%b\n' "${YELLOW_TEXT}[ATTENTION]: ${RESET_TEXT}\x1B[1;31mBecause \"$msg_tmp\" selected does not support FIPS enabled, the script will disable FIPS mode for this BAI stand-alone deployment (shared_configuration.enable_fips: false).\x1B[0m"
 #                    sleep 3
 #                fi
 #                break
@@ -119,7 +134,7 @@ function show_help() {
 #                break
 #                ;;
 #            *)
-#                echo -e "Answer must be \"Yes\" or \"No\"\n"
+#                printf '%b\n' "Answer must be \"Yes\" or \"No\"\n"
 #                ;;
 #            esac
 #        done
@@ -160,15 +175,15 @@ function parse_arguments() {
             TARGET_PROJECT_NAME="${args[$i]}"
             case "$TARGET_PROJECT_NAME" in
             "")
-                echo -e "\x1B[1;31mEnter a valid namespace name, namespace name can not be blank\x1B[0m"
+                printf '%b\n' "\x1B[1;31mEnter a valid namespace name, namespace name can not be blank\x1B[0m"
                 exit 1
                 ;;
             "openshift"*)
-                echo -e "\x1B[1;31mEnter a valid project name, project name should not be 'openshift' or start with 'openshift' \x1B[0m"
+                printf '%b\n' "\x1B[1;31mEnter a valid project name, project name should not be 'openshift' or start with 'openshift' \x1B[0m"
                 exit 1
                 ;;
             "kube"*)
-                echo -e "\x1B[1;31mEnter a valid project name, project name should not be 'kube' or start with 'kube' \x1B[0m"
+                printf '%b\n' "\x1B[1;31mEnter a valid project name, project name should not be 'kube' or start with 'kube' \x1B[0m"
                 exit 1
                 ;;
             *)
@@ -177,10 +192,10 @@ function parse_arguments() {
                 # Check project name
                 isProjExists=`${CLI_CMD} get namespace $TARGET_PROJECT_NAME --ignore-not-found | wc -l`  >/dev/null 2>&1
                 if [ $isProjExists -ne 2 ] ; then
-                    echo -e "\x1B[1;31mInvalid project name \"$TARGET_PROJECT_NAME\", please set a existing project name.\x1B[0m"
+                    printf '%b\n' "\x1B[1;31mInvalid project name \"$TARGET_PROJECT_NAME\", please set a existing project name.\x1B[0m"
                     exit 1
                 fi
-                echo -n
+                : # Null command - validation passed, continue execution
                 ;;
             esac
             ;;
@@ -197,7 +212,7 @@ function parse_arguments() {
             CUSTOM_JAVA_PATH="${args[$i]}"
             # Verify the path exists
             if [ ! -d "$CUSTOM_JAVA_PATH" ]; then
-                echo -e "\x1B[1;31mThe specified Java (JRE) path does not exist: ${CUSTOM_JAVA_PATH}\x1B[0m"
+                printf '%b\n' "\x1B[1;31mThe specified Java (JRE) path does not exist: ${CUSTOM_JAVA_PATH}\x1B[0m"
                 exit 1
             fi
             ;;
@@ -209,9 +224,15 @@ function parse_arguments() {
             fi
             # Verify the path exists
             if [ ! -d "$CUSTOM_JAVA_PATH" ]; then
-                echo -e "\x1B[1;31mThe specified Java (JRE) path does not exist: ${CUSTOM_JAVA_PATH}\x1B[0m"
+                printf '%b\n' "\x1B[1;31mThe specified Java (JRE) path does not exist: ${CUSTOM_JAVA_PATH}\x1B[0m"
                 exit 1
             fi
+            ;;
+        --run-storage-validation)
+            RUN_STORAGE_VALIDATION="yes"
+            ;;
+        --run-storage-performance-validation)
+            RUN_STORAGE_PERFORMANCE_VALIDATION="yes"
             ;;
         *)
             echo "Invalid option: $key"
@@ -234,12 +255,12 @@ parse_arguments "$@"
 ##### Begin - Checks for required parameters to be passed #####
 ###################################################################################
 if [[ -z "$RUNTIME_MODE" ]]; then
-    echo -e "\x1B[1;31mPlease input value for \"-m <MODE_TYPE>\" option.\n\x1B[0m"
+    printf '%b\n' "\x1B[1;31mPlease input value for \"-m <MODE_TYPE>\" option.\n\x1B[0m"
     show_help
     exit 1
 fi
 if [[ -z "$TARGET_PROJECT_NAME" ]]; then
-    echo -e "\x1B[1;31mPlease input value for \"-n <BAI_NAMESPACE>\" option.\n\x1B[0m"
+    printf '%b\n' "\x1B[1;31mPlease input value for \"-n <BAI_NAMESPACE>\" option.\n\x1B[0m"
     show_help
     exit 1
 fi
@@ -334,16 +355,20 @@ if [[ $RUNTIME_MODE == "validate" ]]; then
     # Import the functions required for the generate runtime mode
     source ${CUR_DIR}/helper/bai-prerequisites-modes/validate-mode.sh
 
-    echo  "*****************************************************************"
-    echo  " Validating the prerequisites before you install BAI stand-alone "
-    echo  "*****************************************************************"
+    echo "*****************************************************************"
+    echo " Validating the prerequisites before you install BAI stand-alone "
+    echo "*****************************************************************"
     # Check for separation of duties
     check_bai_separate_operand $TARGET_PROJECT_NAME # Function Definition can be found in helper/common.sh
 
     validate_utility_tools_for_validate_mode # Function Definition can be found in helper/bai-prerequisites-modes/validate-mode.sh
     load_properties_from_temp_file # Function Definition can be found in helper/common.sh
     validate_prerequisites # Function Definition can be found in helper/bai-prerequisites-modes/validate-mode.sh
-    storage_and_performance_validation_tests $TARGET_PROJECT_NAME 
+ 
+    tmp_platform_type=$(prop_user_profile_property_file BAI_STANDALONE.PLATFORM_TYPE)
+    if [[ $tmp_platform_type != "other" ]]; then
+        storage_and_performance_validation_tests $TARGET_PROJECT_NAME 
+    fi
 fi
 
 ###################################################################################

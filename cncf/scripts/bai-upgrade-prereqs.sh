@@ -94,7 +94,7 @@ function check_prereqs() {
 }
 
 function check_subscription() {
-    local channel=$(kubectl get sub ibm-bai-${bai_channel} -n ${bai_namespace} -o jsonpath='{.spec.channel}')
+    local channel=$(kubectl get subscription.operators.coreos.com ibm-bai-${bai_channel} -n ${bai_namespace} -o jsonpath='{.spec.channel}')
     if [ "${channel}" = "${bai_channel}" ]; then
         info "Found BAI subscription to the expected channel."
     else

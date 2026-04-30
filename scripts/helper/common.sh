@@ -40,12 +40,12 @@ OLM_VERSION=v0.27.0
 #Licensing service related variables that required during the creation of subscription and the checks.
 # NEED TO BE UPDATED WHEN WE UPDATE THE VERSIONS
 LICENSING_SERVICE_CHANNEL=v4.2
-LICENSING_SERVICE_TARGET_VERSION="4.2.18"
+LICENSING_SERVICE_TARGET_VERSION="4.2.21"
 
 #Cert Manager related variables that required during the creation of subscription and the checks.
 # NEED TO BE UPDATED WHEN WE UPDATE THE VERSIONS
 CERT_MANAGER_CHANNEL=v4.2
-CERT_MANAGER_TARGET_VERSION="4.2.18"
+CERT_MANAGER_TARGET_VERSION="4.2.21"
 #Cert manager owner.
 CERT_MANAGER_V1ALPHA1_OWNER="operator.ibm.com/v1alpha1"
 CERT_MANAGER_V1_OWNER="operator.ibm.com/v1"
@@ -69,11 +69,11 @@ cs_maximal_version_for_ifix="5.0.0" # Maximal supported Common Service version b
 BAI_S_FC_CR=${PARENT_DIR}/descriptors/patterns/ibm_cp4a_cr_production_FC_bai.yaml
 
 #Change required each sprint for using dev mode
-CURRENT_SPRINT_TAG="25.0.1"
+CURRENT_SPRINT_TAG="25.0.1-IF001"
 
 #DBACLD-194974: This variable is used to specify the version that will block EDB option for IM ZEN BTS.The user will HAVE to use external postgres for this. It should be in the format of ${BAI_RELEASE_BASE}_${BAI_PATCH_VERSION}
 # For 25.0.1_GA we will remove the Starter option and EDB option.
-VERSION_TO_SKIP_EDB="25.0.1_GA"
+VERSION_TO_SKIP_EDB="25.0.1_IF001"
 
 
 # End of Section for BAI Rancher specific variables
@@ -120,40 +120,40 @@ LDAP_SECRET_FILE=${SECRET_FILE_FOLDER}/ldap-bind-secret.yaml
 # Release/Patch version for CP4BA
 # BAI_RELEASE_BASE is for fetch content/foundation operator pod, only need to change for major release.
 BAI_RELEASE_BASE="25.0.1"
-BAI_PATCH_VERSION="GA"
+BAI_PATCH_VERSION="IF001"
 # BAI_RELEASE_BASE_MAJOR_VERSION is used in certain checks where we used to hardcode to see if a upgrade is not ifix to ifix,change this only for major release
 BAI_RELEASE_BASE_MAJOR_VERSION="25.1"
 # BAI_CSV_VERSION is for checking CP4BA operator upgrade status, need to update for each IFIX
-BAI_CSV_VERSION="v25.1.0"
+BAI_CSV_VERSION="v25.1.1"
 # BAI_CHANNEL_VERSION is for switch CP4BA operator upgrade status, need to update for major release
 BAI_CHANNEL_VERSION="v25.1"
 # CS_OPERATOR_VERSION is for checking CPFS operator upgrade status, need to update for each IFIX
-CS_OPERATOR_VERSION="v4.15.0"
+CS_OPERATOR_VERSION="v4.18.0"
 # CS_CHANNEL_VERSION is for for CPFS script -c option, need to update for each IFIX
-CS_CHANNEL_VERSION="v4.15"
+CS_CHANNEL_VERSION="v4.18"
 # CS CHANNEL VERSION that is used in the KC
 CS_CHANNEL_KC="4.x_cd"
 # CERT_LICENSE_OPERATOR_VERSION is for checking IBM cert-manager/licensing operator upgrade status, need to update for each IFIX
-CERT_LICENSE_OPERATOR_VERSION="v4.2.18"
+CERT_LICENSE_OPERATOR_VERSION="v4.2.21"
 # CERT_LICENSE_CHANNEL_VERSION is for for IBM cert-manager/licensing script -c option, need to update for each IFIX
 CERT_LICENSE_CHANNEL_VERSION="v4.2"
 # CS_CATALOG_VERSION is for CPFS script -s option, need to update for each IFIX
-CS_CATALOG_VERSION="ibm-cs-install-catalog-v4-15-0"
+CS_CATALOG_VERSION="ibm-cs-install-catalog-v4-18-0"
 # ZEN_OPERATOR_VERSION is for checking ZenService operator upgrade status, need to update for each IFIX
-ZEN_OPERATOR_VERSION="v6.2.2"
+ZEN_OPERATOR_VERSION="v6.4.2"
 # BTS_CHANNEL_VERSION is for for BTS, need to update for each IFIX
 BTS_CHANNEL_VERSION="v3.35"
-# BTS_CATALOG_VERSION is for BTS 3.35.6.
+# BTS_CATALOG_VERSION is for BTS 3.35.9.
 BTS_CATALOG_VERSION="ibm-bts-operator-catalog-v3-35"
 # REQUIREDVER_BTS is for checking bts operator upgrade status before run removal_iaf.sh, need to update for each IFIX
-REQUIREDVER_BTS="3.35.6"
+REQUIREDVER_BTS="3.35.9"
 # REQUIREDVER_POSTGRESQL is for checking postgresql operator upgrade status before run removal_iaf.sh, need to update for each IFIX
-REQUIREDVER_POSTGRESQL="1.25.2"
+REQUIREDVER_POSTGRESQL="1.25.6"
 # EVENTS_OPERATOR_VERSION is for checking IBM Events operator upgrade status, need to update for each IFIX
-EVENTS_OPERATOR_VERSION="v5.1.2"
+EVENTS_OPERATOR_VERSION="v5.2.1"
 # List of BAI versions that are supported for upgrade to $BAI_CSV_VERSION
 # When setting to an empty array, only fresh installation is supported.
-MINIMUM_SUPPORTED_UPGRADE_VERSIONS=()
+MINIMUM_SUPPORTED_UPGRADE_VERSIONS=("25.1.0")
 
 
 
@@ -210,7 +210,7 @@ if which oc >/dev/null 2>&1; then
 elif which kubectl >/dev/null 2>&1; then
     CLI_CMD=kubectl
 else
-    echo -e  "\x1B[1;31mUnable to locate Kubernetes CLI or OpenShift CLI. You must install it to run this script.\x1B[0m" && \
+    printf '%b\n'  "\x1B[1;31mUnable to locate Kubernetes CLI or OpenShift CLI. You must install it to run this script.\x1B[0m" && \
     exit 1
 fi
 
@@ -225,12 +225,14 @@ function set_global_env_vars() {
     if [[ "$machine" == "Mac" ]]; then
         SED_COMMAND='sed -i ""'
         SED_COMMAND_FORMAT='sed -i "" s/^M//g'
+        BASE64_DECODE='base64 --decode'
         YQ_CMD=${CUR_DIR}/helper/yq/yq_darwin_amd64
         CPFS_YQ_PATH=$COMMON_SERVICES_SCRIPT_YQ_FOLDER/macos/yq
         COPY_CMD=/bin/cp
     else
         SED_COMMAND='sed -i'
         SED_COMMAND_FORMAT='sed -i s/\r//g'
+        BASE64_DECODE='base64 -w 0 --decode'
         if [[ $(uname -m) == 'x86_64' ]]; then
             YQ_CMD=${CUR_DIR}/helper/yq/yq_linux_amd64
             CPFS_YQ_PATH=$COMMON_SERVICES_SCRIPT_YQ_FOLDER/amd64/yq
@@ -263,14 +265,14 @@ function validate_cli(){
             echo_bold "\"timeout\" Command Not Found\n"
             echo_bold "The \"timeout\" will be installed automatically\n"
             echo_bold "Do you accept (Yes/No, default: No):"
-            read -rp "" ans
+            read -erp "" ans
             case "$ans" in
             "y"|"Y"|"yes"|"Yes"|"YES")
                 install_timeout_cli
                 break
                 ;;
             "n"|"N"|"no"|"No"|"NO")
-                echo -e "You do not accept, exiting...\n"
+                printf '%b\n' "You do not accept, exiting...\n"
                 exit 0
                 ;;
             *)
@@ -283,24 +285,24 @@ function validate_cli(){
 
 function install_timeout_cli(){
     if [[ ${machine} = "Mac" ]]; then
-        echo -n "Installing timeout..."; brew install coreutils >/dev/null 2>&1; sudo ln -s /usr/local/bin/gtimeout /usr/local/bin/timeout >/dev/null 2>&1; echo "done.";
+        printf '%s' "Installing timeout..."; brew install coreutils >/dev/null 2>&1; sudo ln -s /usr/local/bin/gtimeout /usr/local/bin/timeout >/dev/null 2>&1; echo "done.";
     fi
     printf "\n"
 }
 
 function install_yq_cli(){
     if [[ ${machine} = "Linux" ]]; then
-        echo -n "Downloading..."; curl -LO https://github.com/mikefarah/yq/releases/download/3.2.1/yq_linux_amd64  >/dev/null 2>&1; echo "done.";
-        echo -n "Installing yq..."; sudo chmod +x yq_linux_amd64 >/dev/null; sudo mv yq_linux_amd64 /usr/local/bin/yq >/dev/null; echo "done.";
+        printf '%s' "Downloading..."; curl -LO https://github.com/mikefarah/yq/releases/download/3.2.1/yq_linux_amd64  >/dev/null 2>&1; echo "done.";
+        printf '%s' "Installing yq..."; sudo chmod +x yq_linux_amd64 >/dev/null; sudo mv yq_linux_amd64 /usr/local/bin/yq >/dev/null; echo "done.";
     else
-        echo -n "Installing yq..."; brew install yq >/dev/null; echo "done.";
+        printf '%s' "Installing yq..."; brew install yq >/dev/null; echo "done.";
     fi
     printf "\n"
 }
 
 function install_kubectl_cli(){
     if [[ ${machine} = "Linux" ]]; then
-        echo -n "Downloading..."
+        printf '%s' "Downloading..."
         if [[ $(uname -m) == 'x86_64' ]]; then
             PLATFORM_ARCH='amd64'
         elif [[ $(uname -m) == 'ppc64le' ]]; then
@@ -309,19 +311,19 @@ function install_kubectl_cli(){
             PLATFORM_ARCH='s390x'
         fi
         curl -o /tmp/kubectl "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/${PLATFORM_ARCH}/kubectl" >/dev/null 2>&1; echo "done."
-        echo -n "Installing Kubectl CLI..."; sudo install -o root -g root -m 0755 /tmp/kubectl /usr/local/bin/kubectl >/dev/null; echo "done.";
+        printf '%s' "Installing Kubectl CLI..."; sudo install -o root -g root -m 0755 /tmp/kubectl /usr/local/bin/kubectl >/dev/null; echo "done.";
     elif [[ ${machine} = "Mac" ]]; then
-        echo -n "Downloading..."; curl -o /tmp/kubectl "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/darwin/amd64/kubectl" >/dev/null 2>&1; echo "done.";
-        echo -n "Installing Kubectl CLI..."; chmod +x /tmp/kubectl >/dev/null; sudo mv /tmp/kubectl /usr/local/bin/kubectl >/dev/null; sudo chown root: /usr/local/bin/kubectl; echo "done.";
+        printf '%s' "Downloading..."; curl -o /tmp/kubectl "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/darwin/amd64/kubectl" >/dev/null 2>&1; echo "done.";
+        printf '%s' "Installing Kubectl CLI..."; chmod +x /tmp/kubectl >/dev/null; sudo mv /tmp/kubectl /usr/local/bin/kubectl >/dev/null; sudo chown root: /usr/local/bin/kubectl; echo "done.";
     fi
     printf "\n"
 }
 
 function install_openssl(){
     if [[ ${machine} = "Linux" ]]; then
-        echo -n "Installing OpenSSL..."; sudo yum install openssl -y >/dev/null; echo "done.";
+        printf '%s' "Installing OpenSSL..."; sudo yum install openssl -y >/dev/null; echo "done.";
     elif [[ ${machine} = "Mac" ]]; then
-        echo -n "Installing OpenSSL..."; sudo brew install openssl >/dev/null; echo 'export PATH="/usr/local/opt/openssl/bin:$PATH"' >> ~/.bash_profile; source ~/.bash_profile; echo "done.";
+        printf '%s' "Installing OpenSSL..."; sudo brew install openssl >/dev/null; echo 'export PATH="/usr/local/opt/openssl/bin:$PATH"' >> ~/.bash_profile; source ~/.bash_profile; echo "done.";
     fi
     printf "\n"
 }
@@ -346,40 +348,39 @@ function validate_java_runtime() {
         
         # Verify the custom Java path exists and is executable
         if [[ ! -x "$JAVA_CMD" ]]; then
-            echo -e "\x1B[1;31mError: Java executable not found at specified path: $JAVA_CMD\x1B[0m"
-            echo -e "\x1B[1;31mPlease provide a valid path to Java (JRE) $REQUIRED_JAVA_MAJOR_VERSION or higher installation.\x1B[0m"
+            printf '%b\n' "\x1B[1;31mError: Java executable not found at specified path: $JAVA_CMD\x1B[0m"
+            printf '%b\n' "\x1B[1;31mPlease provide a valid path to Java (JRE) $REQUIRED_JAVA_MAJOR_VERSION or higher installation.\x1B[0m"
             exit 1
         fi
         
         # Verify keytool exists and is executable
         if [[ ! -x "$KEYTOOL_CMD" ]]; then
-            echo -e "\x1B[1;31mError: keytool executable not found at specified path: $KEYTOOL_CMD\x1B[0m"
-            echo -e "\x1B[1;31mPlease provide a valid path to Java (JRE) $REQUIRED_JAVA_MAJOR_VERSION or higher installation.\x1B[0m"
+            printf '%b\n' "\x1B[1;31mError: keytool executable not found at specified path: $KEYTOOL_CMD\x1B[0m"
+            printf '%b\n' "\x1B[1;31mPlease provide a valid path to Java (JRE) $REQUIRED_JAVA_MAJOR_VERSION or higher installation.\x1B[0m"
             exit 1
         fi
-        
-        echo -e "\x1B[1;32mUsing Java from custom path: ${CUSTOM_JAVA_PATH}\x1B[0m"
+
     else
         JAVA_CMD="java"
         KEYTOOL_CMD="keytool"
         
         # Verify that default Java is available
         if ! command -v java &> /dev/null; then
-            echo -e "\x1B[1;31mUnable to locate a Java Runtime. Java (JRE) $REQUIRED_JAVA_MAJOR_VERSION or higher must be installed to run this script.\x1B[0m"
-            echo -e "\x1B[1;31mPlease install Java (JRE) $REQUIRED_JAVA_MAJOR_VERSION or higher manually before continuing.\x1B[0m"
-            echo -e "\x1B[1;33mInstallation instructions:\x1B[0m"
-            echo -e "  - Install any compatible Java (JRE) $REQUIRED_JAVA_MAJOR_VERSION or higher distribution (e.g., IBM Semeru, Oracle JDK, or OpenJDK)"
-            echo -e "  - Ensure the new Java version is added to your PATH environment variable"
-            echo -e "  - Re-run this script"
-            echo -e "\x1B[1;33mAlternatively, you can specify the path to an existing Java (JRE) $REQUIRED_JAVA_MAJOR_VERSION or higher installation:\x1B[0m"
-            echo -e "  - Re-run this script with the Java (JRE) path parameter, using --java-path <path_to_java>; e.g., ${EXAMPLE_CMD}"
+            printf '%b\n' "\x1B[1;31mUnable to locate a Java Runtime. Java (JRE) $REQUIRED_JAVA_MAJOR_VERSION or higher must be installed to run this script.\x1B[0m"
+            printf '%b\n' "\x1B[1;31mPlease install Java (JRE) $REQUIRED_JAVA_MAJOR_VERSION or higher manually before continuing.\x1B[0m"
+            printf '%b\n' "\x1B[1;33mInstallation instructions:\x1B[0m"
+            printf '%b\n' "  - Install any compatible Java (JRE) $REQUIRED_JAVA_MAJOR_VERSION or higher distribution (e.g., IBM Semeru, Oracle JDK, or OpenJDK)"
+            printf '%b\n' "  - Ensure the new Java version is added to your PATH environment variable"
+            printf '%b\n' "  - Re-run this script"
+            printf '%b\n' "\x1B[1;33mAlternatively, you can specify the path to an existing Java (JRE) $REQUIRED_JAVA_MAJOR_VERSION or higher installation:\x1B[0m"
+            printf '%b\n' "  - Re-run this script with the Java (JRE) path parameter, using --java-path <path_to_java>; e.g., ${EXAMPLE_CMD}"
             exit 1
         fi
         
         # Verify that default keytool is available
         if ! command -v keytool &> /dev/null; then
-            echo -e "\x1B[1;31mUnable to locate keytool. Java (JRE) $REQUIRED_JAVA_MAJOR_VERSION or higher must be installed to run this script.\x1B[0m"
-            echo -e "\x1B[1;31mPlease install Java (JRE) $REQUIRED_JAVA_MAJOR_VERSION or higher manually before continuing.\x1B[0m"
+            printf '%b\n' "\x1B[1;31mUnable to locate keytool. Java (JRE) $REQUIRED_JAVA_MAJOR_VERSION or higher must be installed to run this script.\x1B[0m"
+            printf '%b\n' "\x1B[1;31mPlease install Java (JRE) $REQUIRED_JAVA_MAJOR_VERSION or higher manually before continuing.\x1B[0m"
             exit 1
         fi
     fi
@@ -387,7 +388,7 @@ function validate_java_runtime() {
     # Step 2: Validate Java version
     "$JAVA_CMD" -version &>/dev/null
     if [[ $? -ne 0 ]]; then
-        echo -e "\x1B[1;31mUnable to execute Java. Please check your Java (JRE) installation.\x1B[0m"
+        printf '%b\n' "\x1B[1;31mUnable to execute Java. Please check your Java (JRE) installation.\x1B[0m"
         exit 1
     fi
     
@@ -404,24 +405,24 @@ function validate_java_runtime() {
     
     # Check if current version is less than the required version
     if [[ -n "$CURRENT_MAJOR_VERSION" && "$CURRENT_MAJOR_VERSION" -lt "$REQUIRED_JAVA_MAJOR_VERSION" ]]; then
-        echo -e "\x1B[1;31mJava version $CURRENT_JAVA_VERSION is installed but does not meet the minimum requirement (version $REQUIRED_JAVA_MAJOR_VERSION).\x1B[0m"
-        echo -e "\x1B[1;31mPlease upgrade to Java (JRE) $REQUIRED_JAVA_MAJOR_VERSION or higher manually before continuing.\x1B[0m"
-        echo -e "\x1B[1;33mJava (JRE) $REQUIRED_JAVA_MAJOR_VERSION or higher upgrade instructions:\x1B[0m"
-        echo -e "  - Install any compatible Java (JRE) $REQUIRED_JAVA_MAJOR_VERSION or higher distribution (e.g., IBM Semeru, Oracle JDK, or OpenJDK)"
-        echo -e "  - Ensure the new Java version is added to your PATH environment variable"
-        echo -e "  - Re-run this script"
-        echo -e "\x1B[1;33mAlternatively, you can specify the path to an existing Java (JRE) $REQUIRED_JAVA_MAJOR_VERSION or higher installation:\x1B[0m"
-        echo -e "  - Re-run this script with the Java (JRE) path parameter, using --java-path <path_to_java>; e.g., ${EXAMPLE_CMD}"
+        printf '%b\n' "\x1B[1;31mJava version $CURRENT_JAVA_VERSION is installed but does not meet the minimum requirement (version $REQUIRED_JAVA_MAJOR_VERSION).\x1B[0m"
+        printf '%b\n' "\x1B[1;31mPlease upgrade to Java (JRE) $REQUIRED_JAVA_MAJOR_VERSION or higher manually before continuing.\x1B[0m"
+        printf '%b\n' "\x1B[1;33mJava (JRE) $REQUIRED_JAVA_MAJOR_VERSION or higher upgrade instructions:\x1B[0m"
+        printf '%b\n' "  - Install any compatible Java (JRE) $REQUIRED_JAVA_MAJOR_VERSION or higher distribution (e.g., IBM Semeru, Oracle JDK, or OpenJDK)"
+        printf '%b\n' "  - Ensure the new Java version is added to your PATH environment variable"
+        printf '%b\n' "  - Re-run this script"
+        printf '%b\n' "\x1B[1;33mAlternatively, you can specify the path to an existing Java (JRE) $REQUIRED_JAVA_MAJOR_VERSION or higher installation:\x1B[0m"
+        printf '%b\n' "  - Re-run this script with the Java (JRE) path parameter, using --java-path <path_to_java>; e.g., ${EXAMPLE_CMD}"
         exit 1
     fi
-    
-    echo -e "\x1B[1;32mJava version: $CURRENT_JAVA_VERSION\x1B[0m"
-    
+
+    info "Using Java version: $CURRENT_JAVA_VERSION located at: $(command -v "$JAVA_CMD")"
+
     # Step 3: Validate keytool
     "$KEYTOOL_CMD" -help &>/dev/null
     if [[ $? -ne 0 ]]; then
-        echo -e "\x1B[1;31mUnable to execute keytool. Keytool is required and should be part of your Java (JRE) installation.\x1B[0m"
-        echo -e "\x1B[1;31mPlease ensure you have a complete Java (JRE) $REQUIRED_JAVA_MAJOR_VERSION or higher installation that includes keytool.\x1B[0m"
+        printf '%b\n' "\x1B[1;31mUnable to execute keytool. Keytool is required and should be part of your Java (JRE) installation.\x1B[0m"
+        printf '%b\n' "\x1B[1;31mPlease ensure you have a complete Java (JRE) $REQUIRED_JAVA_MAJOR_VERSION or higher installation that includes keytool.\x1B[0m"
         exit 1
     fi
     
@@ -493,7 +494,7 @@ function INFO() {
 
 function tips() {
 
-  echo -en "\x1B[1;31m[NEXT ACTIONS]\x1B[0m${1}\n" 
+  printf '%b' "\x1B[1;31m[NEXT ACTIONS]\x1B[0m${1}\n" 
 
 }
 
@@ -514,7 +515,7 @@ function error() {
 
 function msgRed() {
 
-  echo -en "\x1B[1;31m[*] ${1}\x1B[0m\n"
+  printf '%b' "\x1B[1;31m[*] ${1}\x1B[0m\n"
 
 }
 
@@ -537,7 +538,7 @@ function title() {
 
 function msgB() {
 
-  echo -e "\x1B[1m${1}\x1B[0m\n"
+  printf '%b\n' "\x1B[1m${1}\x1B[0m\n"
 
 }
 
@@ -556,7 +557,7 @@ function echo_impl() {
     local MSG=${1:?Missing message to echo}
     local PREFIX=${2:?Missing message prefix}
     #local SUFFIX=${3:?Missing message suffix}
-    echo -e "\x1B[1${PREFIX}${MSG}\x1B[0m"
+    printf '%b\n' "\x1B[1${PREFIX}${MSG}\x1B[0m"
 }
 
 ## <https://jsw.ibm.com/browse/DBACLD-159357> - Introduced new function to deal with pressing control keys to continune, need to clear buffer before and after reading user input.
@@ -578,7 +579,7 @@ function check_platform_version(){
     else
         # PLATFORM_VERSION="3.11"
         PLATFORM_VERSION="4.4OrLater"
-        echo -e "\x1B[1;31mIMPORTANT: Only support OCp4.4 or Later, exit...\n\x1B[0m"
+        printf '%b\n' "\x1B[1;31mIMPORTANT: Only support OCp4.4 or Later, exit...\n\x1B[0m"
         exit 1
     fi
 }
@@ -634,29 +635,29 @@ function check_bai_separate_operand(){
         success "Found \"ibm-cp4ba-common-config\" configMap in the project \"$project\"."
     else
         status=$?
-        echo $status
+        echo "$status"
         warning "Not found \"ibm-cp4ba-common-config\" configMap in the project \"$project\"."
         while [[ $BAI_SERVICES_NS == "" ]];
         do
             printf "\n"
-            echo -e "\x1B[1mWhere (namespace) did you deploy BAI Standalone operands (i.e., runtime pods)? \x1B[0m"
+            printf '%b\n' "\x1B[1mWhere (namespace) did you deploy BAI Standalone operands (i.e., runtime pods)? \x1B[0m"
             read -p "Enter the name for an existing project (namespace): " BAI_SERVICES_NS
             if [ -z "$BAI_SERVICES_NS" ]; then
-                echo -e "\x1B[1;31mEnter a valid project name, project name can not be blank\x1B[0m"
+                printf '%b\n' "\x1B[1;31mEnter a valid project name, project name can not be blank\x1B[0m"
             elif [[ "$BAI_SERVICES_NS" == openshift* ]]; then
-                echo -e "\x1B[1;31mEnter a valid project name, project name should not be 'openshift' or start with 'openshift' \x1B[0m"
+                printf '%b\n' "\x1B[1;31mEnter a valid project name, project name should not be 'openshift' or start with 'openshift' \x1B[0m"
                 BAI_SERVICES_NS=""
             elif [[ "$BAI_SERVICES_NS" == kube* ]]; then
-                echo -e "\x1B[1;31mEnter a valid project name, project name should not be 'kube' or start with 'kube' \x1B[0m"
+                printf '%b\n' "\x1B[1;31mEnter a valid project name, project name should not be 'kube' or start with 'kube' \x1B[0m"
                 BAI_SERVICES_NS=""
             else
                 isProjExists=`${CLI_CMD} get project $BAI_SERVICES_NS --ignore-not-found | wc -l`  >/dev/null 2>&1
 
                 if [ "$isProjExists" -ne 2 ] ; then
-                    echo -e "\x1B[1;31mInvalid project name, enter a existing project name ...\x1B[0m"
+                    printf '%b\n' "\x1B[1;31mInvalid project name, enter a existing project name ...\x1B[0m"
                     BAI_SERVICES_NS=""
                 else
-                    echo -e "\x1B[1mUsing project ${BAI_SERVICES_NS}...\x1B[0m"
+                    printf '%b\n' "\x1B[1mUsing project ${BAI_SERVICES_NS}...\x1B[0m"
                     if ${CLI_CMD} get configMap ibm-cp4ba-common-config -n $BAI_SERVICES_NS >/dev/null 2>&1; then
                         success "Found \"ibm-cp4ba-common-config\" configMap in the project \"$BAI_SERVICES_NS\"."
                     else
@@ -715,18 +716,11 @@ function save_log(){
         mkdir -p "$LOG_DIR"
     fi
 
-    # Create a named pipe
-    PIPE=$(mktemp -u)
-    mkfifo "$PIPE"
+    # Redirect output to log-file
+    exec > >(tee -a "$LOG_FILE") 2>&1
 
-    # Tee the output to both the log file and the terminal
-    tee "$LOG_FILE" < "$PIPE" &
-
-    # Redirect stdout and stderr to the named pipe
-    exec > "$PIPE" 2>&1
-
-    # Remove the named pipe
-    rm "$PIPE"
+    # Open fd 3 directly to log file
+    exec 3>> "$LOG_FILE"
 
 }
 
@@ -750,14 +744,14 @@ function decode_xor_password() {
     local decoded=$( ${CLI_CMD} exec -i -n $operator_project_name $operator_pod_name -- bash -c "java -cp \"${class_path}\" com.ibm.ws.security.util.PasswordDecoder \"$encoded\"")
     echo "$decoded" | grep -i 'decoded password == ' | awk '{print $8}' | sed -e 's/^"//' -e 's/"$//'
   else
-    echo $encoded
+    echo "$encoded"
   fi
 }
 
 function allocate_operator_pvc(){
     # For dynamic storage classname
     printf "\n"
-    echo -e "\x1B[1mApplying the persistent volumes for the Cloud Pak operator by using the storage classname: ${STORAGE_CLASS_NAME}...\x1B[0m"
+    printf '%b\n' "\x1B[1mApplying the persistent volumes for the Cloud Pak operator by using the storage classname: ${STORAGE_CLASS_NAME}...\x1B[0m"
 
     printf "\n"
     if [[ $DEPLOYMENT_TYPE == "starter" && ($PLATFORM_SELECTED == "OCP" || $PLATFORM_SELECTED == "other") ]] ;
@@ -775,27 +769,27 @@ function allocate_operator_pvc(){
     # Create Operator Persistent Volume.
     CREATE_PVC_CMD="${CLI_CMD} apply -f ${OPERATOR_PVC_FILE_TMP}"
     if $CREATE_PVC_CMD ; then
-        echo -e "\x1B[1mDone\x1B[0m"
+        printf '%b\n' "\x1B[1mDone\x1B[0m"
     else
-        echo -e "\x1B[1;31mFailed\x1B[0m"
+        printf '%b\n' "\x1B[1;31mFailed\x1B[0m"
     fi
    # Check Operator Persistent Volume status every 5 seconds (max 10 minutes) until allocate.
     ATTEMPTS=0
     TIMEOUT=60
     printf "\n"
-    echo -e "\x1B[1mWaiting for the persistent volumes to be ready...\x1B[0m"
+    printf '%b\n' "\x1B[1mWaiting for the persistent volumes to be ready...\x1B[0m"
     until ${CLI_CMD} get pvc | grep cp4a-shared-log-pvc | grep -q -m 1 "Bound" || [ $ATTEMPTS -eq $TIMEOUT ]; do
         ATTEMPTS=$((ATTEMPTS + 1))
-        echo -e "......"
+        printf '%b\n' "......"
         sleep 10
         if [ $ATTEMPTS -eq $TIMEOUT ] ; then
-            echo -e "\x1B[1;31mFailed to allocate the persistent volumes!\x1B[0m"
-            echo -e "\x1B[1;31mRun the following command to check the claim '${CLI_CMD} describe pvc operator-shared-pvc'\x1B[0m"
+            printf '%b\n' "\x1B[1;31mFailed to allocate the persistent volumes!\x1B[0m"
+            printf '%b\n' "\x1B[1;31mRun the following command to check the claim '${CLI_CMD} describe pvc operator-shared-pvc'\x1B[0m"
             exit 1
         fi
     done
     if [ $ATTEMPTS -lt $TIMEOUT ] ; then
-            echo -e "\x1B[1mDone\x1B[0m"
+            printf '%b\n' "\x1B[1mDone\x1B[0m"
     fi
 }
 # For https://jsw.ibm.com/browse/DBACLD-157020
@@ -821,7 +815,7 @@ function update_secret_template_passwords(){
     else
         local machine_lower=$(echo "${machine}" | tr '[:upper:]' '[:lower:]')
         if [[ "$machine_lower" == "linux" ]]; then
-            temp_val=$(echo -n "$password_value" | base64 -w 0 )
+            temp_val=$(printf '%s' "$password_value" | base64 -w 0 )
         else
             temp_val=$(printf '%s' "$password_value" | base64 )
         fi
@@ -906,15 +900,15 @@ function load_properties_from_temp_file(){
 
     # load external postgres DB for IM Flag
     EXTERNAL_POSTGRESDB_FOR_IM_FLAG=$(sed -e 's/^"//' -e 's/"$//' <<<"$(prop_tmp_property_file EXTERNAL_POSTGRESDB_FOR_IM_FLAG)")
-    EXTERNAL_POSTGRESDB_FOR_IM_FLAG=$(echo $EXTERNAL_POSTGRESDB_FOR_IM_FLAG | tr '[:upper:]' '[:lower:]')
+    EXTERNAL_POSTGRESDB_FOR_IM_FLAG=$(echo "$EXTERNAL_POSTGRESDB_FOR_IM_FLAG" | tr '[:upper:]' '[:lower:]')
 
     # Load external postgres DB for Zen Flag
     EXTERNAL_POSTGRESDB_FOR_ZEN_FLAG=$(sed -e 's/^"//' -e 's/"$//' <<<"$(prop_tmp_property_file EXTERNAL_POSTGRESDB_FOR_ZEN_FLAG)")
-    EXTERNAL_POSTGRESDB_FOR_ZEN_FLAG=$(echo $EXTERNAL_POSTGRESDB_FOR_ZEN_FLAG | tr '[:upper:]' '[:lower:]')
+    EXTERNAL_POSTGRESDB_FOR_ZEN_FLAG=$(echo "$EXTERNAL_POSTGRESDB_FOR_ZEN_FLAG" | tr '[:upper:]' '[:lower:]')
 
     # Load external postgres DB for BTS Flag
     EXTERNAL_POSTGRESDB_FOR_BTS_FLAG=$(sed -e 's/^"//' -e 's/"$//' <<<"$(prop_tmp_property_file EXTERNAL_POSTGRESDB_FOR_BTS_FLAG)")
-    EXTERNAL_POSTGRESDB_FOR_BTS_FLAG=$(echo $EXTERNAL_POSTGRESDB_FOR_BTS_FLAG | tr '[:upper:]' '[:lower:]')
+    EXTERNAL_POSTGRESDB_FOR_BTS_FLAG=$(echo "$EXTERNAL_POSTGRESDB_FOR_BTS_FLAG" | tr '[:upper:]' '[:lower:]')
 
 
     # load pattern into pattern_cr_arr
@@ -1073,7 +1067,7 @@ function validate_docker_podman_cli(){
             [[ $? -ne 0 ]] && \
                 DOCKER_FOUND="No"
             if [[ $DOCKER_FOUND == "No" && $PODMAN_FOUND == "No" ]]; then
-                echo -e "\x1B[1;31mUnable to locate docker and podman. Install either of them first.\x1B[0m" && \
+                printf '%b\n' "\x1B[1;31mUnable to locate docker and podman. Install either of them first.\x1B[0m" && \
                 exit 1
             fi
         fi
@@ -1081,7 +1075,7 @@ function validate_docker_podman_cli(){
     then
         which podman &>/dev/null
         [[ $? -ne 0 ]] && \
-            echo -e "\x1B[1;31mUnable to locate podman. Install it first.\x1B[0m" && \
+            printf '%b\n' "\x1B[1;31mUnable to locate podman. Install it first.\x1B[0m" && \
             exit 1
     fi
 }
@@ -1094,8 +1088,8 @@ function prompt_license(){
     clear
     local message=$1
     local license=$2
-    echo -e "\x1B[1;31mIMPORTANT: Review the IBM Business Automation Insights standalone license information here: \n\x1B[0m"
-    echo -e "\x1B[1;31m$license\n\x1B[0m" 
+    printf '%b\n' "\x1B[1;31mIMPORTANT: Review the IBM Business Automation Insights standalone license information here: \n\x1B[0m"
+    printf '%b\n' "\x1B[1;31m$license\n\x1B[0m" 
     INSTALL_BAW_ONLY="No"
 
     prompt_press_any_key_to_continue
@@ -1104,20 +1098,20 @@ function prompt_license(){
     while true; do
         printf "\x1B[1mDo you accept the IBM Business Automation Insights standalone license (Yes/No, default: No): \x1B[0m"
 
-        read -rp "" ans
+        read -erp "" ans
         case "$ans" in
         "y"|"Y"|"yes"|"Yes"|"YES")
-            echo -e $message
+            printf '%b\n' "$message"
             IBM_LICENSE="Accept"
             validate_cli
             break
             ;;
         "n"|"N"|"no"|"No"|"NO"|"")
-            echo -e "The license agreement was not accepted. The license agreement must be accepted to continue. The script is exiting...\n"
+            printf '%b\n' "The license agreement was not accepted. The license agreement must be accepted to continue. The script is exiting...\n"
             exit 0
             ;;
         *)
-            echo -e "Answer must be \"Yes\" or \"No\"\n"
+            printf '%b\n' "Answer must be \"Yes\" or \"No\"\n"
             ;;
         esac
     done
@@ -1129,13 +1123,13 @@ function validate_kube_oc_cli(){
     if  [[ $PLATFORM_SELECTED == "OCP" || $PLATFORM_SELECTED == "ROKS" ]]; then
         which oc &>/dev/null
         [[ $? -ne 0 ]] && \
-        echo -e  "\x1B[1;31mUnable to locate the OpenShift CLI. You must install it to run this script.\x1B[0m" && \
+        printf '%b\n'  "\x1B[1;31mUnable to locate the OpenShift CLI. You must install it to run this script.\x1B[0m" && \
         exit 1
     fi
     if  [[ $PLATFORM_SELECTED == "other" ]]; then
         which kubectl &>/dev/null
         [[ $? -ne 0 ]] && \
-        echo -e  "\x1B[1;31mUnable to locate the Kubernetes CLI, You must install it to run this script.\x1B[0m" && \
+        printf '%b\n'  "\x1B[1;31mUnable to locate the Kubernetes CLI, You must install it to run this script.\x1B[0m" && \
         exit 1
     fi
 }
@@ -1145,7 +1139,7 @@ function validate_kube_oc_cli(){
 function validate_namespace() {
     
     printf "\n"
-    echo -e "\x1B[1mValidating the Namespace used to deploy IBM Business Automation Insights standalone...\x1B[0m"
+    printf '%b\n' "\x1B[1mValidating the Namespace used to deploy IBM Business Automation Insights standalone...\x1B[0m"
     printf "\n"
     #read -p "Enter the name for an existing project (namespace): " TARGET_PROJECT_NAME
     if [[ "$TARGET_PROJECT_NAME" == openshift* ]]; then
@@ -1173,24 +1167,24 @@ function select_project() {
     while [[ $TARGET_PROJECT_NAME == "" ]]; 
     do
         printf "\n"
-        echo -e "\x1B[1mWhere do you want to deploy IBM Business Automation Insights standalone?\x1B[0m"
+        printf '%b\n' "\x1B[1mWhere do you want to deploy IBM Business Automation Insights standalone?\x1B[0m"
         read -p "Enter the name for an existing project (namespace): " TARGET_PROJECT_NAME
         if [ -z "$TARGET_PROJECT_NAME" ]; then
-            echo -e "\x1B[1;31mEnter a valid project name, project name can not be blank\x1B[0m"
+            printf '%b\n' "\x1B[1;31mEnter a valid project name, project name can not be blank\x1B[0m"
         elif [[ "$TARGET_PROJECT_NAME" == openshift* ]]; then
-            echo -e "\x1B[1;31mEnter a valid project name, project name should not be 'openshift' or start with 'openshift' \x1B[0m"
+            printf '%b\n' "\x1B[1;31mEnter a valid project name, project name should not be 'openshift' or start with 'openshift' \x1B[0m"
             TARGET_PROJECT_NAME=""
         elif [[ "$TARGET_PROJECT_NAME" == kube* ]]; then
-            echo -e "\x1B[1;31mEnter a valid project name, project name should not be 'kube' or start with 'kube' \x1B[0m"
+            printf '%b\n' "\x1B[1;31mEnter a valid project name, project name should not be 'kube' or start with 'kube' \x1B[0m"
             TARGET_PROJECT_NAME=""
         else
             isProjExists=`${CLI_CMD} get namespace $TARGET_PROJECT_NAME --ignore-not-found | wc -l`  >/dev/null 2>&1
 
             if [ "$isProjExists" -ne 2 ] ; then
-                echo -e "\x1B[1;31mInvalid project name, enter a existing project name ...\x1B[0m"
+                printf '%b\n' "\x1B[1;31mInvalid project name, enter a existing project name ...\x1B[0m"
                 TARGET_PROJECT_NAME=""
             else
-                echo -e "\x1B[1mUsing project ${TARGET_PROJECT_NAME}...\x1B[0m"
+                printf '%b\n' "\x1B[1mUsing project ${TARGET_PROJECT_NAME}...\x1B[0m"
             fi
         fi
     done
@@ -1211,26 +1205,33 @@ function check_ocp_version(){
         else
             # OCP_VERSION="3.11"
             OCP_VERSION="4.4OrLater"
-            echo -e "\x1B[1;31mIMPORTANT: The apiextensions.k8s.io/v1beta API has been deprecated from k8s 1.16+, OCP 4.3 is using k8s 1.16.x. recommend you to upgrade your OCP to version 4.4 or later\n\x1B[0m"
+            printf '%b\n' "\x1B[1;31mIMPORTANT: The apiextensions.k8s.io/v1beta API has been deprecated from k8s 1.16+, OCP 4.3 is using k8s 1.16.x. recommend you to upgrade your OCP to version 4.4 or later\n\x1B[0m"
             prompt_press_any_key_to_continue
             # exit 0
         fi
     fi
 }
 
+# All inputs were made to lowercase, default was set to false if no input was given and a message is displayed before the script actually exits
+# For https://jsw.ibm.com/browse/DBACLD-201592
 function prompt_to_continue() {
     while true; do
         printf "\x1B[1mPlease confirm that you are ready to continue.  Enter Yes to continue or No to exit (Yes/No, default: No): \x1B[0m"
-        read -rp "" ans
+        read -erp "" ans
+        ans=$(echo "$ans" | tr '[:upper:]' '[:lower:]')
+        if [ -z "$ans" ]; then
+            ans="no"
+        fi
         case "$ans" in
-        "y"|"Y"|"yes"|"Yes"|"YES")
+        "y"|"yes")
             break
             ;;
-        "n"|"N"|"no"|"No"|"NO"|"")
+        "n"|"no")
+            info "The script will now exit...\n"
             exit
             ;;
         *)
-            echo -e "Answer must be \"Yes\" or \"No\"\n"
+            printf '%b\n' "Answer must be \"Yes\" or \"No\"\n"
             ;;
         esac
     done
@@ -1277,11 +1278,7 @@ function generate_truststore_password() {
     local pwd_length="${1:-8}"
     local pwd_charset="${2:-A-Za-z0-9}"
     local machine_lower=$(echo "${machine}" | tr '[:upper:]' '[:lower:]')
-    if [[ "$machine_lower" == "linux" ]]; then
-        < /dev/urandom tr -dc "$pwd_charset" | head -c "$pwd_length"
-    else
-        < /dev/urandom tr -dc "$pwd_charset" | cut -c1-"$pwd_length"
-    fi
+    openssl rand -base64 64 | tr -dc "$pwd_charset" | head -c "$pwd_length"
     echo
 }
 
@@ -1451,7 +1448,7 @@ function mark_optional() {
     cleaned_params=$(echo "$cleaned_params" | sed 's/,LDAP_SSL_CERT_FILE_FOLDER//g' | sed 's/LDAP_SSL_CERT_FILE_FOLDER,//g' | sed 's/LDAP_SSL_CERT_FILE_FOLDER//g')
     
     # Remove the old line
-    sed -i '/^OPTIONAL_PARAMETERS:/d' "$TEMPORARY_PROPERTY_FILE"
+    ${SED_COMMAND} '/^OPTIONAL_PARAMETERS:/d' "$TEMPORARY_PROPERTY_FILE"
     
     # Add new parameters to the cleaned list
     local final_params="$cleaned_params"
@@ -1478,7 +1475,7 @@ function mark_optional() {
   fi
 }
 
-# Empty values or {xor} are considered invalid.
+# Empty values or {Base64} are considered invalid.
 # For comma-separated values, each part must be non-empty.
 function validate_property_file_required_fields() {
 
@@ -1521,8 +1518,8 @@ function validate_property_file_required_fields() {
             continue
         fi
 
-        # Fail early if value is <Required>, {xor}
-        if [[ "$value" == "<Required>" || "$value" == "{xor}" ]]; then
+        # Fail early if value is <Required>, {Base64}
+        if [[ "$value" == "<Required>" || "$value" == "{Base64}" ]]; then
             MISSING_REQUIRED_PARAMETERS=true
             break
         fi
@@ -1567,7 +1564,7 @@ function validate_property_file_required_fields() {
 function is_cert_manager_installed(){
 
     info "Checking to see if any cert-manager is installed\n"
-    "$CLI_CMD" get subscriptions -A |grep  "cert-manager"  >  /dev/null 2>&1 # this will catch the packagenames of all cert-manager-operators
+    "$CLI_CMD" get subscriptions.operators.coreos.com -A |grep  "cert-manager"  >  /dev/null 2>&1 # this will catch the packagenames of all cert-manager-operators
     if [ $? -eq 0 ]; then
         warning "There is a cert-manager Subscription already existed\n"
     fi
@@ -1661,7 +1658,7 @@ function patch_strimzi_podset(){
 
     echo "Checking ibm-events-operator subscription channel..."
     # Check if the subscription exists
-    events_operator_subscription_exists=$(${CLI_CMD} get subscription ibm-events-operator -n $operator_namespace -o name --no-headers 2>/dev/null || echo "")
+    events_operator_subscription_exists=$(${CLI_CMD} get subscription.operators.coreos.com ibm-events-operator -n $operator_namespace -o name --no-headers 2>/dev/null || echo "")
 
     if [[ -z "$events_operator_subscription_exists" ]]; then
         echo "Subscription 'ibm-events-operator' not found, skipping"
@@ -1670,7 +1667,7 @@ function patch_strimzi_podset(){
     fi
 
     # Get the subscription channel - YQ 3.3 compatible syntax
-    events_operator_channel=$(${CLI_CMD} get subscription ibm-events-operator -n $operator_namespace -o yaml | ${YQ_CMD} read - spec.channel)
+    events_operator_channel=$(${CLI_CMD} get subscription.operators.coreos.com ibm-events-operator -n $operator_namespace -o yaml | ${YQ_CMD} read - spec.channel)
 
     echo "Current channel: $events_operator_channel"
 

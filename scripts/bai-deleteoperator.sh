@@ -22,7 +22,7 @@ OLM_SUBSCRIPTION_TMP=${TEMP_FOLDER}/.subscription.yaml
 function select_uninstall_type(){
     local returnValue
     # Check whether the subscription exists in the specified namespace.
-    ${CLI_CMD} get subscription -n $NAMESPACE | grep ibm-bai-operator-catalog-subscription >/dev/null 2>&1
+    ${CLI_CMD} get subscription.operators.coreos.com -n $NAMESPACE | grep ibm-bai-operator-catalog-subscription >&3 2>&3
     returnValue=$?
     if [ "$returnValue" == 0 ] ; then
         # If the subscription exists, call the OLM-based uninstall function
@@ -37,10 +37,10 @@ function select_uninstall_type(){
 function uninstall_bai(){
     printf "\n"
     printf "\x1B[1mUninstall BAI Operator...\n\x1B[0m"
-    ${CLI_CMD} delete -f ${CUR_DIR}/../descriptors/operator.yaml -n $NAMESPACE >/dev/null 2>&1
-    ${CLI_CMD} delete -f ${CUR_DIR}/../descriptors/role_binding.yaml -n $NAMESPACE >/dev/null 2>&1
-    ${CLI_CMD} delete -f ${CUR_DIR}/../descriptors/role.yaml -n $NAMESPACE >/dev/null 2>&1
-    ${CLI_CMD} delete -f ${CUR_DIR}/../descriptors/service_account.yaml -n $NAMESPACE >/dev/null 2>&1
+    ${CLI_CMD} delete -f ${CUR_DIR}/../descriptors/operator.yaml -n $NAMESPACE >&3 2>&3
+    ${CLI_CMD} delete -f ${CUR_DIR}/../descriptors/role_binding.yaml -n $NAMESPACE >&3 2>&3
+    ${CLI_CMD} delete -f ${CUR_DIR}/../descriptors/role.yaml -n $NAMESPACE >&3 2>&3
+    ${CLI_CMD} delete -f ${CUR_DIR}/../descriptors/service_account.yaml -n $NAMESPACE >&3 2>&3
     echo "All descriptors have been successfully deleted."
 }
 
@@ -53,7 +53,7 @@ function uninstall_olm_bai(){
         local subName=$1
         local csvName
         # Get the CSV name from the subscription
-        csvName=$(${CLI_CMD} get subscription "$subName" -n $NAMESPACE -o=jsonpath='{.status.installedCSV}')
+        csvName=$(${CLI_CMD} get subscription.operators.coreos.com "$subName" -n $NAMESPACE -o=jsonpath='{.status.installedCSV}')
         
         # Remove the subscription
         echo "Removing the subscription for $subName"
@@ -75,8 +75,8 @@ function uninstall_olm_bai(){
     }
 
     ${CLI_CMD} get subscription.operators.coreos.com -n $NAMESPACE -o=jsonpath='{range .items[*]}{.metadata.name}{" "}{.spec.source}{"\n"}{end}' | while read -r line; do
-        subName=$(echo $line | awk '{print $1}')
-        source=$(echo $line | awk '{print $2}')
+        subName=$(echo "$line" | awk '{print $1}')
+        source=$(echo "$line" | awk '{print $2}')
         echo "***********************************"
         echo "[DEBUG] Checking subscription: $subName with source: $source"
         if [[ "$source" == "ibm-bai-operator-catalog" ]]; then
@@ -87,10 +87,10 @@ function uninstall_olm_bai(){
 
 # Function to display help information
 function show_help {
-    echo -e "\nPrerequisite:"
-    echo -e "1. Login to your cluster;"
-    echo -e "2. The CR was applied in your project."
-    echo -e "Usage: deleteOperator.sh -n <namespace>\n"
+    printf '%b\n' "\nPrerequisite:"
+    printf '%b\n' "1. Login to your cluster;"
+    printf '%b\n' "2. The CR was applied in your project."
+    printf '%b\n' "Usage: deleteOperator.sh -n <namespace>\n"
     echo "Options:"
     echo "  -h  Display help"
     echo "  -n  The namespace where the BAI Operator is installed"
@@ -117,7 +117,7 @@ else
     done
 fi
 
-mkdir -p $TEMP_FOLDER >/dev/null 2>&1
+mkdir -p $TEMP_FOLDER >&3 2>&3
 source ${CUR_DIR}/helper/common.sh
 select_uninstall_type
-rm -rf ${TEMP_FOLDER} >/dev/null 2>&1
+rm -rf ${TEMP_FOLDER} >&3 2>&3

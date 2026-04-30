@@ -89,7 +89,7 @@ function upgradedeploymentstatus_mode(){
                 clear
                 BAI_DEPLOYMENT_STATUS="Waiting for the zenService to be ready (could take up to 120 minutes) before upgrade the BAI Standalone capabilities..."
                 printf '%s %s\n' "$(date)" "[refresh interval: 60s]"
-                echo -en "[Press Ctrl+C to exit] \t\t"
+                printf '%b' "[Press Ctrl+C to exit] \t\t"
                 printf "\n"
                 echo "${YELLOW_TEXT}$BAI_DEPLOYMENT_STATUS${RESET_TEXT}"
                 printHeaderMessage "BAI Standalone Upgrade Status"
@@ -115,14 +115,14 @@ function upgradedeploymentstatus_mode(){
             elif [[ $retry -eq ${maxRetry} ]]; then
                 printf "\n"
                 warning "Timeout waiting for the Zen Service to start"
-                echo -e "\x1B[1mCheck the status of the Zen Service\x1B[0m"
+                printf '%b\n' "\x1B[1mCheck the status of the Zen Service\x1B[0m"
                 printf "\n"
                 exit 1
             fi
         done
         BAI_DEPLOYMENT_STATUS="The Zen Service (${ZEN_OPERATOR_VERSION//v/}) is ready for BAI Standalone"
         printf '%s %s\n' "$(date)" "[refresh interval: 30s]"
-        echo -en "[Press Ctrl+C to exit] \t\t"
+        printf '%b' "[Press Ctrl+C to exit] \t\t"
         printf "\n"
         echo "${YELLOW_TEXT}$BAI_DEPLOYMENT_STATUS${RESET_TEXT}"
         info "Starting all BAI Standalone Operators to upgrade BAI Standalone capabilities"
