@@ -22,7 +22,7 @@ OLM_SUBSCRIPTION_TMP=${TEMP_FOLDER}/.subscription.yaml
 function select_uninstall_type(){
     local returnValue
     # Check whether the subscription exists in the specified namespace.
-    ${CLI_CMD} get subscription.operators.coreos.com -n $NAMESPACE | grep ibm-bai-operator-catalog-subscription >/dev/null 2>&1
+    ${CLI_CMD} get subscription.operators.coreos.com -n $NAMESPACE | grep ibm-bai-operator-catalog-subscription >&3 2>&3
     returnValue=$?
     if [ "$returnValue" == 0 ] ; then
         # If the subscription exists, call the OLM-based uninstall function

@@ -67,31 +67,31 @@ LDAP_SECRET_FILE=${SECRET_FILE_FOLDER}/ldap-bind-secret.yaml
 # BAI_RELEASE_BASE is for fetch content/foundation operator pod, only need to change for major release.
 BAI_RELEASE_BASE="24.0.0"
 
-BAI_PATCH_VERSION="IF006"
+BAI_PATCH_VERSION="IF007"
 # BAI_CSV_VERSION is for checking BAI operator upgrade status, need to update for each IFIX
-BAI_CSV_VERSION="v24.0.6"
+BAI_CSV_VERSION="v24.0.7"
 # BAI_CHANNEL_VERSION is for switch BAI operator upgrade status, need to update for major release
 BAI_CHANNEL_VERSION="v24.0"
 # CS_OPERATOR_VERSION is for checking CPFS operator upgrade status, need to update for each IFIX
-CS_OPERATOR_VERSION="v4.6.20"
+CS_OPERATOR_VERSION="v4.6.21"
 # CS_CHANNEL_VERSION is for for CPFS script -c option, need to update for each IFIX
 CS_CHANNEL_VERSION="v4.6"
 # CERT_LICENSE_OPERATOR_VERSION is for checking IBM cert-manager/licensing operator upgrade status, need to update for each IFIX
-CERT_LICENSE_OPERATOR_VERSION="v4.2.19"
+CERT_LICENSE_OPERATOR_VERSION="v4.2.21"
 # CERT_LICENSE_CHANNEL_VERSION is for for IBM cert-manager/licensing script -c option, need to update for each IFIX
 CERT_LICENSE_CHANNEL_VERSION="v4.2"
 # CS_CATALOG_VERSION is for CPFS script -s option, need to update for each IFIX
-CS_CATALOG_VERSION="ibm-cs-install-catalog-v4-6-20"
+CS_CATALOG_VERSION="ibm-cs-install-catalog-v4-6-21"
 # ZEN_OPERATOR_VERSION is for checking ZenService operator upgrade status, need to update for each IFIX
-ZEN_OPERATOR_VERSION="v5.1.19"
+ZEN_OPERATOR_VERSION="v5.1.20"
 # BTS_CHANNEL_VERSION is for for BTS, need to update for each IFIX
 BTS_CHANNEL_VERSION="v3.35"
-# BTS_CATALOG_VERSION is for BTS 3.35.7.
+# BTS_CATALOG_VERSION is for BTS 3.35.9.
 BTS_CATALOG_VERSION="bts-operator-v3-35"
 # REQUIREDVER_BTS is for checking bts operator upgrade status before run removal_iaf.sh, need to update for each IFIX
-REQUIREDVER_BTS="3.35.7"
+REQUIREDVER_BTS="3.35.9"
 # REQUIREDVER_POSTGRESQL is for checking postgresql operator upgrade status before run removal_iaf.sh, need to update for each IFIX
-REQUIREDVER_POSTGRESQL="1.25.3"
+REQUIREDVER_POSTGRESQL="1.25.5"
 # EVENTS_OPERATOR_VERSION is for checking IBM Events operator upgrade status, need to update for each IFIX
 EVENTS_OPERATOR_VERSION="v5.2.1"
 # List of BAI versions that are supported for upgrade to $BAI_CSV_VERSION
@@ -188,12 +188,14 @@ function set_global_env_vars() {
     if [[ "$machine" == "Mac" ]]; then
         SED_COMMAND='sed -i ""'
         SED_COMMAND_FORMAT='sed -i "" s/^M//g'
+        BASE64_DECODE='base64 --decode'
         YQ_CMD=${CUR_DIR}/helper/yq/yq_darwin_amd64
         CPFS_YQ_PATH=$COMMON_SERVICES_SCRIPT_YQ_FOLDER/macos/yq
         COPY_CMD=/bin/cp
     else
         SED_COMMAND='sed -i'
         SED_COMMAND_FORMAT='sed -i s/\r//g'
+        BASE64_DECODE='base64 -w 0 --decode'
         if [[ $(uname -m) == 'x86_64' ]]; then
             YQ_CMD=${CUR_DIR}/helper/yq/yq_linux_amd64
             CPFS_YQ_PATH=$COMMON_SERVICES_SCRIPT_YQ_FOLDER/amd64/yq
@@ -226,7 +228,7 @@ function validate_cli(){
             echo_bold "\"timeout\" Command Not Found\n"
             echo_bold "The \"timeout\" will be installed automatically\n"
             echo_bold "Do you accept (Yes/No, default: No):"
-            read -rp "" ans
+            read -erp "" ans
             case "$ans" in
             "y"|"Y"|"yes"|"Yes"|"YES")
                 install_timeout_cli
@@ -663,18 +665,11 @@ function save_log(){
         mkdir -p "$LOG_DIR"
     fi
 
-    # Create a named pipe
-    PIPE=$(mktemp -u)
-    mkfifo "$PIPE"
+    # Redirect output to log-file
+    exec > >(tee -a "$LOG_FILE") 2>&1
 
-    # Tee the output to both the log file and the terminal
-    tee "$LOG_FILE" < "$PIPE" &
-
-    # Redirect stdout and stderr to the named pipe
-    exec > "$PIPE" 2>&1
-
-    # Remove the named pipe
-    rm "$PIPE"
+    # Open fd 3 directly to log file
+    exec 3>> "$LOG_FILE"
 
 }
 
@@ -828,12 +823,7 @@ function check_valid_bai_operator_version() {
 function generate_truststore_password() {
     local pwd_length="${1:-8}"
     local pwd_charset="${2:-A-Za-z0-9}"
-    local machine_lower=$(echo "${machine}" | tr '[:upper:]' '[:lower:]')
-    if [[ "$machine_lower" == "linux" ]]; then
-        < /dev/urandom tr -dc "$pwd_charset" | head -c "$pwd_length"
-    else
-        < /dev/urandom tr -dc "$pwd_charset" | cut -c1-"$pwd_length"
-    fi
+    openssl rand -base64 64 | tr -dc "$pwd_charset" | head -c "$pwd_length"
     echo
 }
 
@@ -1005,7 +995,7 @@ function mark_optional() {
     cleaned_params=$(echo "$cleaned_params" | sed 's/,EXT_LDAP_SSL_CERT_FILE_FOLDER//g' | sed 's/EXT_LDAP_SSL_CERT_FILE_FOLDER,//g' | sed 's/EXT_LDAP_SSL_CERT_FILE_FOLDER//g')
     
     # Remove the old line
-    sed -i '/^OPTIONAL_PARAMETERS:/d' "$TEMPORARY_PROPERTY_FILE"
+    ${SED_COMMAND} '/^OPTIONAL_PARAMETERS:/d' "$TEMPORARY_PROPERTY_FILE"
     
     # Add new parameters to the cleaned list
     local final_params="$cleaned_params"

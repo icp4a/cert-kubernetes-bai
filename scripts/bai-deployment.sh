@@ -274,7 +274,7 @@ function prompt_license(){
     while true; do
         printf "\x1B[1mDo you accept the IBM Business Automation Insights standalone license (Yes/No, default: No): \x1B[0m"
 
-        read -rp "" ans
+        read -erp "" ans
         case "$ans" in
         "y"|"Y"|"yes"|"Yes"|"YES")
             printf '%b\n' "Starting to Install the IBM Business Automation Insights standalone Operator...\n"
@@ -591,7 +591,7 @@ function select_flink_job(){
 
     prompt="Enter a valid option [1 to ${#options[@]}]: "
 
-    while menu && read -rp "$prompt" num && [[ "$num" ]]; do
+    while menu && read -erp "$prompt" num && [[ "$num" ]]; do
         [[ "$num" != *[![:digit:]]* ]] &&
         (( num > 0 && num <= ${#options[@]} )) ||
         { msg="Invalid option: $num"; continue; }
@@ -707,7 +707,7 @@ function get_entitlement_registry(){
     printf "\n"
     while true; do
         printf "\x1B[1mDo you have a Cloud Pak for Business Automation Entitlement Registry key (Yes/No, default: Yes): \x1B[0m"
-        read -rp "" ans
+        read -erp "" ans
 
         case "$ans" in
         "y"|"Y"|"yes"|"Yes"|"YES"|"")
@@ -741,7 +741,7 @@ function get_entitlement_registry(){
 function create_secret_entitlement_registry(){
     printf "\x1B[1mCreating docker-registry secret for Entitlement Registry key...\n\x1B[0m"
 # Create docker-registry secret for Entitlement Registry Key
-    ${CLI_CMD} delete secret "$DOCKER_RES_SECRET_NAME" >/dev/null 2>&1
+    ${CLI_CMD} delete secret "$DOCKER_RES_SECRET_NAME" >&3 2>&3
     CREATE_SECRET_CMD="${CLI_CMD} create secret docker-registry $DOCKER_RES_SECRET_NAME --docker-server=$DOCKER_REG_SERVER --docker-username=$DOCKER_REG_USER --docker-password=$DOCKER_REG_KEY --docker-email=ecmtest@ibm.com"
     if $CREATE_SECRET_CMD ; then
         printf '%b\n' "\x1B[1mDone\x1B[0m"
@@ -760,7 +760,7 @@ function get_local_registry_server(){
         local_public_registry_server=""
         while [[ $local_public_registry_server == "" ]]
         do
-            read -rp "" local_public_registry_server
+            read -erp "" local_public_registry_server
             if [ -z "$local_public_registry_server" ]; then
             printf '%b\n' "\x1B[1;31mEnter a valid service name or the URL for the docker registry.\x1B[0m"
             fi
@@ -787,7 +787,7 @@ function get_local_registry_server(){
     local_registry_server=""
     while [[ $local_registry_server == "" ]]
     do
-        read -rp "" local_registry_server
+        read -erp "" local_registry_server
         if [ -z "$local_registry_server" ]; then
         printf '%b\n' "\x1B[1;31mEnter a valid service name or the URL for the docker registry.\x1B[0m"
         fi
@@ -814,7 +814,7 @@ function get_local_registry_user(){
     local_registry_user=""
     while [[ $local_registry_user == "" ]]
     do
-       read -rp "" local_registry_user
+       read -erp "" local_registry_user
        if [ -z "$local_registry_user" ]; then
        printf '%b\n' "\x1B[1;31mEnter a valid user name.\x1B[0m"
        fi
@@ -838,7 +838,7 @@ function get_storage_class_name(){
     while [[ $sc_medium_file_storage_classname == "" ]] # While get medium storage clase name
     do
         printf "\x1B[1mEnter the file storage classname for medium storage(RWX): \x1B[0m"
-        read -rp "" sc_medium_file_storage_classname
+        read -erp "" sc_medium_file_storage_classname
         if [ -z "$sc_medium_file_storage_classname" ]; then
             printf '%b\n' "\x1B[1;31mEnter a valid file storage classname(RWX)\x1B[0m"
         fi
@@ -847,7 +847,7 @@ function get_storage_class_name(){
     while [[ $sc_fast_file_storage_classname == "" ]] # While get fast storage clase name
     do
         printf "\x1B[1mEnter the file storage classname for fast storage(RWX): \x1B[0m"
-        read -rp "" sc_fast_file_storage_classname
+        read -erp "" sc_fast_file_storage_classname
         if [ -z "$sc_fast_file_storage_classname" ]; then
             printf '%b\n' "\x1B[1;31mEnter a valid file storage classname(RWX)\x1B[0m"
         fi
@@ -856,7 +856,7 @@ function get_storage_class_name(){
     while [[ $block_storage_class_name == "" ]] # While get block storage clase name
     do
         printf "\x1B[1mEnter the block storage classname for Zen(RWO): \x1B[0m"
-        read -rp "" block_storage_class_name
+        read -erp "" block_storage_class_name
         if [ -z "$block_storage_class_name" ]; then
             printf '%b\n' "\x1B[1;31mEnter a valid block storage classname(RWO)\x1B[0m"
         fi
@@ -879,7 +879,7 @@ function create_secret_local_registry(){
         DOCKER_RES_SECRET_NAME=$builtin_dockercfg_secrect_name
         # CREATE_SECRET_CMD="${CLI_CMD} create secret docker-registry $DOCKER_RES_SECRET_NAME --docker-server=$LOCAL_REGISTRY_SERVER --docker-username=$LOCAL_REGISTRY_USER --docker-password=$(${CLI_CMD} whoami -t) --docker-email=ecmtest@ibm.com"
     else
-        ${CLI_CMD} delete secret "$DOCKER_RES_SECRET_NAME" >/dev/null 2>&1
+        ${CLI_CMD} delete secret "$DOCKER_RES_SECRET_NAME" >&3 2>&3
         CREATE_SECRET_CMD="${CLI_CMD} create secret docker-registry $DOCKER_RES_SECRET_NAME --docker-server=$LOCAL_REGISTRY_SERVER --docker-username=$LOCAL_REGISTRY_USER --docker-password=$LOCAL_REGISTRY_PWD --docker-email=ecmtest@ibm.com"
         if $CREATE_SECRET_CMD ; then
             printf '%b\n' "\x1B[1mDone\x1B[0m"
@@ -895,7 +895,7 @@ function verify_local_registry_password(){
     while true; do
         printf "\x1B[1mHave you pushed the images to the local registry using 'loadimages.sh' (CP4A images) (Yes/No)? \x1B[0m"
         # printf "\x1B[1mand 'loadPrereqImages.sh' (Db2 and OpenLDAP for demo) scripts (Yes/No)? \x1B[0m"
-        read -rp "" ans
+        read -erp "" ans
         case "$ans" in
         "y"|"Y"|"yes"|"Yes"|"YES")
             PRE_LOADED_IMAGE="Yes"
@@ -977,7 +977,7 @@ function select_iam_default_admin(){
     while true; do
         printf '%b\n' "\x1B[33;5mATTENTION: \x1B[0m\x1B[1;31mIf you are unable to use [cpadmin] as the default IAM admin user due to it being already used in your LDAP Directory, you need to change the Cloud Pak administrator username. See: \" https://www.ibm.com/docs/en/cloud-paks/foundational-services/4.9?topic=configurations-changing-cluster-administrator-access-credentials#name\"\x1B[0m"
         printf "\x1B[1mDo you want to use the default IAM admin user: [cpadmin] (Yes/No, default: Yes): \x1B[0m"
-        read -rp "" ans
+        read -erp "" ans
         case "$ans" in
         "y"|"Y"|"yes"|"Yes"|"YES"|"")
             USE_DEFAULT_IAM_ADMIN="Yes"
@@ -1053,7 +1053,7 @@ function select_ocp_olm(){
     while true; do
         printf "\x1B[1mAre you using the OCP Catalog (OLM) to perform this install? (Yes/No, default: No) \x1B[0m"
 
-        read -rp "" ans
+        read -erp "" ans
         case "$ans" in
         "y"|"Y"|"yes"|"Yes"|"YES")
             SCRIPT_MODE="OLM"
@@ -1113,7 +1113,7 @@ function select_ldap_type(){
     printf "\n"
     while true; do
         printf "\x1B[1mDo you want to configure one LDAP for this IBM Business Automation Insights standalone deployment? (Yes/No, default: Yes): \x1B[0m"
-        read -rp "" ans
+        read -erp "" ans
         case "$ans" in
         "y"|"Y"|"yes"|"Yes"|"YES"|"")
             SELECTED_LDAP="Yes"
@@ -1162,7 +1162,7 @@ function select_ldap_user_for_zen(){
     while [[ $LDAP_USER_NAME == "" ]] # While get medium storage clase name
     do
         printf "\x1B[1mEnter one LDAP user for BAI standalone: \x1B[0m"
-        read -rp "" LDAP_USER_NAME
+        read -erp "" LDAP_USER_NAME
         if [ -z "$LDAP_USER_NAME" ]; then
         printf '%b\n' "\x1B[1;31mEnter a valid LDAP user\x1B[0m"
         fi
@@ -1216,7 +1216,7 @@ function select_fips_enable(){
         printf "\n"
         while true; do
             printf "\x1B[1mYour OCP cluster has FIPS enabled, do you want to enable FIPS with this BAI standalone deployment？\x1B[0m (Yes/No, default: No): "
-            read -rp "" ans
+            read -erp "" ans
             case "$ans" in
             "y"|"Y"|"yes"|"Yes"|"YES")
                 FIPS_ENABLED="true"
@@ -1261,8 +1261,8 @@ function input_information(){
         INSTALLATION_TYPE="new"
     fi
     # clean_up_temp_file
-    # rm -rf $BAK_FOLDER >/dev/null 2>&1
-    # rm -rf $FINAL_CR_FOLDER >/dev/null 2>&1
+    # rm -rf $BAK_FOLDER 
+    # rm -rf $FINAL_CR_FOLDER 
 
     mkdir -p $TEMP_FOLDER >/dev/null 2>&1
     mkdir -p $BAK_FOLDER >/dev/null 2>&1
@@ -1495,7 +1495,7 @@ function select_private_catalog_bai(){
 
     while true; do
         printf "\x1B[1mDo you want to switch BAI Standalone deployment to use private catalog? (Yes/No, default: Yes): \x1B[0m"
-        read -rp "" ans
+        read -erp "" ans
         case "$ans" in
         "y"|"Y"|"yes"|"Yes"|"YES"|"")
             ENABLE_PRIVATE_CATALOG=1
@@ -1767,7 +1767,7 @@ function startup_operator(){
     local project_name=$1
     local run_mode=$2  # silent
     info "Scaling up \"IBM Business Automation Insights standalone\" operator"
-    ${CLI_CMD} scale --replicas=1 deployment ibm-bai-insights-engine-operator -n $project_name >/dev/null 2>&1
+    ${CLI_CMD} scale --replicas=1 deployment ibm-bai-insights-engine-operator -n $project_name >&3 2>&3
     if [ $? -eq 0 ]; then
         sleep 1
         if [[ -z "$run_mode" ]]; then
@@ -1779,7 +1779,7 @@ function startup_operator(){
 
 
     info "Scaling up \"IBM BAI standalone Foundation\" operator"
-    ${CLI_CMD} scale --replicas=1 deployment ibm-bai-foundation-operator -n $project_name >/dev/null 2>&1
+    ${CLI_CMD} scale --replicas=1 deployment ibm-bai-foundation-operator -n $project_name >&3 2>&3
     if [ $? -eq 0 ]; then
         sleep 1
         if [[ -z "$run_mode" ]]; then
@@ -1794,11 +1794,11 @@ function shutdown_operator(){
     # scale down BAI standalone operators
     local project_name=$1
     info "Scaling down \"IBM BAI standalone Insights Engine\" operator"
-    ${CLI_CMD} scale --replicas=0 deployment ibm-bai-insights-engine-operator -n $project_name >/dev/null 2>&1
+    ${CLI_CMD} scale --replicas=0 deployment ibm-bai-insights-engine-operator -n $project_name >&3 2>&3
     sleep 1
     echo "Done!"
     info "Scaling down \"IBM BAI standalone Foundation\" operator"
-    ${CLI_CMD} scale --replicas=0 deployment ibm-bai-foundation-operator -n $project_name >/dev/null 2>&1
+    ${CLI_CMD} scale --replicas=0 deployment ibm-bai-foundation-operator -n $project_name >&3 2>&3
     sleep 1
     echo "Done!"
 }
@@ -1806,10 +1806,10 @@ function create_project() {
     local project_name=$1
     project_name=$(sed -e 's/^"//' -e 's/"$//' <<<"$project_name")
 
-    isProjExists=`${CLI_CMD} get project $project_name --ignore-not-found | wc -l`  >/dev/null 2>&1
+    isProjExists=`${CLI_CMD} get project $project_name --ignore-not-found | wc -l`  >&3 2>&3
 
     if [ $isProjExists -ne 2 ] ; then
-        ${CLI_CMD} new-project ${project_name} >/dev/null 2>&1
+        ${CLI_CMD} new-project ${project_name} >&3 2>&3
         returnValue=$?
         if [ "$returnValue" == 1 ]; then
             if [ -z "$BAI_AUTO_NAMESPACE" ]; then
@@ -1896,7 +1896,7 @@ then
         printf "\x1B[1mVerify that the information above is correct.\n\x1B[0m"
         printf "\x1B[1mTo proceed with the deployment, enter \"Yes\".\n\x1B[0m"
         printf "\x1B[1mTo make changes, enter \"No\" (default: No): \x1B[0m"
-        read -rp "" ans
+        read -erp "" ans
         case "$ans" in
         "y"|"Y"|"yes"|"Yes"|"YES")
             if [[ ("$SCRIPT_MODE" != "review") && ("$SCRIPT_MODE" != "OLM") ]]; then
@@ -1937,7 +1937,7 @@ then
 
                 printf "\x1B[1mEnter the number from 1 to 9 that you want to change: \x1B[0m"
 
-                read -rp "" ans
+                read -erp "" ans
                 case "$ans" in
                 "1")
                     if [[ $DEPLOYMENT_WITH_PROPERTY == "No" ]]; then
@@ -2085,8 +2085,8 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
     for i in ${!sub_array[@]}; do
         if [[ ! -z "${sub_array[i]}" ]]; then
             if [[ ${sub_array[i]} = ibm-bai-operator* ]]; then
-                current_version=$(${CLI_CMD} get subscription.operators.coreos.com ${sub_array[i]} --no-headers --ignore-not-found -n $TARGET_PROJECT_NAME -o 'jsonpath={.status.currentCSV}') >/dev/null 2>&1
-                installed_version=$(${CLI_CMD} get subscription.operators.coreos.com ${sub_array[i]} --no-headers --ignore-not-found -n $TARGET_PROJECT_NAME -o 'jsonpath={.status.installedCSV}') >/dev/null 2>&1
+                current_version=$(${CLI_CMD} get subscription.operators.coreos.com ${sub_array[i]} --no-headers --ignore-not-found -n $TARGET_PROJECT_NAME -o 'jsonpath={.status.currentCSV}') >&3 2>&3
+                installed_version=$(${CLI_CMD} get subscription.operators.coreos.com ${sub_array[i]} --no-headers --ignore-not-found -n $TARGET_PROJECT_NAME -o 'jsonpath={.status.installedCSV}') >&3 2>&3
                 if [[ -z $current_version || -z $installed_version ]]; then
                     error "Failed to retrieve installed or current CSV. Aborting the upgrade procedure. Check the subscription status of ${sub_array[i]}."
                     exit 1
@@ -2117,7 +2117,7 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
         while true; do
             printf "\n"
             printf "\x1B[1mDo you want to continue to do upgrade? (Yes/No, default: No): \x1B[0m"
-            read -rp "" ans
+            read -erp "" ans
             case "$ans" in
             "y"|"Y"|"yes"|"Yes"|"YES")
                 displayUpgradeOperatorMessage '' $TARGET_PROJECT_NAME $cp4a_operator_csv_version
@@ -2167,17 +2167,17 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
                 ${SED_COMMAND} "s|<csv_version>|$bai_operator_csv_version|g" ${UPGRADE_BAI_SHARED_INFO_CM_FILE}
                 ${SED_COMMAND} "s|<cr_version>|$cr_version|g" ${UPGRADE_BAI_SHARED_INFO_CM_FILE}
 
-                ${CLI_CMD} apply -f $UPGRADE_BAI_SHARED_INFO_CM_FILE  >/dev/null 2>&1
+                ${CLI_CMD} apply -f $UPGRADE_BAI_SHARED_INFO_CM_FILE  >&3 2>&3
                 if [ $? -eq 0 ]; then
                     success "Created ibm-bai-shared-info configMap in the project \"$BAI_SERVICES_NS\"!"
-                    ${CLI_CMD} patch configmap ibm-bai-shared-info -n $BAI_SERVICES_NS --type=json -p="[{'op': 'add', 'path': '/data/bai_original_csv_ver_for_upgrade_script', 'value': '$(echo "$bai_operator_csv_version")'}]" >/dev/null 2>&1
+                    ${CLI_CMD} patch configmap ibm-bai-shared-info -n $BAI_SERVICES_NS --type=json -p="[{'op': 'add', 'path': '/data/bai_original_csv_ver_for_upgrade_script', 'value': '$(echo "$bai_operator_csv_version")'}]" >&3 2>&3
                     bai_original_csv_ver_for_upgrade_script=$bai_operator_csv_version
                 else
                     fail "Failed to create ibm-bai-shared-info configMap in the project \"$BAI_SERVICES_NS\"!"
                 fi
             else
                 success "Found ibm-bai-shared-info configMap under \"$BAI_SERVICES_NS\"!"
-                ${CLI_CMD} patch configmap ibm-bai-shared-info -n $BAI_SERVICES_NS --type=json -p="[{'op': 'add', 'path': '/data/bai_original_csv_ver_for_upgrade_script', 'value': '$(echo "$bai_operator_csv_version")'}]" >/dev/null 2>&1
+                ${CLI_CMD} patch configmap ibm-bai-shared-info -n $BAI_SERVICES_NS --type=json -p="[{'op': 'add', 'path': '/data/bai_original_csv_ver_for_upgrade_script', 'value': '$(echo "$bai_operator_csv_version")'}]" >&3 2>&3
                 bai_original_csv_ver_for_upgrade_script=$bai_operator_csv_version
             fi
         fi
@@ -2197,10 +2197,10 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
             fi
         fi
         # checking existing catalog type
-        if ${CLI_CMD} get catalogsource -n openshift-marketplace --no-headers --ignore-not-found | grep ibm-bai-operator-catalog >/dev/null 2>&1; then
+        if ${CLI_CMD} get catalogsource -n openshift-marketplace --no-headers --ignore-not-found | grep ibm-bai-operator-catalog >&3 2>&3; then
             CATALOG_FOUND="Yes"
             PINNED="Yes"
-        elif ${CLI_CMD} get catalogsource -n openshift-marketplace --no-headers --ignore-not-found | grep ibm-operator-catalog >/dev/null 2>&1; then
+        elif ${CLI_CMD} get catalogsource -n openshift-marketplace --no-headers --ignore-not-found | grep ibm-operator-catalog >&3 2>&3; then
             CATALOG_FOUND="Yes"
             PINNED="No"
         else
@@ -2211,11 +2211,11 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
         # Check if --enable-private-catalog is set or not
         # shared to shared code can be removed
         # Call select_private_catalog_bai if --enable-private-catalog option is not set
-        if ${CLI_CMD} get catalogsource -n $TARGET_PROJECT_NAME --no-headers --ignore-not-found | grep ibm-bai-operator-catalog >/dev/null 2>&1; then
+        if ${CLI_CMD} get catalogsource -n $TARGET_PROJECT_NAME --no-headers --ignore-not-found | grep ibm-bai-operator-catalog >&3 2>&3; then
             PRIVATE_CATALOG_FOUND="Yes"
             ENABLE_PRIVATE_CATALOG=1
             info "This BAI Standalone deployment is installed using private catalog in the project \"$TARGET_PROJECT_NAME\""
-        elif ${CLI_CMD} get catalogsource -n openshift-marketplace --no-headers --ignore-not-found | grep ibm-bai-operator-catalog >/dev/null 2>&1; then
+        elif ${CLI_CMD} get catalogsource -n openshift-marketplace --no-headers --ignore-not-found | grep ibm-bai-operator-catalog >&3 2>&3; then
             PRIVATE_CATALOG_FOUND="No"
             info "This BAI deployment is installed using global catalog in the project \"openshift-marketplace\""
             if [[ $ENABLE_PRIVATE_CATALOG -eq 1 && $UPGRADE_MODE == "shared2shared" ]]; then
@@ -2287,7 +2287,7 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
             for i in ${!sub_array[@]}; do
                 if [[ ! -z "${sub_array[i]}" ]]; then
                     if [[ ${sub_array[i]} = ibm-bai-operator-catalog-subscription* || ${sub_array[i]} = ibm-bai-foundation-operator-v24.0-ibm-bai-operator-catalog* ]]; then
-                        ${CLI_CMD} patch subscription.operators.coreos.com ${sub_array[i]} -n $TARGET_PROJECT_NAME -p '{"spec":{"sourceNamespace":"'"$TARGET_PROJECT_NAME"'"}}' --type=merge >/dev/null 2>&1
+                        ${CLI_CMD} patch subscription.operators.coreos.com ${sub_array[i]} -n $TARGET_PROJECT_NAME -p '{"spec":{"sourceNamespace":"'"$TARGET_PROJECT_NAME"'"}}' --type=merge >&3 2>&3
                         if [ $? -eq 0 ]
                         then
                             sleep 1
@@ -2315,7 +2315,7 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
         for i in ${!sub_array[@]}; do
             if [[ ! -z "${sub_array[i]}" ]]; then
                 if [[ ${sub_array[i]} = ibm-bai-operator-catalog-subscription* || ${sub_array[i]} = ibm-bai-foundation-operator-v24.0-ibm-bai-operator-catalog* ]]; then
-                    ${CLI_CMD} patch subscription.operators.coreos.com ${sub_array[i]} -n $TARGET_PROJECT_NAME -p '{"spec":{"channel":"v24.0"}}' --type=merge >/dev/null 2>&1
+                    ${CLI_CMD} patch subscription.operators.coreos.com ${sub_array[i]} -n $TARGET_PROJECT_NAME -p '{"spec":{"channel":"v24.0"}}' --type=merge >&3 2>&3
                     if [ $? -eq 0 ]
                     then
                         success "Updated the channel of subscription '${sub_array[i]}' to $BAI_CHANNEL_VERSION"
@@ -2385,7 +2385,7 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
                     # replace openshift-marketplace for ibm-licensing-catalog with cs-control
                     ${SED_COMMAND} "/name: ibm-licensing-catalog/{n;s/namespace: .*/namespace: \"$DEDICATED_CS_PROJECT\"/;}" ${TMP_LICENSING_OLM_CATALOG}
 
-                    ${CLI_CMD} apply -f $TMP_LICENSING_OLM_CATALOG >/dev/null 2>&1
+                    ${CLI_CMD} apply -f $TMP_LICENSING_OLM_CATALOG >&3 2>&3
                     if [ $? -eq 0 ]; then
                         echo "Create IBM License Manager Catalog source in project \"$DEDICATED_CS_PROJECT\"!"
                     else
@@ -2414,7 +2414,7 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
                 TEMP_CATALOG_PROJECT_NAME="openshift-marketplace"
                 info "Applying latest BAI Standalone catalog source ..."
                 OLM_CATALOG=${PARENT_DIR}/descriptors/op-olm/catalog_source.yaml
-                ${CLI_CMD} apply -f $OLM_CATALOG >/dev/null 2>&1
+                ${CLI_CMD} apply -f $OLM_CATALOG >&3 2>&3
                 if [ $? -ne 0 ]; then
                     echo "IBM Business Automation Insights Catalog source updated!"
                     exit 1
@@ -2494,8 +2494,8 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
 
         #    info "Checking the version of subscription '$ibm_bai_foundation_sub_name' in the project \"$TEMP_OPERATOR_PROJECT_NAME\""
         #    for ((retry=0;retry<=${maxRetry};retry++)); do
-        #        current_version_foundation=$(${CLI_CMD} get subscription.operators.coreos.com $ibm_bai_foundation_sub_name --no-headers --ignore-not-found -n $TEMP_OPERATOR_PROJECT_NAME -o 'jsonpath={.status.currentCSV}') >/dev/null 2>&1
-        #        installed_version_foundation=$(${CLI_CMD} get subscription.operators.coreos.com $ibm_bai_foundation_sub_name --no-headers --ignore-not-found -n $TEMP_OPERATOR_PROJECT_NAME -o 'jsonpath={.status.installedCSV}') >/dev/null 2>&1
+        #        current_version_foundation=$(${CLI_CMD} get subscription.operators.coreos.com $ibm_bai_foundation_sub_name --no-headers --ignore-not-found -n $TEMP_OPERATOR_PROJECT_NAME -o 'jsonpath={.status.currentCSV}') 
+        #        installed_version_foundation=$(${CLI_CMD} get subscription.operators.coreos.com $ibm_bai_foundation_sub_name --no-headers --ignore-not-found -n $TEMP_OPERATOR_PROJECT_NAME -o 'jsonpath={.status.installedCSV}') 
         #        prefix_bts="ibm-bai-foundation-operator.v"
         #        current_version_foundation=${current_version_foundation#"$prefix_bts"}
         #        installed_version_foundation=${installed_version_foundation#"$prefix_bts"}
@@ -2537,7 +2537,7 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
                 # Check if without option --enable-private-catalog, the catalog is in target project, set the private catalog as default.
                 info "Checking if ibm-bai-operator-catalog catalog source is global or private namespace scoped"
                 if [[ $ENABLE_PRIVATE_CATALOG -eq 0 ]]; then
-                    if ${CLI_CMD} get catalogsource -n $TARGET_PROJECT_NAME --no-headers --ignore-not-found | grep ibm-bai-operator-catalog >/dev/null 2>&1; then
+                    if ${CLI_CMD} get catalogsource -n $TARGET_PROJECT_NAME --no-headers --ignore-not-found | grep ibm-bai-operator-catalog >&3 2>&3; then
                         ENABLE_PRIVATE_CATALOG=1
                     else
                         info "ibm-bai-operator-catalog catalog source is not found under target project \"$TARGET_PROJECT_NAME\""
@@ -2545,7 +2545,7 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
                 fi
                 if [[ $UPGRADE_MODE == "dedicated2dedicated" && $ENABLE_PRIVATE_CATALOG -eq 1 ]]; then
                     # Additionally, we would check if cs-control namespace exists.
-                    isProjExists=`${CLI_CMD} get project $DEDICATED_CS_PROJECT --no-headers --ignore-not-found | wc -l`  >/dev/null 2>&1
+                    isProjExists=`${CLI_CMD} get project $DEDICATED_CS_PROJECT --no-headers --ignore-not-found | wc -l`  >&3 2>&3
                     if [ $isProjExists -eq 1 ] ; then
                         # If it exists, we will deploy the same ibm-licensing-catalog into cs-control namespace.
                         if [[ $machine == "Linux" ]]; then
@@ -2575,7 +2575,7 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
                         # replace openshift-marketplace for ibm-licensing-catalog with cs-control
                         ${SED_COMMAND} "/name: ibm-licensing-catalog/{n;s/namespace: .*/namespace: \"$DEDICATED_CS_PROJECT\"/;}" ${TMP_LICENSING_OLM_CATALOG}
 
-                        ${CLI_CMD} apply -f $TMP_LICENSING_OLM_CATALOG >/dev/null 2>&1
+                        ${CLI_CMD} apply -f $TMP_LICENSING_OLM_CATALOG >&3 2>&3
                         if [ $? -eq 0 ]; then
                             echo "Created IBM License Manager Catalog source in project \"$DEDICATED_CS_PROJECT\"!"
                         else
@@ -2722,15 +2722,15 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
             if [[ ! -z "${sub_array[i]}" ]]; then
                 if [[ ${sub_array[i]} = ibm-bai-operator* ]]; then
                 info "Checking the channel of subscription '${sub_array[i]}'!"
-                currentChannel=$(${CLI_CMD} get subscription.operators.coreos.com ${sub_array[i]} -n $TEMP_OPERATOR_PROJECT_NAME -o 'jsonpath={.spec.channel}') >/dev/null 2>&1
+                currentChannel=$(${CLI_CMD} get subscription.operators.coreos.com ${sub_array[i]} -n $TEMP_OPERATOR_PROJECT_NAME -o 'jsonpath={.spec.channel}') >&3 2>&3
                     if [[ "$currentChannel" == "$BAI_CHANNEL_VERSION" ]];then
                         success "The channel of subscription '${sub_array[i]}' is $currentChannel!"
                         printf "\n"
                         maxRetry=40
                         info "Waiting for the \"${sub_array[i]}\" subscription be upgraded to the ClusterServiceVersions(CSV) \"v$target_csv_version\""
                         for ((retry=0;retry<=${maxRetry};retry++)); do
-                            current_version=$(${CLI_CMD} get subscription.operators.coreos.com ${sub_array[i]} --no-headers --ignore-not-found -n $TEMP_OPERATOR_PROJECT_NAME -o 'jsonpath={.status.currentCSV}') >/dev/null 2>&1
-                            installed_version=$(${CLI_CMD} get subscription.operators.coreos.com ${sub_array[i]} --no-headers --ignore-not-found -n $TEMP_OPERATOR_PROJECT_NAME -o 'jsonpath={.status.installedCSV}') >/dev/null 2>&1
+                            current_version=$(${CLI_CMD} get subscription.operators.coreos.com ${sub_array[i]} --no-headers --ignore-not-found -n $TEMP_OPERATOR_PROJECT_NAME -o 'jsonpath={.status.currentCSV}') >&3 2>&3
+                            installed_version=$(${CLI_CMD} get subscription.operators.coreos.com ${sub_array[i]} --no-headers --ignore-not-found -n $TEMP_OPERATOR_PROJECT_NAME -o 'jsonpath={.status.installedCSV}') >&3 2>&3
                             if [[ -z $current_version || -z $installed_version ]]; then
                                 error "Failed to retrieve installed or current CSV. Aborting the upgrade procedure. Check the subscription status of ${sub_array[i]}."
                                 exit 1
@@ -2975,7 +2975,7 @@ if [[ "$RUNTIME_MODE" == "upgradeDeploymentStatus" ]]; then
             fi
 
             # printf '%b\n' "Creating new route named $ID_PROVIDER_ROUTE_NAME"
-            ${CLI_CMD} apply -f $TEMP_CP_CONSOLE_FILE_ID_PROVIDER -n $TARGET_PROJECT_NAME_CS >/dev/null 2>&1
+            ${CLI_CMD} apply -f $TEMP_CP_CONSOLE_FILE_ID_PROVIDER -n $TARGET_PROJECT_NAME_CS >&3 2>&3
             if [ $? -ne 0 ]; then
                 warning "Failed to create route named $ID_PROVIDER_ROUTE_NAME in the project \"$TARGET_PROJECT_NAME_CS\"!"
                 exit 1
@@ -3013,7 +3013,7 @@ if [[ "$RUNTIME_MODE" == "upgradeDeploymentStatus" ]]; then
             fi
 
             # printf '%b\n' "Creating new route named $ID_MGMT_ROUTE_NAME"
-            ${CLI_CMD} apply -f $TEMP_CP_CONSOLE_FILE_ID_MGMT -n $TARGET_PROJECT_NAME_CS >/dev/null 2>&1
+            ${CLI_CMD} apply -f $TEMP_CP_CONSOLE_FILE_ID_MGMT -n $TARGET_PROJECT_NAME_CS >&3 2>&3
             if [ $? -ne 0 ]; then
                 warning "Failed to create route named $ID_MGMT_ROUTE_NAME in the project \"$TARGET_PROJECT_NAME_CS\"!"
                 exit 1
@@ -3053,7 +3053,7 @@ if [[ "$RUNTIME_MODE" == "upgradeDeploymentStatus" ]]; then
     insightsengine_cr_name=$(${CLI_CMD} get insightsengine -n $BAI_SERVICES_NS --no-headers --ignore-not-found | awk '{print $1}')
     if [ ! -z $insightsengine_cr_name ]; then
         info "Scaling up \"IBM Business Automation Insights \" operator"
-        ${CLI_CMD} scale --replicas=1 deployment ibm-bai-insights-engine-operator -n $TEMP_OPERATOR_PROJECT_NAME >/dev/null 2>&1
+        ${CLI_CMD} scale --replicas=1 deployment ibm-bai-insights-engine-operator -n $TEMP_OPERATOR_PROJECT_NAME >&3 2>&3
         if [ $? -eq 0 ]; then
             sleep 1
         else
@@ -3061,7 +3061,7 @@ if [[ "$RUNTIME_MODE" == "upgradeDeploymentStatus" ]]; then
         fi
 
         info "Scaling up \"IBM Business Automation Insights Foundation\" operator"
-        ${CLI_CMD} scale --replicas=1 deployment ibm-bai-foundation-operator -n $TEMP_OPERATOR_PROJECT_NAME >/dev/null 2>&1
+        ${CLI_CMD} scale --replicas=1 deployment ibm-bai-foundation-operator -n $TEMP_OPERATOR_PROJECT_NAME >&3 2>&3
         if [ $? -eq 0 ]; then
             sleep 1
         else
@@ -3085,8 +3085,8 @@ if [[ "$RUNTIME_MODE" == "upgradeDeploymentStatus" ]]; then
         for ((retry=0;retry<=${maxRetry};retry++)); do
             # # As workaround for https://github.ibm.com/IBMPrivateCloud/roadmap/issues/64207
             # # update secret postgresql-operator-controller-manager-config in <BAI Standalone> namespace and/or ibm-common-services namespace and add this annotation ibm-bts/skip-updates: "true"
-            # if ${CLI_CMD} get secret -n $BAI_SERVICES_NS --no-headers --ignore-not-found | grep postgresql-operator-controller-manager-config >/dev/null 2>&1; then
-            #     ${CLI_CMD} patch secret postgresql-operator-controller-manager-config -n $BAI_SERVICES_NS -p '{"metadata": {"annotations": {"ibm-bts/skip-updates": "true"}}}' >/dev/null 2>&1
+            # if ${CLI_CMD} get secret -n $BAI_SERVICES_NS --no-headers --ignore-not-found | grep postgresql-operator-controller-manager-config ; then
+            #     ${CLI_CMD} patch secret postgresql-operator-controller-manager-config -n $BAI_SERVICES_NS -p '{"metadata": {"annotations": {"ibm-bts/skip-updates": "true"}}}' 
             # fi
 
             zenservice_version=$(${CLI_CMD} get zenService $zen_service_name --no-headers --ignore-not-found -n $BAI_SERVICES_NS -o jsonpath='{.status.currentVersion}')
@@ -3164,22 +3164,22 @@ if [[ "$RUNTIME_MODE" == "upgradeDeploymentStatus" ]]; then
         if [[ "$bai_original_csv_ver_for_upgrade_script" == "24.0."* ]]; then
             tmp_val_result=$(${CLI_CMD} get job create-postgres-license-config -n $bai_services_namespace --no-headers --ignore-not-found)
             if [[ ! -z $tmp_val_result ]]; then
-                ${CLI_CMD} delete job create-postgres-license-config -n $bai_services_namespace >/dev/null 2>&1
+                ${CLI_CMD} delete job create-postgres-license-config -n $bai_services_namespace >&3 2>&3
             fi
 
             tmp_val_result=$(${CLI_CMD} get pod -l name=operand-deployment-lifecycle-manager -n $bai_services_namespace --no-headers --ignore-not-found)
             if [[ ! -z $tmp_val_result ]]; then
-                ${CLI_CMD} delete pod -l name=operand-deployment-lifecycle-manager -n $bai_services_namespace >/dev/null 2>&1
+                ${CLI_CMD} delete pod -l name=operand-deployment-lifecycle-manager -n $bai_services_namespace >&3 2>&3
             fi
 
             tmp_val_result=$(${CLI_CMD} get job create-postgres-license-config -n $bai_operators_namespace --no-headers --ignore-not-found)
             if [[ ! -z $tmp_val_result ]]; then
-                ${CLI_CMD} delete job create-postgres-license-config -n $bai_operators_namespace >/dev/null 2>&1
+                ${CLI_CMD} delete job create-postgres-license-config -n $bai_operators_namespace >&3 2>&3
             fi
 
             tmp_val_result=$(${CLI_CMD} get pod -l name=operand-deployment-lifecycle-manager -n $bai_operators_namespace --no-headers --ignore-not-found)
             if [[ ! -z $tmp_val_result ]]; then
-                ${CLI_CMD} delete pod -l name=operand-deployment-lifecycle-manager -n $bai_operators_namespace >/dev/null 2>&1
+                ${CLI_CMD} delete pod -l name=operand-deployment-lifecycle-manager -n $bai_operators_namespace >&3 2>&3
             fi
         fi
 

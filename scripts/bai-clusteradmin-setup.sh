@@ -82,7 +82,7 @@ function prompt_wfps_license(){
     while true; do
         if [ -z "$AUTO_LICENSE_ACCEPT" ]; then
             printf "\x1B[1mDo you accept the IBM Process Flow license (Yes/No, default: No): \x1B[0m"
-            read -rp "" ans
+            read -erp "" ans
             case "$ans" in
             "y"|"Y"|"yes"|"Yes"|"YES")
                 printf "\n"
@@ -171,7 +171,7 @@ function install_cert_license_operator(){
     if [[ $PRIVATE_CATALOG == "No" ]]; then
         
         OLM_CATALOG=${PARENT_DIR}/descriptors/op-olm/catalog_source.yaml
-        ${CLI_CMD} apply -f $OLM_CATALOG >/dev/null 2>&1
+        ${CLI_CMD} apply -f $OLM_CATALOG >&3 2>&3
         if [ $? -eq 0 ]; then
             success "IBM Business Automation Insights Operator catalog source has been successfully updated!"
 
@@ -180,7 +180,7 @@ function install_cert_license_operator(){
             exit 1
         fi
     else
-        ${CLI_CMD} apply -f $OLM_CATALOG_TMP >/dev/null 2>&1
+        ${CLI_CMD} apply -f $OLM_CATALOG_TMP >&3 2>&3
         if [ $? -eq 0 ]; then
             success "IBM Business Automation Insights Operator catalog source has been successfully updated!"
         else
@@ -295,7 +295,7 @@ function select_private_catalog(){
         if [[ -z "$BAI_AUTO_PRIVATE_CATALOG" ]]; then
             # for defect https://jsw.ibm.com/browse/DBACLD-153503 where we had to update the script to set private catalog as the default option
             printf "\x1B[1mWould you like to deploy IBM Business Automation Insights using a private catalog? (Yes/No, default: Yes): \x1B[0m"
-            read -rp "" ans
+            read -erp "" ans
         else
             # for defect https://jsw.ibm.com/browse/DBACLD-153503 where we had to update the script to set private catalog as the default option
             printf "\x1B[1mWould you like to deploy IBM Business Automation Insights using a private catalog? (Yes/No, default: Yes): $BAI_AUTO_PRIVATE_CATALOG\x1B[0m\n"
@@ -329,7 +329,7 @@ function select_private_catalog(){
     #         if [ -z "$BAI_AUTO_NAMESPACE" ]; then
     #             echo
     #             printf '%b\n' "\x1B[1mWhere do you want to deploy $BAI_FULL_NAME?\x1B[0m"
-    #             read -p "Enter the name for a new project or an existing project (namespace): " project_name
+    #             read -erp "Enter the name for a new project or an existing project (namespace): " project_name
     #         else
     #             if [[ "$BAI_AUTO_NAMESPACE" == openshift* ]]; then
     #                 printf '%b\n' "\x1B[1;31mEnter a valid project name, project name should not be 'openshift' or start with 'openshift' \x1B[0m"
@@ -385,7 +385,7 @@ function select_separate_operator(){
     while true; do
         if [[ -z "$BAI_AUTO_SEPARATE_OPERATOR" ]]; then
             printf "\x1B[1mWould you like to deploy IBM Business Automation Insights with the separation of operators and operands? (Yes/No, default: No): \x1B[0m"
-            read -rp "" ans
+            read -erp "" ans
         else
             printf "\x1B[1mWould you like to deploy IBM Business Automation Insights with the separation of operators and operands? (Yes/No, default: No): $BAI_AUTO_SEPARATE_OPERATOR\x1B[0m\n"
             ans=$BAI_AUTO_SEPARATE_OPERATOR
@@ -415,7 +415,7 @@ function select_project(){
         if [ -z "$BAI_AUTO_NAMESPACE" ]; then
             echo
             printf '%b\n' "\x1B[1mWhere would you like to deploy IBM Business Automation Insights?\x1B[0m"
-            read -p "Enter the name for a new project or an existing project (namespace): " project_name
+            read -erp "Enter the name for a new project or an existing project (namespace): " project_name
         else
             if [[ "$BAI_AUTO_NAMESPACE" == openshift* ]]; then
                 printf '%b\n' "\x1B[1;31mEnter a valid project name. The project name should not be 'openshift' or start with 'openshift'. \x1B[0m"
@@ -464,7 +464,7 @@ function set_separate_operator_project(){
         if [ -z "$BAI_AUTO_OPERATOR_NAMESPACE" ]; then
             echo
             printf '%b\n' "\x1B[1mWhere would you like to deploy $BAI_FULL_NAME operators? \x1B[0m"
-            read -p "Enter the name for a new project or an existing project (namespace): " project_name_operator
+            read -erp "Enter the name for a new project or an existing project (namespace): " project_name_operator
         else
             if [[ "$BAI_AUTO_OPERATOR_NAMESPACE" == openshift* ]]; then
                 printf '%b\n' "\x1B[1;31mEnter a valid project name. The project name should not be 'openshift' or start with 'openshift'. \x1B[0m"
@@ -512,7 +512,7 @@ function set_separate_cpfs_service_project(){
         if [ -z "$BAI_AUTO_CS_SERVICE_NAMESPACE" ]; then
             echo
             printf '%b\n' "\x1B[1mWhere would you like to deploy the $BAI_FULL_NAME deployment and its services? \x1B[0m"
-            read -p "Enter the name for a new project or an existing project (namespace): " project_name_cs_service
+            read -erp "Enter the name for a new project or an existing project (namespace): " project_name_cs_service
         else
             if [[ "$BAI_AUTO_CS_SERVICE_NAMESPACE" == openshift* ]]; then
                 printf '%b\n' "\x1B[1;31mEnter a valid project name. The project name should not be 'openshift' or start with 'openshift'. \x1B[0m"
@@ -564,8 +564,8 @@ data:
   operators_namespace: "$project_name_operator"
   services_namespace: "$project_name_cs_service"
 EOF
-    ${CLI_CMD} delete -f ${TEMP_FOLDER}/ibm-cp4ba-common-config-configmap.yaml >/dev/null 2>&1
-    ${CLI_CMD} apply -f ${TEMP_FOLDER}/ibm-cp4ba-common-config-configmap.yaml >/dev/null 2>&1
+    ${CLI_CMD} delete -f ${TEMP_FOLDER}/ibm-cp4ba-common-config-configmap.yaml >&3 2>&3
+    ${CLI_CMD} apply -f ${TEMP_FOLDER}/ibm-cp4ba-common-config-configmap.yaml >&3 2>&3
     if [ $? -eq 0 ]; then
         success "The ibm-cp4ba-common-config ConfigMap for the IBM Business Automation Insights deployment in the project \"$project_name_cs_service\" has been created."
         sleep 3
@@ -583,7 +583,7 @@ EOF
 #             printf "\n"
 #             printf '%b\n' "${YELLOW_TEXT}[NOTES] When you want to have multiple deployments of BAI in the same cluster sharing one namespace for operators. You can input key with comma-separated lists (for example: bai-ns1,bai-ns2,bai-ns3)${RESET_TEXT}"
 #             printf "\x1B[1mWhere do you want to deploy $BAI_FULL_NAME components/services? \x1B[0m\n"
-#             read -rp "The project name(s): " project_name_bai_service
+#             read -erp "The project name(s): " project_name_bai_service
 #         else
 #             OIFS=$IFS
 #             IFS=',' read -ra project_bai_service_array <<< "$BAI_AUTO_SERVICE_NAMESPACE"
@@ -642,7 +642,7 @@ function collect_input() {
             if [ -z "$BAI_AUTO_NAMESPACE" ]; then
                 echo
                 printf '%b\n' "\x1B[1mWhere do you want to deploy $BAI_FULL_NAME?\x1B[0m"
-                read -p "Enter the name for a new project or an existing project (namespace): " project_name
+                read -erp "Enter the name for a new project or an existing project (namespace): " project_name
             else
                 if [[ "$BAI_AUTO_NAMESPACE" == openshift* ]]; then
                     printf '%b\n' "\x1B[1;31mEnter a valid project name. The project name should not be 'openshift' or start with 'openshift'. \x1B[0m"
@@ -703,7 +703,7 @@ function check_common_services_cm() {
      while true; do
        printf "\n"
         printf '%b\n' "\x1B[1mWould you like to continue with a dedicated ${COMMON_SERVICES_NAME} instance? (Yes/No, default: Yes)\x1B[0m"
-        read -rp "" ans
+        read -erp "" ans
         case "$ans" in
         "y"|"Y"|"yes"|"Yes"|"YES"|"YeS"|"yES"|"YEs"|"")
            printf '%b\n' "The control namespace is a shared namespace for deploying cluster-scope resources."
@@ -711,7 +711,7 @@ function check_common_services_cm() {
            printf '%b\n' "You cannot change the namespace after installing the foundational services."
            while true; do
            printf '%b\n' "Enter the control namespace for deploying cluster-scope resources."
-           read -rp "" ctrl_nm
+           read -erp "" ctrl_nm
            case "$ctrl_nm" in
            "")
              printf '%b\n' "\x1B[1;31mEnter a valid namespace name. The namespace name can not be blank.\x1B[0m"
@@ -728,12 +728,12 @@ function check_common_services_cm() {
               printf '%b\n' "The cluster-scope resources will be installed in $CTRL_NAMESPACE"
               while true; do
                 printf '%b\n' "Do you wish to change the default dedicated project ${DEDICATED_PROJECT} where ${COMMON_SERVICES_NAME} is going to be installed?(Yes/No default: No)"
-                read -rp "" change_dedicated
+                read -erp "" change_dedicated
                 case "$change_dedicated" in
                 "y"|"Y"|"yes"|"Yes"|"YES"|"YeS"|"yES"|"YEs")
                   while true; do
                     printf '%b\n' "Enter the project where you want ${COMMON_SERVICES_NAME} to be installed."
-                    read -rp "" new_dedicated
+                    read -erp "" new_dedicated
                     case "$new_dedicated" in
                     "")
                       printf '%b\n' "\x1B[1;31mEnter a valid namespace name. The namespace name can not be blank.\x1B[0m"
@@ -839,7 +839,7 @@ function validate_cncf_olm(){
     while true; do
         printf "\x1B[1mWould you like to deploy the Operator Lifecycle Manager (OLM) in the namespace \"${CNCF_OLM_NAMESPACE}\"? (Yes/No, default: No) \x1B[0m"
         if [ -z "$AUTO_INSTALL_OLM" ]; then
-            read -rp "" ans
+            read -erp "" ans
             case "$ans" in
             "y"|"Y"|"yes"|"Yes"|"YES")
                 printf '%b\n' "Continue....\n"
@@ -872,7 +872,7 @@ function validate_cncf_olm(){
      done
 
       echo "Installing OLM..."
-      isProjExists=`${CLI_CMD} get namespace $CNCF_OLM_NAMESPACE --ignore-not-found | wc -l`  >/dev/null 2>&1
+      isProjExists=`${CLI_CMD} get namespace $CNCF_OLM_NAMESPACE --ignore-not-found | wc -l`  >&3 2>&3
       if [ $isProjExists -ne 2 ] ; then
           ${CLI_CMD} create namespace $CNCF_OLM_NAMESPACE
       fi
@@ -898,7 +898,7 @@ function create_project() {
     local project_name=$1
     project_name=$(sed -e 's/^"//' -e 's/"$//' <<<"$project_name")
     if [[ "$PLATFORM_SELECTED" == "OCP" || "$PLATFORM_SELECTED" == "ROKS" ]]; then
-        isProjExists=`${CLI_CMD} get project $project_name --ignore-not-found | wc -l`  >/dev/null 2>&1
+        isProjExists=`${CLI_CMD} get project $project_name --ignore-not-found | wc -l`  >&3 2>&3
 
         if [ $isProjExists -ne 2 ] ; then
             ${CLI_CMD} new-project ${project_name} >> ${LOG_FILE}
@@ -919,7 +919,7 @@ function create_project() {
         fi
     elif [[ "$PLATFORM_SELECTED" == "other" ]]
     then
-        isProjExists=`${CLI_CMD} get namespace $project_name --ignore-not-found | wc -l`  >/dev/null 2>&1
+        isProjExists=`${CLI_CMD} get namespace $project_name --ignore-not-found | wc -l`  >&3 2>&3
 
         if [ $isProjExists -ne 2 ] ; then
             ${CLI_CMD} create namespace ${project_name} >> ${LOG_FILE}
@@ -944,7 +944,7 @@ function create_project() {
 
 function verify_existing_csv(){
 
-    ${CLI_CMD} get csv --all-namespaces|grep ibm-bai-insights-engine-operator.v >/dev/null 2>&1
+    ${CLI_CMD} get csv --all-namespaces|grep ibm-bai-insights-engine-operator.v >&3 2>&3
     exist_csv_project_array=($(${CLI_CMD} get csv --all-namespaces|grep ibm-bai-insights-engine-operator.v|awk '{print $1}'))
     returnValue=$?
 
@@ -960,7 +960,7 @@ function verify_existing_csv(){
             if [ -z "$BAI_AUTO_NAMESPACE" ]; then
                 while true; do
                     printf "\x1B[1mDo you want to deploy another $BAI_FULL_NAME Operator in new project \"${project_name}\"? (Yes/No, default: No) \x1B[0m"
-                    read -rp "" ans
+                    read -erp "" ans
                     case "$ans" in
                     "y"|"Y"|"yes"|"Yes"|"YES")
                         printf '%b\n' "Continue....\n"
@@ -1003,7 +1003,7 @@ function verify_sc(){
 }
 
 function check_user_exist() {
-    ${CLI_CMD} get user | grep "${user_name}" >/dev/null 2>&1
+    ${CLI_CMD} get user | grep "${user_name}" >&3 2>&3
     returnValue=$?
     if [ "$returnValue" == 1 ] ; then
         printf '%b\n' "\x1B[1mUser \"${user_name}\" NOT exists! Enter an existing username in your cluster...\x1B[0m"
@@ -1033,7 +1033,7 @@ function prepare_install() {
     # sed -e "s/<NAMESPACE>/${project_name}/g" ${CLUSTER_ROLE_BINDING_FILE} > ${CLUSTER_ROLE_BINDING_FILE_TEMP}
     echo
     printf '%b' "Creating the custom resource definition (CRD) and a service account that has the permissions to manage the resources..."
-    ${CLI_CMD} apply -f ${CRD_FILE} -n ${project_name} --validate=false >/dev/null 2>&1
+    ${CLI_CMD} apply -f ${CRD_FILE} -n ${project_name} --validate=false >&3 2>&3
     echo " Done!"
     # if [[ "$DEPLOYMENT_TYPE" == "starter" ]];then
     #     ${CLI_CMD} apply -f ${CLUSTER_ROLE_FILE} --validate=false >> ${LOG_FILE}
@@ -1063,7 +1063,7 @@ function prepare_install() {
             ${CLI_CMD} project ${project_name} >> ${LOG_FILE}
             ${CLI_CMD} adm policy add-role-to-user edit ${user_name} >> ${LOG_FILE}
             ${CLI_CMD} adm policy add-role-to-user registry-editor ${user_name} >> ${LOG_FILE}
-            ${CLI_CMD} adm policy add-role-to-user ibm-cp4a-operator ${user_name} >/dev/null 2>&1
+            ${CLI_CMD} adm policy add-role-to-user ibm-cp4a-operator ${user_name} >&3 2>&3
             ${CLI_CMD} adm policy add-role-to-user ibm-cp4a-operator ${user_name} >> ${LOG_FILE}
             if [[ "$DEPLOYMENT_TYPE" == "starter" ]];then
                 ${CLI_CMD} adm policy add-cluster-role-to-user ibm-cp4a-operator ${user_name} >> ${LOG_FILE}
@@ -1103,7 +1103,7 @@ function apply_cp4a_operator(){
     # fi
 
     # if [[ $INSTALLATION_TYPE == "new" ]]; then
-    #     ${CLI_CMD} delete -f ${OPERATOR_FILE_TMP} >/dev/null 2>&1
+    #     ${CLI_CMD} delete -f ${OPERATOR_FILE_TMP} 
     #     sleep 5
     # fi
     INSTALL_OPERATOR_CMD="${CLI_CMD} apply -f ${OPERATOR_FILE_TMP} -n $project_name"
@@ -1152,9 +1152,9 @@ function prepare_olm_install() {
     if [[ ( "$RUNTIME_MODE" == "process-flow" || $RUNTIME_MODE == "process-flow-dev" ) && "$PLATFORM_SELECTED" == "other" ]]; then
       CATALOG_NAMESPACE=$WFPS_CNCF_CATALOG_NAMESPACE
       # create docker pull secret under catalog source namespaces
-      isNsExists=`${CLI_CMD} get secret "catalog-pull-secret" -n "$CATALOG_NAMESPACE" | wc -l`  >/dev/null 2>&1
+      isNsExists=`${CLI_CMD} get secret "catalog-pull-secret" -n "$CATALOG_NAMESPACE" | wc -l`  >&3 2>&3
       if [[ isNsExists -eq 2 ]]; then
-        ${CLI_CMD} delete secret "catalog-pull-secret" -n "$CATALOG_NAMESPACE" >/dev/null 2>&1
+        ${CLI_CMD} delete secret "catalog-pull-secret" -n "$CATALOG_NAMESPACE" >&3 2>&3
       fi
       ${CLI_CMD} create secret docker-registry "catalog-pull-secret" --docker-server=$DOCKER_REG_SERVER --docker-username=$DOCKER_REG_USER --docker-password=$DOCKER_REG_KEY --docker-email=ecmtest@ibm.com -n $CATALOG_NAMESPACE
     fi
@@ -1336,7 +1336,7 @@ function prepare_olm_install() {
             ${CLI_CMD} project ${temp_project_name} >> ${LOG_FILE}
             ${CLI_CMD} adm policy add-role-to-user edit ${user_name} >> ${LOG_FILE}
             ${CLI_CMD} adm policy add-role-to-user registry-editor ${user_name} >> ${LOG_FILE}
-            ${CLI_CMD} adm policy add-role-to-user $role_name_olm ${user_name} >/dev/null 2>&1
+            ${CLI_CMD} adm policy add-role-to-user $role_name_olm ${user_name} >&3 2>&3
             ${CLI_CMD} adm policy add-role-to-user $role_name_olm ${user_name} >> ${LOG_FILE}
             echo "Done!"
         fi
@@ -1436,7 +1436,7 @@ function display_airgap_prerequisites(){
     printf "\x1B[1;31mhttps://www.ibm.com/docs/en/bai/$BAI_RELEASE_BASE?topic=deployment-preparing-your-cluster-air-gapped-offline \n\x1B[0m"
     printf "\n"
     printf "\x1B[1mDo you want to proceed with the offline/airgap cluster setup (Yes/No, default: No): \x1B[0m"
-    read -rp "" ans
+    read -erp "" ans
     printf "\n"
     case "$ans" in
     "y"|"Y"|"yes"|"Yes"|"YES")
@@ -1503,7 +1503,7 @@ function get_entitlement_registry(){
 
         if [[ -z "$BAI_AUTO_ENTITLEMENT_KEY" && -z "$BAI_AUTO_LOCAL_REGISTRY" ]]; then
             printf "\x1B[1mDo you have a $BAI_FULL_NAME Entitlement Registry key (Yes/No, default: No): \x1B[0m"
-            read -rp "" ans
+            read -erp "" ans
         fi
 
         case "$ans" in
@@ -1611,7 +1611,7 @@ function get_domain_name(){
     while [[ $domain_name == '' ]]
     do
         if [ -z "$AUTO_DOMAIN_NAME" ]; then
-            read -p "Enter your domain name(for none 443 port, Also append port number, such as domain_name:port): " domain_name
+            read -erp "Enter your domain name(for none 443 port, Also append port number, such as domain_name:port): " domain_name
         else
             domain_name=$AUTO_DOMAIN_NAME
         fi
@@ -1626,11 +1626,11 @@ function get_domain_name(){
             hostname=$(echo "$domain_name" | sed 's|:.*||')
             # validate domain name works
             # prepare test ingress controller
-            isNsExists=`${CLI_CMD} get namespace "ingress-free-test" --ignore-not-found | wc -l`  >/dev/null 2>&1
+            isNsExists=`${CLI_CMD} get namespace "ingress-free-test" --ignore-not-found | wc -l`  >&3 2>&3
             if [ $isNsExists -eq 2 ] ; then
-              ${CLI_CMD} delete namespace "ingress-free-test" >/dev/null 2>&1
+              ${CLI_CMD} delete namespace "ingress-free-test" >&3 2>&3
             fi
-            ${CLI_CMD} create namespace "ingress-free-test" >/dev/null 2>&1
+            ${CLI_CMD} create namespace "ingress-free-test" >&3 2>&3
             if ${CLI_CMD} get ingress demo -n ingress-free-test > /dev/null 2>&1; then
               echo "ingress test prepare ready, skip prepare"
             else
@@ -1660,7 +1660,7 @@ function get_domain_name(){
             echo "Ingress test passed, continue..."
             CNCF_DOMAIN_NAME=$domain_name
             # delete ingress test namespace
-            ${CLI_CMD} delete namespace "ingress-free-test" >/dev/null 2>&1
+            ${CLI_CMD} delete namespace "ingress-free-test" >&3 2>&3
             set -e
           fi
         fi
@@ -1671,7 +1671,7 @@ function create_secret_entitlement_registry(){
     # Create docker-registry secret for Entitlement Registry Key in target project
     if [[ $SEPARATE_OPERATOR == "No" || -z $SEPARATE_OPERATOR ]]; then
         printf "\x1B[1mCreating docker-registry secret for Entitlement Registry key in project $project_name...\n\x1B[0m"
-        ${CLI_CMD} delete secret "$DOCKER_RES_SECRET_NAME" -n "${project_name}" >/dev/null 2>&1
+        ${CLI_CMD} delete secret "$DOCKER_RES_SECRET_NAME" -n "${project_name}" >&3 2>&3
 
         CREATE_SECRET_CMD="${CLI_CMD} create secret docker-registry $DOCKER_RES_SECRET_NAME --docker-server=$DOCKER_REG_SERVER --docker-username=$DOCKER_REG_USER --docker-password=$DOCKER_REG_KEY --docker-email=ecmtest@ibm.com -n $project_name"
         if $CREATE_SECRET_CMD ; then
@@ -1682,7 +1682,7 @@ function create_secret_entitlement_registry(){
     else
         # Create docker registry key in the seperate operator scenario
         printf "\x1B[1mCreating docker-registry secret for Entitlement Registry key in project $project_name_operator...\n\x1B[0m"
-        ${CLI_CMD} delete secret "$DOCKER_RES_SECRET_NAME" -n "${project_name_operator}" >/dev/null 2>&1
+        ${CLI_CMD} delete secret "$DOCKER_RES_SECRET_NAME" -n "${project_name_operator}" >&3 2>&3
 
         CREATE_SECRET_CMD="${CLI_CMD} create secret docker-registry $DOCKER_RES_SECRET_NAME --docker-server=$DOCKER_REG_SERVER --docker-username=$DOCKER_REG_USER --docker-password=$DOCKER_REG_KEY --docker-email=ecmtest@ibm.com -n $project_name_operator"
         if $CREATE_SECRET_CMD ; then
@@ -1692,7 +1692,7 @@ function create_secret_entitlement_registry(){
         fi
 
         printf "\x1B[1mCreating docker-registry secret for Entitlement Registry key in project $project_name_cs_service...\n\x1B[0m"
-        ${CLI_CMD} delete secret "$DOCKER_RES_SECRET_NAME" -n "${project_name_cs_service}" >/dev/null 2>&1
+        ${CLI_CMD} delete secret "$DOCKER_RES_SECRET_NAME" -n "${project_name_cs_service}" >&3 2>&3
 
         CREATE_SECRET_CMD="${CLI_CMD} create secret docker-registry $DOCKER_RES_SECRET_NAME --docker-server=$DOCKER_REG_SERVER --docker-username=$DOCKER_REG_USER --docker-password=$DOCKER_REG_KEY --docker-email=ecmtest@ibm.com -n $project_name_cs_service"
         if $CREATE_SECRET_CMD ; then
@@ -1704,7 +1704,7 @@ function create_secret_entitlement_registry(){
     if [[ $MULTIPLE_DEPLOYMENT = "Yes" ]]; then
         for item in "${project_bai_service_array[@]}"; do
             printf "\x1B[1mCreating docker-registry secret for Entitlement Registry key in project $item...\n\x1B[0m"
-            ${CLI_CMD} delete secret "$DOCKER_RES_SECRET_NAME" -n "${item}" >/dev/null 2>&1
+            ${CLI_CMD} delete secret "$DOCKER_RES_SECRET_NAME" -n "${item}" >&3 2>&3
 
             CREATE_SECRET_CMD="${CLI_CMD} create secret docker-registry $DOCKER_RES_SECRET_NAME --docker-server=$DOCKER_REG_SERVER --docker-username=$DOCKER_REG_USER --docker-password=$DOCKER_REG_KEY --docker-email=ecmtest@ibm.com -n $item"
             if $CREATE_SECRET_CMD ; then
@@ -1921,7 +1921,7 @@ function select_user(){
                 sleep 5
             fi
         else
-            ${CLI_CMD} get user ${BAI_AUTO_CLUSTER_USER} >/dev/null 2>&1
+            ${CLI_CMD} get user ${BAI_AUTO_CLUSTER_USER} >&3 2>&3
             returnValue=$?
             if [ "$returnValue" == 1 ]; then
                 printf '%b\n' "\x1B[1;31mNo found user \"${BAI_AUTO_CLUSTER_USER}\"!\n\x1B[0m"
@@ -1940,7 +1940,7 @@ function display_installationprompt(){
     echo "IBM Cloud Pak foundational services, along with Metering & Licensing components, will be installed."
 
     NAMESPACE_ODLM="common-service"
-    ${CLI_CMD} project $NAMESPACE_ODLM >/dev/null 2>&1 || ${CLI_CMD} new-project $NAMESPACE_ODLM >/dev/null 2>&1
+    ${CLI_CMD} project $NAMESPACE_ODLM  || ${CLI_CMD} new-project $NAMESPACE_ODLM >&3 2>&3
 }
 
 
@@ -1959,9 +1959,9 @@ function check_storage_class() {
 function create_storage_classes_roks() {
     echo
     printf '%b' "\x1B[1mCreate storage classes for deployment: \x1B[0m"
-    ${CLI_CMD} apply -f ${BRONZE_STORAGE_CLASS} --validate=false >/dev/null 2>&1
-    ${CLI_CMD} apply -f ${SILVER_STORAGE_CLASS} --validate=false >/dev/null 2>&1
-    ${CLI_CMD} apply -f ${GOLD_STORAGE_CLASS} --validate=false >/dev/null 2>&1
+    ${CLI_CMD} apply -f ${BRONZE_STORAGE_CLASS} --validate=false >&3 2>&3
+    ${CLI_CMD} apply -f ${SILVER_STORAGE_CLASS} --validate=false >&3 2>&3
+    ${CLI_CMD} apply -f ${GOLD_STORAGE_CLASS} --validate=false >&3 2>&3
     printf '%b\n' "\x1B[1mDone \x1B[0m"
 
 }
@@ -2169,7 +2169,7 @@ function check_csoperator_exists()
 
 project="common-service"
 
-check_project=`${CLI_CMD} get namespace $project --ignore-not-found | wc -l`  >/dev/null 2>&1
+check_project=`${CLI_CMD} get namespace $project --ignore-not-found | wc -l`  >&3 2>&3
 check_operator=$(${CLI_CMD} get csv --all-namespaces |grep "ibm-common-service-operator")
 if [ -n "$check_operator" ]; then
     echo ""
@@ -2187,7 +2187,7 @@ function select_ocp_olm(){
     while true; do
         printf "\x1B[1mAre you using the OCP Catalog (OLM) to perform this install? (Yes/No, default: No) \x1B[0m"
 
-        read -rp "" ans
+        read -erp "" ans
         case "$ans" in
         "y"|"Y"|"yes"|"Yes"|"YES")
             SCRIPT_MODE="OLM"
@@ -2215,7 +2215,7 @@ function get_local_registry_server(){
         local_public_registry_server=""
         while [[ $local_public_registry_server == "" ]]
         do
-            read -rp "" local_public_registry_server
+            read -erp "" local_public_registry_server
             if [ -z "$local_public_registry_server" ]; then
             printf '%b\n' "\x1B[1;31mEnter a valid service name or the URL for the docker registry.\x1B[0m"
             fi
@@ -2246,7 +2246,7 @@ function get_local_registry_server(){
         local_registry_server=""
         while [[ $local_registry_server == "" ]]
         do
-            read -rp "" local_registry_server
+            read -erp "" local_registry_server
             if [ -z "$local_registry_server" ]; then
                 printf '%b\n' "\x1B[1;31mEnter a valid service name or the URL for the docker registry.\x1B[0m"
             fi
@@ -2278,7 +2278,7 @@ function get_local_registry_user(){
         local_registry_user=""
         while [[ $local_registry_user == "" ]]
         do
-            read -rp "" local_registry_user
+            read -erp "" local_registry_user
             if [ -z "$local_registry_user" ]; then
             printf '%b\n' "\x1B[1;31mEnter a valid user name.\x1B[0m"
             fi
@@ -2316,7 +2316,7 @@ function verify_local_registry_password(){
     while true; do
         if [ -z "$BAI_AUTO_PUSH_IMAGE_LOCAL_REGISTRY" ]; then
             printf "\x1B[1mHave you pushed the images to the local registry using 'loadimages.sh' ($BAI_FULL_NAME images) (Yes/No)? \x1B[0m"
-            read -rp "" ans
+            read -erp "" ans
         else
             case "$BAI_AUTO_PUSH_IMAGE_LOCAL_REGISTRY" in
             "y"|"Y"|"yes"|"Yes"|"YES"|"True"|"TRUE"|"true")
@@ -2486,7 +2486,7 @@ function create_secret_local_registry(){
         # CREATE_SECRET_CMD="${CLI_CMD} create secret docker-registry $DOCKER_RES_SECRET_NAME --docker-server=$LOCAL_REGISTRY_SERVER --docker-username=$LOCAL_REGISTRY_USER --docker-password=$(${CLI_CMD} whoami -t) --docker-email=ecmtest@ibm.com"
     else
         for item in "${DOCKER_RES_SECRET_NAME[@]}"; do
-            ${CLI_CMD} delete secret "$item" -n $project_name >/dev/null 2>&1
+            ${CLI_CMD} delete secret "$item" -n $project_name >&3 2>&3
             CREATE_SECRET_CMD="${CLI_CMD} create secret docker-registry $item --docker-server=$LOCAL_REGISTRY_SERVER --docker-username=$LOCAL_REGISTRY_USER --docker-password=$LOCAL_REGISTRY_PWD --docker-email=ecmtest@ibm.com -n $project_name"
             if $CREATE_SECRET_CMD ; then
                 printf '%b\n' "\x1B[1mDone\x1B[0m"
@@ -2581,7 +2581,7 @@ collect_input
 validate_docker_podman_cli
 
 if [[ $SCRIPT_MODE == "OLM" ]];then
-    ${CLI_CMD} project $project_name >/dev/null 2>&1
+    ${CLI_CMD} project $project_name >&3 2>&3
 
     if [[ $AIRGAP_INSTALL == "Yes" ]]; then
         display_airgap_prerequisites
@@ -2619,9 +2619,9 @@ if [[ $SCRIPT_MODE == "OLM" ]];then
             rm -fr ${TEMP_FOLDER}/cm-data.yaml >> ${LOG_FILE}
 
             printf '%b\n' "\x1B[1mCreating the configmap required by common service...\x1B[0m"
-            isNsExists=`${CLI_CMD} get namespace $DEDICATED_COMMON_PROJECT --ignore-not-found | wc -l`  >/dev/null 2>&1
+            isNsExists=`${CLI_CMD} get namespace $DEDICATED_COMMON_PROJECT --ignore-not-found | wc -l`  >&3 2>&3
             if [ $isNsExists -ne 2 ] ; then
-                ${CLI_CMD} create namespace $DEDICATED_COMMON_PROJECT >/dev/null 2>&1
+                ${CLI_CMD} create namespace $DEDICATED_COMMON_PROJECT >&3 2>&3
             fi
             cat <<EOF | ${CLI_CMD} apply -f -
             apiVersion: v1

@@ -63,7 +63,7 @@ function prompt_license(){
     printf "\n"
     while true; do
         printf "\x1B[1mDo you accept the IBM Business Automation Insights stand-alone license? (Yes/No, default: No): \x1B[0m"
-        read -rp "" ans
+        read -erp "" ans
         case "$ans" in
         "y"|"Y"|"yes"|"Yes"|"YES")
             printf "\n"
@@ -88,7 +88,7 @@ function validate_utility_tool_for_validation(){
         printf '%b\n'  "\x1B[1;31mUnable to locate Kubernetes CLI. You must install it to run this script.\x1B[0m" && \
         while true; do
             printf "\x1B[1mDo you want install the Kubernetes CLI by the bai-prerequisites.sh script? (Yes/No): \x1B[0m"
-            read -rp "" ans
+            read -erp "" ans
             case "$ans" in
             "y"|"Y"|"yes"|"Yes"|"YES")
                 install_kubectl_cli
@@ -114,7 +114,7 @@ function validate_utility_tool_for_validation(){
         printf '%b\n'  "\x1B[1;31mUnable to locate openssl. You must install it to run this script.\x1B[0m" && \
         while true; do
             printf "\x1B[1mDo you want install the OpenSSL by the bai-prerequisites.sh script? (Yes/No): \x1B[0m"
-            read -rp "" ans
+            read -erp "" ans
             case "$ans" in
             "y"|"Y"|"yes"|"Yes"|"YES")
                 install_openssl
@@ -195,7 +195,7 @@ function select_flink_job(){
 
     prompt="Enter a valid option [1 to ${#options[@]}]: "
 
-    while menu && read -rp "$prompt" num && [[ "$num" ]]; do
+    while menu && read -erp "$prompt" num && [[ "$num" ]]; do
         [[ "$num" != *[![:digit:]]* ]] &&
         (( num > 0 && num <= ${#options[@]} )) ||
         { msg="Invalid option: $num"; continue; }
@@ -1193,7 +1193,7 @@ function select_storage_class(){
     while [[ $sc_medium_file_storage_classname == "" ]] # While get medium storage clase name
     do
         printf "\x1B[1mPlease enter the file storage classname for medium storage(RWX): \x1B[0m"
-        read -rp "" sc_medium_file_storage_classname
+        read -erp "" sc_medium_file_storage_classname
         if [ -z "$sc_medium_file_storage_classname" ]; then
         printf '%b\n' "\x1B[1;31mEnter a valid file storage classname(RWX)\x1B[0m"
         fi
@@ -1202,7 +1202,7 @@ function select_storage_class(){
     while [[ $sc_fast_file_storage_classname == "" ]] # While get fast storage clase name
     do
         printf "\x1B[1mPlease enter the file storage classname for fast storage(RWX): \x1B[0m"
-        read -rp "" sc_fast_file_storage_classname
+        read -erp "" sc_fast_file_storage_classname
         if [ -z "$sc_fast_file_storage_classname" ]; then
         printf '%b\n' "\x1B[1;31mEnter a valid file storage classname(RWX)\x1B[0m"
         fi
@@ -1211,7 +1211,7 @@ function select_storage_class(){
     while [[ $block_storage_class_name == "" ]] # While get block storage clase name
     do
         printf "\x1B[1mPlease enter the block storage classname for Zen(RWO): \x1B[0m"
-        read -rp "" block_storage_class_name
+        read -erp "" block_storage_class_name
         if [ -z "$block_storage_class_name" ]; then
         printf '%b\n' "\x1B[1;31mEnter a valid block storage classname(RWO)\x1B[0m"
         fi
@@ -1242,7 +1242,7 @@ function select_external_postgresdb_for_im(){
     echo ""
     while true; do
         printf "\x1B[1mDo you want to use an external Postgres DB \x1B[0m${RED_TEXT}[YOU NEED TO CREATE THIS POSTGRESQL DB BY YOURSELF FIRST BEFORE YOU APPLY THE BAI CUSTOM RESOURCE]${RESET_TEXT}${GREEN_TEXT}PLEASE REFER THE KNOWLEDGE CENTER: https://www.ibm.com/docs/en/cloud-paks/foundational-services/4.6?topic=im-setting-up-external-edb-postgresql-database-server#dbcreate ${RESET_TEXT}]\x1B[1mas IM metastore DB for this BAI deployment?\x1B[0m ${YELLOW_TEXT}(Notes: IM service can use an external Postgres DB to store IM data. If you select \"Yes\", IM service uses an external Postgres DB as IM metastore DB. If you select \"No\", IM service uses an embedded cloud native postgresql DB as IM metastore DB.)${RESET_TEXT} (Yes/No, default: No):  "
-        read -rp "" ans
+        read -erp "" ans
         case "$ans" in
         "y"|"Y"|"yes"|"Yes"|"YES")
             EXTERNAL_POSTGRESDB_FOR_IM="true"
@@ -1266,7 +1266,7 @@ function select_external_postgresdb_for_zen(){
         # Updating this question to reflect zen instead of BTS
         # DBACLD-166156
         printf "\x1B[1mDo you want to use an external Postgres DB \x1B[0m${RED_TEXT}[YOU NEED TO CREATE THIS POSTGRESQL DB BY YOURSELF FIRST BEFORE YOU APPLY THE BAI CUSTOM RESOURCE]${RESET_TEXT}${GREEN_TEXT}PLEASE REFER THE KNOWLEDGE CENTER: https://www.ibm.com/docs/en/cloud-paks/foundational-services/4.6?topic=im-setting-up-external-edb-postgresql-database-server#dbcreate ${RESET_TEXT}]\x1B[1m as Zen metastore DB for this BAI deployment?\x1B[0m ${YELLOW_TEXT}(Notes: Zen stores all metadata such as users, groups, service instances, vault integration and secret references in metastore DB. If you select \"Yes\", Zen service uses an external Postgres DB as Zen metastore DB.. If you select \"No\", Zen service uses an embedded cloud native postgresql DB as Zen metastore DB )${RESET_TEXT} (Yes/No, default: No): "
-        read -rp "" ans
+        read -erp "" ans
         case "$ans" in
         "y"|"Y"|"yes"|"Yes"|"YES")
             EXTERNAL_POSTGRESDB_FOR_ZEN="true"
@@ -1288,7 +1288,7 @@ function select_external_postgresdb_for_bts(){
     echo ""
     while true; do
         printf "\x1B[1mDo you want to use an external Postgres DB \x1B[0m${RED_TEXT}[YOU NEED TO CREATE THIS POSTGRESQL DB BY YOURSELF FIRST BEFORE APPLY BAI CUSTOM RESOURCE]${RESET_TEXT}${GREEN_TEXT}PLEASE REFER THE KNOWLEDGE CENTER: https://www.ibm.com/docs/en/cloud-paks/foundational-services/4.6?topic=im-setting-up-external-edb-postgresql-database-server#dbcreate ${RESET_TEXT}]\x1B[1m as BTS metastore DB for this BAI deployment?\x1B[0m ${YELLOW_TEXT}(Notes: BTS service can use an external Postgres DB to store meta data. If select \"Yes\", BTS service uses an external Postgres DB as BTS metastore DB. If select \"No\", BTS service uses an embedded cloud native postgresql DB as BTS metastore DB )${RESET_TEXT} (Yes/No, default: No): " 
-        read -rp "" ans
+        read -erp "" ans
         case "$ans" in
         "y"|"Y"|"yes"|"Yes"|"YES")
             EXTERNAL_POSTGRESDB_FOR_BTS="true"
@@ -1311,7 +1311,7 @@ function select_restricted_internet_access(){
     echo ""
     while true; do
         printf "\x1B[1mDo you want to restrict network egress to unknown external destination for this BAI stand-alone deployment?\x1B[0m ${YELLOW_TEXT}(Notes: BAI stand-alone $BAI_RELEASE_BASE prevents all network egress to unknown destinations by default. You can either (1) enable all egress or (2) accept the new default and create network policies to allow your specific communication targets as documented in the knowledge center.)${RESET_TEXT} (Yes/No, default: Yes): "
-        read -rp "" ans
+        read -erp "" ans
         case "$ans" in
         "y"|"Y"|"yes"|"Yes"|"YES"|"")
             RESTRICTED_INTERNET_ACCESS="true"
@@ -1365,7 +1365,7 @@ function select_fips_enable(){
         printf "\n"
         while true; do
             printf "\x1B[1mYour OCP cluster has FIPS enabled, do you want to enable FIPS with this BAI stand-alone deployment？\x1B[0m (Yes/No, default: No): "
-            read -rp "" ans
+            read -erp "" ans
             case "$ans" in
             "y"|"Y"|"yes"|"Yes"|"YES")
                 if [[ (" ${optional_component_cr_arr[@]}" =~ "bai") && (! " ${optional_component_cr_arr[@]}" =~ "kafka") ]]; then
@@ -1404,7 +1404,7 @@ function select_ldap_type(){
     printf "\n"
     while true; do
         printf "\x1B[1mDo you want to configure an LDAP for this IBM Business Automation Insights stand-alone deployment?(Yes/No, default: Yes): \x1B[0m"
-        read -rp "" ans
+        read -erp "" ans
         case "$ans" in
         "y"|"Y"|"yes"|"Yes"|"YES"|"")
             SELECTED_LDAP="Yes"
@@ -1455,7 +1455,7 @@ function select_ldap_user_for_zen(){
     while [[ $LDAP_USER_NAME == "" ]] # While get medium storage clase name
     do
         printf "\x1B[1mPlease enter one LDAP user for BAI stand-alone: \x1B[0m"
-        read -rp "" LDAP_USER_NAME
+        read -erp "" LDAP_USER_NAME
         if [ -z "$LDAP_USER_NAME" ]; then
         printf '%b\n' "\x1B[1;31mEnter a valid LDAP user\x1B[0m"
         fi
@@ -1467,7 +1467,7 @@ function select_iam_default_admin(){
     while true; do
         printf '%b\n' "\x1B[33;5mATTENTION: \x1B[0m\x1B[1;31mIf you are unable to use [cpadmin] as the default IAM admin user due to it being already used in your LDAP Directory, you need to change the Cloud Pak administrator username. See: \" https://www.ibm.com/docs/en/cloud-paks/foundational-services/4.6?topic=configurations-changing-cluster-administrator-access-credentials#name\"\x1B[0m"
         printf "\x1B[1mDo you want to use the default IAM admin user: [cpadmin] (Yes/No, default: Yes): \x1B[0m"
-        read -rp "" ans
+        read -erp "" ans
         case "$ans" in
         "y"|"Y"|"yes"|"Yes"|"YES"|"")
             USE_DEFAULT_IAM_ADMIN="Yes"
@@ -1760,10 +1760,14 @@ function validate_prerequisites(){
         tmp_serverport="$(prop_ldap_property_file LDAP_PORT)"
         tmp_basdn="$(prop_ldap_property_file LDAP_BASE_DN)"
         tmp_ldapssl="$(prop_ldap_property_file LDAP_SSL_ENABLED)"
-        tmp_user=$( ${CLI_CMD} get secret -l name=ldap-bind-secret -o yaml -n "$BAI_SERVICES_NS" | ${YQ_CMD} r - items.[0].data.ldapUsername | base64 --decode )
-        ## <https://jsw.ibm.com/browse/DBACLD-172803> - We are now asking user to use {xor} for special characters in password, so we need to use decode_xor_password to get the password decoded before validation.
-        bai_operator=$( ${CLI_CMD} get pods -l name=ibm-bai-insights-engine-operator --no-headers --ignore-not-found -n "$BAI_OPERATORS_NS" | awk '{print $1}' )
-        tmp_userpwd=$( decode_xor_password "$( ${CLI_CMD} get secret -n "$BAI_SERVICES_NS" -l name=ldap-bind-secret -o yaml | ${YQ_CMD} r - items.[0].data.ldapPassword | base64 --decode )" "$BAI_OPERATORS_NS" "$bai_operator" | sed  's/\$/\\$/g' )
+        
+        ## <https://jsw.ibm.com/browse/DBACLD-172803> - We are now asking user to use {xor} for special characters in password, so we need to use decode_xor_password to get the password decoded before validation.      
+        tmp_user=$($CLI_CMD get secret -n "$bai_services_namespace" -l name=ldap-bind-secret -o jsonpath='{.items[0].data.ldapUsername}' | ${BASE64_DECODE})
+        tmp_userpwd=$($CLI_CMD get secret -n "$bai_services_namespace" -l name=ldap-bind-secret -o jsonpath='{.items[0].data.ldapPassword}' | ${BASE64_DECODE})
+        if [[ "$tmp_userpwd" =~ "{xor}" ]]; then
+            bai_operator=$( $CLI_CMD get pods -l name=ibm-bai-insights-engine-operator --no-headers --ignore-not-found -n $bai_operators_namespace | awk '{print $1}' )
+            tmp_userpwd=$(decode_xor_password $tmp_userpwd $bai_operators_namespace $bai_operator)
+        fi
 
         tmp_servername=$(sed -e 's/^"//' -e 's/"$//' <<<"$tmp_servername")
         tmp_serverport=$(sed -e 's/^"//' -e 's/"$//' <<<"$tmp_serverport")

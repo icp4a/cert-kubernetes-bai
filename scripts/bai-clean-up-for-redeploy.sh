@@ -54,7 +54,7 @@ check_cluster_login
 # BAI Standalone Namespace check
 while [ -z "$BAI_NAMESPACE" ]; do
 	printf "\x1B[1mEnter namespace of your BAI deployment: \x1B[0m"
-	read -rp "" ans 
+	read -erp "" ans 
     BAI_NAMESPACE=$ans
     if [ -z "$(${CLI_CMD} get project "${BAI_NAMESPACE}" 2>/dev/null)" ]; then
 	    printf '%b\n' "\x1B[1;31mError: Namespace ${BAI_NAMESPACE} does not exist. Please re-enter the namespace.\x1B[0m"
@@ -71,7 +71,7 @@ if [ -z "$BAI_SERVICE_NAMESPACE" ]; then
 	max_retries=0
 	while [ $max_retries -lt 4 ]; do
         printf "\x1B[1m\nDid you install BAI Standalone with Separation of Duties? (Yes/No, default: No) \x1B[0m"
-        read -rp "" ans
+        read -erp "" ans
         # If the user provides no input, set the default to 'No'
         if [ -z "$ans" ]; then
             ans="No"
@@ -83,7 +83,7 @@ if [ -z "$BAI_SERVICE_NAMESPACE" ]; then
                 max_counter=0
 				while [ $max_counter -lt 4 ]; do
                     printf "\x1B[1mEnter Operand namespace of your BAI deployment: \x1B[0m"
-                    read -rp "" ans 
+                    read -erp "" ans 
                     BAI_SERVICE_NAMESPACE=$ans
                     if [ -z "$(${CLI_CMD} get project "${BAI_SERVICE_NAMESPACE}" 2>/dev/null)" ]; then
                         printf '%b\n' "\x1B[1;31mError: Namespace ${BAI_SERVICE_NAMESPACE} does not exist. Please re-enter the namespace.\x1B[0m"

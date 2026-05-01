@@ -33,6 +33,13 @@ SEPARATION_DUTY="false"
 ALL_NAMESPACE="false"
 IS_SHARED_CPFS="false"
 
+CS_MAPS_YAML=""
+CS_NAMESPACE_COUNT=0
+SHARED_NAMESPACE_COUNT=0
+CS_MAP_INDEX=""
+REQUEST_NS_INDEX=""
+NAMESPACES_MAPPED_TO_CS=""
+
 # Parse command-line options
 while getopts 'n:hsa' OPTION; do
     case "$OPTION" in
@@ -162,18 +169,37 @@ if [[ "$SEPARATION_DUTY" == "true" ]]; then
 fi
 rm "$BAI_CM_CONFIG_YAML"
 
+# CPFS detection (supports both <4.17 using kube-public/common-service-maps CM and 4.17+ using CommonService CR).
 # Check for Cloud Pak foundational services mapping
 if [[ "$ALL_NAMESPACE" == "false" ]]; then
-    # CPFS shared check
-    CS_MAP=$(${CLI_CMD} get configmap "${COMMON_SERVICES_CM_DEDICATED_NAME}" -n kube-public -o jsonpath="{ .data['common-service-maps\.yaml']}" 2>/dev/null)
-    if [[ -z $CS_MAP ]]; then
-        error "No Cloud Pak foundational services mapping was detected, Cloud Pak foundational services could be shared or does not exist. The script aborted."
-        exit 1
+    CS_MAP=$(${CLI_CMD} get configmap "${COMMON_SERVICES_CM_DEDICATED_NAME}" -n "${COMMON_SERVICES_CM_NAMESPACE}" -o jsonpath="{ .data['common-service-maps\.yaml']}" 2>/dev/null)
+
+	if [[ -z "$CS_MAP" ]]; then
+		info "No common-service-maps ConfigMap found in ${COMMON_SERVICES_CM_NAMESPACE}. Checking for CommonService CR."
+		CS_CR_NAME=$(${CLI_CMD} get commonservice -n "${BAI_SERVICES_NAMESPACE}" -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)
+
+		if [[ -n "${CS_CR_NAME}" ]]; then
+			CPFS_SHARED_NAMESPACE=$(${CLI_CMD} get commonservice "${CS_CR_NAME}" -n "${BAI_SERVICES_NAMESPACE}" -o jsonpath='{.spec.servicesNamespace}' 2>/dev/null)		
+			if [[ -z "${CPFS_SHARED_NAMESPACE}" ]]; then
+				info "CommonService/${CS_CR_NAME} found but spec.servicesNamespace is empty. Skipping CPFS cleanup."
+				CLEAN_CPFS="false"
+				IS_SHARED_CPFS="false"
+				CS_NAMESPACE_COUNT=0
+			else
+				CLEAN_CPFS="true"
+				IS_SHARED_CPFS="false"
+				CS_NAMESPACE_COUNT=1
+				success "CPFS namespace detected from CommonService CR: ${CPFS_SHARED_NAMESPACE}."
+			fi
+		else
+			error "The BAI Namespace \"${BAI_NAMESPACE}\" does not map to any Cloud Pak foundational services (not in common-service-maps ConfigMap and no CommonService CR found). Please make sure the namespace you entered is correct. The script aborted."
+			exit 1
+		fi
     else
         CS_MAPS_YAML=$(mktemp)
         echo "$CS_MAP" > "$CS_MAPS_YAML"
         CS_NAMESPACE_COUNT=$(${YQ_CMD} r "$CS_MAPS_YAML" "namespaceMapping" -l)
-        for (( i = 0; i < $CS_NAMESPACE_COUNT; i++ )); do
+        for(( i = 0; i < CS_NAMESPACE_COUNT; i++ )); do
             # Get CS namespace
             CS_NS=$(${YQ_CMD} r "$CS_MAPS_YAML" "namespaceMapping[${i}].map-to-common-service-namespace")
             # Get CS control namespace
@@ -196,9 +222,31 @@ if [[ "$ALL_NAMESPACE" == "false" ]]; then
         done
 
         # Check if CPFS Namespace is found
-        if [[ -z ${CPFS_SHARED_NAMESPACE} ]]; then
-            error "The BAI Namespace \"${BAI_NAMESPACE}\" does not map to any Cloud Pak foundational services, please make sure the namespace you entered is correct. The script aborted."
-            exit 1
+        if [[ -z "${CPFS_SHARED_NAMESPACE}" ]]; then
+		# Namespace not found in ConfigMap - try CPFS 4.17+ path as fallback
+		info "Namespace \"${BAI_NAMESPACE}\" not found in common-service-maps ConfigMap. Checking for CPFS CommonService CR"
+
+		CS_CR_NAME=$(${CLI_CMD} get commonservice -n "${BAI_SERVICES_NAMESPACE}" -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)
+
+		if [[ -n "${CS_CR_NAME}" ]]; then
+			CPFS_SHARED_NAMESPACE=$(${CLI_CMD} get commonservice "${CS_CR_NAME}" -n "${BAI_SERVICES_NAMESPACE}" -o jsonpath='{.spec.servicesNamespace}' 2>/dev/null)
+
+			if [[ -z "${CPFS_SHARED_NAMESPACE}" ]]; then
+				info "CommonService/${CS_CR_NAME} found but spec.servicesNamespace is empty. Skipping CPFS cleanup."
+				CLEAN_CPFS="false"
+				IS_SHARED_CPFS="false"
+				CS_NAMESPACE_COUNT=0
+			else
+				# For CPFS 4.17+, assume dedicated CPFS (no way to detect sharing without common-service-maps)
+				CLEAN_CPFS="true"
+				IS_SHARED_CPFS="false"
+				CS_NAMESPACE_COUNT=1
+				success "CPFS namespace detected from CommonService CR: ${CPFS_SHARED_NAMESPACE}."
+			fi
+		else
+			error "The BAI Namespace \"${BAI_NAMESPACE}\" does not map to any Cloud Pak foundational services (not in common-service-maps ConfigMap and no CommonService CR found). Please make sure the namespace you entered is correct. The script aborted."
+			exit 1
+		fi
         else
             # CPFS mapped to BAI namespace found
             printf '%b\n' "\nCloud Pak foundational services namespace:\n- ${CPFS_SHARED_NAMESPACE}"
@@ -214,7 +262,11 @@ if [[ "$ALL_NAMESPACE" == "false" ]]; then
             fi
         fi
     fi
-    success "Cloud Pak foundational services mapping detected. Clean-up may continue."
+    if [[ "${CLEAN_CPFS}" == "true" && -n "${CPFS_SHARED_NAMESPACE}" ]]; then
+		success "Cloud Pak foundational services detected. Clean-up may continue."
+	else
+		info "Cloud Pak foundational services cleanup will be skipped."
+	fi
 fi
 
 # Check if multiple BAI are installed in the same cluster
@@ -263,9 +315,8 @@ function delete_resource() {
     if [ $? -eq 0 ]; then
         for i in $(${CLI_CMD} get "${RESOURCE_NAME}" --no-headers -n "${NAMESPACE_NAME}" --ignore-not-found=true | awk '{print $1}'); do
             # Remove finalizers to ensure deletion
-            ${CLI_CMD} patch "${RESOURCE_NAME}"/$i -n "${NAMESPACE_NAME}" -p '{"metadata":{"finalizers":[]}}' --type=merge
-            # Delete the resource
-            ${CLI_CMD} delete "${RESOURCE_NAME}" $i -n "${NAMESPACE_NAME}" --ignore-not-found=true
+            ${CLI_CMD} patch "${RESOURCE_NAME}"/$i -n "${NAMESPACE_NAME}" -p '{"metadata":{"finalizers":[]}}' --type=merge 2>/dev/null
+	    ${CLI_CMD} delete "${RESOURCE_NAME}" $i -n "${NAMESPACE_NAME}" --ignore-not-found=true --wait=false 2>/dev/null
         done
     fi
 }
@@ -481,7 +532,7 @@ if [[ $CLEAN_CPFS == "true" ]]; then
 
 	#Check CPFS Control namespace exist
 	${CLI_CMD} get project ${CPFS_CONTROL_NAMESPACE} &>/dev/null
-	if [ $? -eq 0 -a $CS_NAMESPACE_COUNT -eq 1 ]; then
+	if [ $? -eq 0 -a "${CS_NAMESPACE_COUNT}" -eq 1 ]; then
 		# Get CPFS Control namespace resources
 		INFO "Resource in Namespace: ${CPFS_CONTROL_NAMESPACE}"
 		for RESOURCE in "${CPFS_RESOURCES[@]}"; do
@@ -702,20 +753,20 @@ if [[ $CLEAN_CPFS == "true" ]]; then
 	pattern6="ibm-common-service-webhook-configuration"
 
 	webhook_configs=$(${CLI_CMD} get ValidatingWebhookConfiguration -o custom-columns=:metadata.name --no-headers | grep -E "$pattern2|$pattern3 &>/dev/null")
-	if [ $? -eq 0 ]; then
+	if [ -n "$webhook_configs" ]; then
 		for webhook in $webhook_configs; do
-			${CLI_CMD} delete ValidatingWebhookConfiguration "$webhook"
+			${CLI_CMD} delete ValidatingWebhookConfiguration "$webhook" --ignore-not-found=true
 		done
 	fi
 
 	webhook_configs=$(${CLI_CMD} get MutatingWebhookConfiguration -o custom-columns=:metadata.name --no-headers | grep -E "$pattern4|$pattern5|$pattern6 &>/dev/null")
-	if [ $? -eq 0 ]; then
+	if [ -n "$webhook_configs" ]; then
 		for webhook in $webhook_configs; do
-			${CLI_CMD} delete MutatingWebhookConfiguration "$webhook"
+			${CLI_CMD} delete MutatingWebhookConfiguration "$webhook" --ignore-not-found=true
 		done
 	fi
 	# Cleaning up Role related resources
-	${CLI_CMD} delete ClusterRoleBinding ibm-common-service-webhook secretshare-ibm-common-services $(${CLI_CMD} get ClusterRoleBinding | grep nginx-ingress-clusterrole | awk '{print $1}') --ignore-not-found
+	${CLI_CMD} delete ClusterRoleBinding ibm-common-service-webhook secretshare-ibm-common-services $(${CLI_CMD} get ClusterRoleBinding 2>/dev/null | grep nginx-ingress-clusterrole | awk '{print $1}') --ignore-not-found
 	${CLI_CMD} delete ClusterRole ibm-common-service-webhook secretshare nginx-ingress-clusterrole --ignore-not-found
 	${CLI_CMD} delete RoleBinding ibmcloud-cluster-info ibmcloud-cluster-ca-cert -n "${COMMON_SERVICES_CM_NAMESPACE}" --ignore-not-found
 	${CLI_CMD} delete Role ibmcloud-cluster-info ibmcloud-cluster-ca-cert -n "${COMMON_SERVICES_CM_NAMESPACE}" --ignore-not-found
@@ -735,30 +786,35 @@ if [[ $CLEAN_CPFS == "true" ]]; then
 fi
 
 ### <https://jsw.ibm.com/browse/DBACLD-185523> - Check if shared CPfs and update common-service-maps accordingly
-# Update/delete configmaps in kube-public
-if [[ $IS_SHARED_CPFS == "true" ]]; then
-	INFO "Remove mapping from ${COMMON_SERVICES_CM_NAMESPACE} namespace"
-	# Remove mapping from common-service-maps.yaml using yq, then patch with JSON patch
-	NEW_CS_MAPS=$(${YQ_CMD} eval "del(.namespaceMapping[${CS_MAP_INDEX}].requested-from-namespace[${REQUEST_NS_INDEX}])" "$CS_MAPS_YAML")
-	PATCH=$(jq -n --arg v "$NEW_CS_MAPS" \
-  	'[{"op":"replace","path":"/data/common-service-maps.yaml","value":$v}]')
-	${CLI_CMD} patch configmap common-service-maps -n "${COMMON_SERVICES_CM_NAMESPACE}" --type=json -p "$PATCH"
-elif [[ $CLEAN_CPFS == "true" ]]; then
-	INFO "Remove mapping from ${COMMON_SERVICES_CM_NAMESPACE} namespace"
-	# Check if there are other namespace mappings besides the one being deleted
-	REMAINING_MAPPINGS=$(${YQ_CMD} eval '.namespaceMapping | length' "$CS_MAPS_YAML")
-	if [[ $REMAINING_MAPPINGS -gt 1 ]]; then
-		# <https://jsw.ibm.com/browse/DBACLD-206209> If there are multiple deployments, only remove this specific mapping
-		info "Multiple CP4BA deployments detected. Removing only the mapping for namespace: ${BAI_NAMESPACE}"
-		# Use yq to remove the mapping, then patch with JSON patch
-		NEW_CS_MAPS=$(${YQ_CMD} eval "del(.namespaceMapping[${CS_MAP_INDEX}])" "$CS_MAPS_YAML")
+# Update/delete kube-public/common-service-maps ONLY when legacy CM exists.For CPFS 4.17+ there is no CM to patch.
+if [[ "${IS_SHARED_CPFS}" == "true" ]]; then
+	if [[ -n "${CS_MAPS_YAML:-}" && -f "${CS_MAPS_YAML}" ]]; then
+		INFO "Remove mapping from ${COMMON_SERVICES_CM_NAMESPACE} namespace"
+		NEW_CS_MAPS=$(${YQ_CMD} d "$CS_MAPS_YAML" "namespaceMapping[${CS_MAP_INDEX}].requested-from-namespace[${REQUEST_NS_INDEX}]")
 		PATCH=$(jq -n --arg v "$NEW_CS_MAPS" \
   		'[{"op":"replace","path":"/data/common-service-maps.yaml","value":$v}]')
 		${CLI_CMD} patch configmap common-service-maps -n "${COMMON_SERVICES_CM_NAMESPACE}" --type=json -p "$PATCH"
+  fi
+
+elif [[ "${CLEAN_CPFS}" == "true" ]]; then
+	if [[ -n "${CS_MAPS_YAML:-}" && -f "${CS_MAPS_YAML}" && -n "${CS_MAP_INDEX:-}" ]]; then
+		INFO "Remove mapping from ${COMMON_SERVICES_CM_NAMESPACE} namespace"
+  		# Check if there are other namespace mappings besides the one being deleted
+		REMAINING_MAPPINGS=$(${YQ_CMD} r "$CS_MAPS_YAML" "namespaceMapping" -l)
+		if [[ $REMAINING_MAPPINGS -gt 1 ]]; then
+  			# <https://jsw.ibm.com/browse/DBACLD-201104> If there are multiple deployments, only remove this specific mapping
+			info "Multiple BAI deployments detected. Removing only the mapping for namespace: ${BAI_NAMESPACE}"
+			NEW_CS_MAPS=$(${YQ_CMD} d "$CS_MAPS_YAML" "namespaceMapping[${CS_MAP_INDEX}]")
+			PATCH=$(jq -n --arg v "$NEW_CS_MAPS" \
+				'[{"op":"replace","path":"/data/common-service-maps.yaml","value":$v}]')
+			${CLI_CMD} patch configmap common-service-maps -n "${COMMON_SERVICES_CM_NAMESPACE}" --type=json -p "$PATCH"
+		else
+			INFO "Only one CP4BA deployment detected, deleting common-service-maps ConfigMap"
+			${CLI_CMD} delete configmap common-service-maps -n "${COMMON_SERVICES_CM_NAMESPACE}" --ignore-not-found=true
+		fi
 	else
 		# This is the last deployment, delete the entire ConfigMap
-		INFO "Only one BAI deployment detected, deleting common-service-maps ConfigMap"
-		${CLI_CMD} delete configmap common-service-maps -n "${COMMON_SERVICES_CM_NAMESPACE}" --ignore-not-found=true
+		info "Namespace not present in common-service-maps. No ConfigMap update required."
 	fi
 fi
 
@@ -900,7 +956,7 @@ if [[ $CLEAN_CPFS == "true" ]]; then
 		fi
 	done
 	${CLI_CMD} get project "${CPFS_CONTROL_NAMESPACE}" &>/dev/null
-	if [ $? -eq 0 -a $CS_NAMESPACE_COUNT -eq 1 ]; then
+	if [ $? -eq 0 -a "${CS_NAMESPACE_COUNT}" -eq 1 ]; then
 		# Delete CPfs Control namespace if namespace exists and if there is only one deployment using CPfs
 		INFO "Cleaning up all pods before deleting CPfs control namespace."
 		${CLI_CMD} delete pod --all -n "${CPFS_CONTROL_NAMESPACE}" --grace-period=0 --force
@@ -988,7 +1044,9 @@ if [[ $SELECT_ALL == "true" ]]; then
 	done
 fi
 
-# Delete common-service-maps.yaml temp file
-rm "$CS_MAPS_YAML"
+# Delete common-service-maps.yaml temp file if it exists
+if [[ -n "${CS_MAPS_YAML:-}" && -f "${CS_MAPS_YAML}" ]]; then
+	rm -f "${CS_MAPS_YAML}"
+fi
 
 success "Clean up has completed."
