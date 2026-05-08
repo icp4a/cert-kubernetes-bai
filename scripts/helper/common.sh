@@ -1582,7 +1582,7 @@ function patch_strimzi_podset(){
         fi
 
         # Get the StrimziPodSet resource
-        kafka_podset_exists=$(${CLI_CMD} get strimzipodset iaf-system-kafka -n $services_namespace -o name --no-headers 2>/dev/null || echo "")
+        kafka_podset_exists=$(${CLI_CMD} get strimzipodsets.core.ibmevents.ibm.com iaf-system-kafka -n $services_namespace -o name --no-headers 2>/dev/null || echo "")
 
         if [[ -z "$kafka_podset_exists" ]]; then
             echo "StrimziPodSet 'iaf-system-kafka' not found"
@@ -1592,7 +1592,7 @@ function patch_strimzi_podset(){
         echo "Found StrimziPodSet 'iaf-system-kafka'"
 
         # Get the current kafka version from the annotation - YQ 3.3 compatible syntax
-        kafka_annotation_value=$(${CLI_CMD} get strimzipodset iaf-system-kafka -n $services_namespace -o yaml | ${YQ_CMD} read - "metadata.annotations[strimzi.io/kafka-version]" 2>/dev/null || echo "")
+        kafka_annotation_value=$(${CLI_CMD} get strimzipodsets.core.ibmevents.ibm.com iaf-system-kafka -n $services_namespace -o yaml | ${YQ_CMD} read - "metadata.annotations[strimzi.io/kafka-version]" 2>/dev/null || echo "")
 
         if [[ -z "$kafka_annotation_value" || "$kafka_annotation_value" == "null" ]]; then
             strimzi_patched=true
@@ -1603,7 +1603,7 @@ function patch_strimzi_podset(){
 
         # Apply the patch directly
         echo "Applying patch to update annotations..."
-        ${CLI_CMD} patch strimzipodset iaf-system-kafka -n $services_namespace --type=merge -p "{\"metadata\":{\"annotations\":{\"strimzi.io/kafka-version\":null,\"ibmevents.ibm.com/kafka-version\":\"$kafka_annotation_value\"}}}"
+        ${CLI_CMD} patch strimzipodsets.core.ibmevents.ibm.com iaf-system-kafka -n $services_namespace --type=merge -p "{\"metadata\":{\"annotations\":{\"strimzi.io/kafka-version\":null,\"ibmevents.ibm.com/kafka-version\":\"$kafka_annotation_value\"}}}"
 
         echo "Successfully updated annotations:"
         echo "- Removed: strimzi.io/kafka-version"
