@@ -162,7 +162,7 @@ fi
 ### END - SETTING THE VARIABLES USED ###
 
 
-save_log1 "${netpol_targ_log_path}" "network-policy-log"
+save_log "${netpol_targ_log_path}" "network-policy-log"
 trap cleanup_log EXIT
 
 #=======================================================================================================================
@@ -187,7 +187,7 @@ fi
 
 # Installing network policy from templates directory
 if [ "$RUNTIME_MODE" == "install" ]; then
-    echo "${RED_TEXT}IMPORTANT: ${YELLOW_TEXT}Before installing the network policy templates, please confirm that network policies have been reviewed and updated to match your environment if necessary.${RESET_TEXT}"
+    echo "${RED_TEXT}IMPORTANT: ${YELLOW_TEXT}Before installing the network policy templates, please confirm that the network policies in the folder(s) $netpol_targ_template_path_list have been reviewed and updated to match your environment if necessary.${RESET_TEXT}"
     
     prompt_to_continue
     printf "\n"
@@ -217,7 +217,7 @@ fi
 
 # Deleting network policy from templates directory
 if [ "$RUNTIME_MODE" == "delete" ]; then
-    echo "${RED_TEXT}IMPORTANT: ${YELLOW_TEXT}Please confirm that you want to delete all the network policies from $netpol_targ_template_path ${RESET_TEXT}"
+    echo "${RED_TEXT}IMPORTANT: ${YELLOW_TEXT}Please confirm that you want to delete all the network policies from the directory/directories $netpol_targ_template_path_list ${RESET_TEXT}"
     
     prompt_to_continue
     printf "\n"

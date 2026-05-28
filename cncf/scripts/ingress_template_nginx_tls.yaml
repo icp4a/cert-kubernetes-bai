@@ -235,38 +235,6 @@ spec:
     - HOST
     secretName: cp-console-ingress-tls-secret
 ---
-kind: Ingress
-apiVersion: networking.k8s.io/v1
-metadata:
-  annotations:
-    nginx.ingress.kubernetes.io/proxy-connect-timeout: "180"
-    nginx.ingress.kubernetes.io/proxy-read-timeout: "180"
-    nginx.ingress.kubernetes.io/proxy-send-timeout: "180"
-    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
-    nginx.ingress.kubernetes.io/affinity: cookie
-    nginx.ingress.kubernetes.io/session-cookie-expires: "172800"
-    nginx.ingress.kubernetes.io/session-cookie-max-age: "172800"
-    nginx.ingress.kubernetes.io/session-cookie-name: wantaffinity
-  name: cncf-common-web-ui
-  namespace: NAMESPACE
-spec:
-  ingressClassName: nginx
-  rules:
-    - host: HOST
-      http:
-        paths:
-          - path: /
-            pathType: ImplementationSpecific
-            backend:
-              service:
-                name: common-web-ui
-                port:
-                  number: 3000
-  tls:
-  - hosts:
-    - HOST
-    secretName: cp-console-ingress-tls-secret
----
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:

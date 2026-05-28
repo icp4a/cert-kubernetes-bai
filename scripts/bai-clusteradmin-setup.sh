@@ -83,7 +83,7 @@ function prompt_wfps_license(){
     while true; do
         if [ -z "$AUTO_LICENSE_ACCEPT" ]; then
             printf "\x1B[1mDo you accept the IBM Process Flow license (Yes/No, default: No): \x1B[0m"
-            read -rp "" ans
+            read -erp "" ans
             case "$ans" in
             "y"|"Y"|"yes"|"Yes"|"YES")
                 printf "\n"
@@ -298,7 +298,7 @@ function select_private_catalog(){
         if [[ -z "$BAI_AUTO_PRIVATE_CATALOG" ]]; then
             # for defect https://jsw.ibm.com/browse/DBACLD-153503 where we had to update the script to set private catalog as the default option
             printf "\x1B[1mWould you like to deploy IBM Business Automation Insights using a private catalog? (Yes/No, default: Yes): \x1B[0m"
-            read -rp "" ans
+            read -erp "" ans
         else
             # for defect https://jsw.ibm.com/browse/DBACLD-153503 where we had to update the script to set private catalog as the default option
             printf "\x1B[1mWould you like to deploy IBM Business Automation Insights using a private catalog? (Yes/No, default: Yes): $BAI_AUTO_PRIVATE_CATALOG\x1B[0m\n"
@@ -334,7 +334,7 @@ function select_separate_operator(){
     while true; do
         if [[ -z "$BAI_AUTO_SEPARATE_OPERATOR" ]]; then
             printf "\x1B[1mWould you like to deploy IBM Business Automation Insights with the separation of operators and operands? (Yes/No, default: No): \x1B[0m"
-            read -rp "" ans
+            read -erp "" ans
         else
             printf "\x1B[1mWould you like to deploy IBM Business Automation Insights with the separation of operators and operands? (Yes/No, default: No): $BAI_AUTO_SEPARATE_OPERATOR\x1B[0m\n"
             ans=$BAI_AUTO_SEPARATE_OPERATOR
@@ -368,7 +368,7 @@ function select_project(){
         if [ -z "$BAI_AUTO_NAMESPACE" ]; then
             echo
             printf '%b\n' "\x1B[1mwhere would you like to deploy IBM Business Automation Insights?\x1B[0m"
-            read -p "Enter the name for a new project or an existing project (namespace): " project_name
+            read -erp "Enter the name for a new project or an existing project (namespace): " project_name
         else
             if [[ "$BAI_AUTO_NAMESPACE" == openshift* ]]; then
                 printf '%b\n' "\x1B[1;31mEnter a valid project name. The project name should not be 'openshift' or start with 'openshift'. \x1B[0m"
@@ -417,7 +417,7 @@ function set_separate_operator_project(){
         if [ -z "$BAI_AUTO_OPERATOR_NAMESPACE" ]; then
             echo
             printf '%b\n' "\x1B[1mWhere would you like to deploy $BAI_FULL_NAME operators? \x1B[0m"
-            read -p "Enter the name for a new project or an existing project (namespace): " project_name_operator
+            read -erp "Enter the name for a new project or an existing project (namespace): " project_name_operator
         else
             if [[ "$BAI_AUTO_OPERATOR_NAMESPACE" == openshift* ]]; then
                 printf '%b\n' "\x1B[1;31mEnter a valid project name. The project name should not be 'openshift' or start with 'openshift'. \x1B[0m"
@@ -465,7 +465,7 @@ function set_separate_cpfs_service_project(){
         if [ -z "$BAI_AUTO_CS_SERVICE_NAMESPACE" ]; then
             echo
             printf '%b\n' "\x1B[1mWhere would you like to deploy $BAI_FULL_NAME deployment and its services ? \x1B[0m"
-            read -p "Enter the name for a new project or an existing project (namespace): " project_name_cs_service
+            read -erp "Enter the name for a new project or an existing project (namespace): " project_name_cs_service
         else
             if [[ "$BAI_AUTO_CS_SERVICE_NAMESPACE" == openshift* ]]; then
                 printf '%b\n' "\x1B[1;31mEnter a valid project name. The project name should not be 'openshift' or start with 'openshift'. \x1B[0m"
@@ -544,7 +544,7 @@ EOF
 #             printf "\n"
 #             printf '%b\n' "${YELLOW_TEXT}[NOTES] When you want to have multiple deployments of BAI in the same cluster sharing one namespace for operators. You can input key with comma-separated lists (for example: bai-ns1,bai-ns2,bai-ns3)${RESET_TEXT}"
 #             printf "\x1B[1mWhere do you want to deploy $BAI_FULL_NAME components/services? \x1B[0m\n"
-#             read -rp "The project name(s): " project_name_bai_service
+#             read -erp "The project name(s): " project_name_bai_service
 #         else
 #             OIFS=$IFS
 #             IFS=',' read -ra project_bai_service_array <<< "$BAI_AUTO_SERVICE_NAMESPACE"
@@ -603,7 +603,7 @@ function collect_input() {
             if [ -z "$BAI_AUTO_NAMESPACE" ]; then
                 echo
                 printf '%b\n' "\x1B[1mWhere do you want to deploy $BAI_FULL_NAME?\x1B[0m"
-                read -p "Enter the name for a new project or an existing project (namespace): " project_name
+                read -erp "Enter the name for a new project or an existing project (namespace): " project_name
             else
                 if [[ "$BAI_AUTO_NAMESPACE" == openshift* ]]; then
                     printf '%b\n' "\x1B[1;31mEnter a valid project name. The project name should not be 'openshift' or start with 'openshift'. \x1B[0m"
@@ -664,7 +664,7 @@ function check_common_services_cm() {
      while true; do
        printf "\n"
         printf '%b\n' "\x1B[1mWould you like to continue with a dedicated ${COMMON_SERVICES_NAME} instance? (Yes/No, default: Yes)\x1B[0m"
-        read -rp "" ans
+        read -erp "" ans
         case "$ans" in
         "y"|"Y"|"yes"|"Yes"|"YES"|"YeS"|"yES"|"YEs"|"")
            printf '%b\n' "The control namespace is a shared namespace for deploying cluster-scope resources."
@@ -672,7 +672,7 @@ function check_common_services_cm() {
            printf '%b\n' "You cannot change the namespace after installing the foundational services."
            while true; do
            printf '%b\n' "Enter the control namespace for deploying cluster-scope resources."
-           read -rp "" ctrl_nm
+           read -erp "" ctrl_nm
            case "$ctrl_nm" in
            "")
              printf '%b\n' "\x1B[1;31mEnter a valid namespace name. The namespace name can not be blank.\x1B[0m"
@@ -689,12 +689,12 @@ function check_common_services_cm() {
               printf '%b\n' "The cluster-scope resources will be installed in $CTRL_NAMESPACE"
               while true; do
                 printf '%b\n' "Do you wish to change the default dedicated project ${DEDICATED_PROJECT} where ${COMMON_SERVICES_NAME} is going to be installed?(Yes/No default: No)"
-                read -rp "" change_dedicated
+                read -erp "" change_dedicated
                 case "$change_dedicated" in
                 "y"|"Y"|"yes"|"Yes"|"YES"|"YeS"|"yES"|"YEs")
                   while true; do
                     printf '%b\n' "Enter the project where you want ${COMMON_SERVICES_NAME} to be installed."
-                    read -rp "" new_dedicated
+                    read -erp "" new_dedicated
                     case "$new_dedicated" in
                     "")
                       printf '%b\n' "\x1B[1;31mEnter a valid namespace name. The namespace name can not be blank.\x1B[0m"
@@ -800,7 +800,7 @@ function validate_cncf_olm(){
     while true; do
         printf "\x1B[1mWould you like to deploy the Operator Lifecycle Manager (OLM) in namespace \"${CNCF_OLM_NAMESPACE}\"? (Yes/No, default: No) \x1B[0m"
         if [ -z "$AUTO_INSTALL_OLM" ]; then
-            read -rp "" ans
+            read -erp "" ans
             case "$ans" in
             "y"|"Y"|"yes"|"Yes"|"YES")
                 printf '%b\n' "Continue....\n"
@@ -922,7 +922,7 @@ function verify_existing_csv(){
         if [ -z "$BAI_AUTO_NAMESPACE" ]; then
             while true; do
                 printf "\x1B[1mWould you like to deploy another $BAI_FULL_NAME Operator in new project \"${project_name}\"? (Yes/No, default: No) \x1B[0m"
-                read -rp "" ans
+                read -erp "" ans
                 case "$ans" in
                 "y"|"Y"|"yes"|"Yes"|"YES")
                     printf '%b\n' "Continue....\n"
@@ -1369,7 +1369,7 @@ function display_airgap_prerequisites(){
     printf "\x1B[1;31mhttps://www.ibm.com/docs/en/bai/$BAI_RELEASE_BASE?topic=deployment-preparing-your-cluster-air-gapped-offline \n\x1B[0m"
     printf "\n"
     printf "\x1B[1mDo you want to proceed with the offline/airgap cluster setup (Yes/No, default: No): \x1B[0m"
-    read -rp "" ans
+    read -erp "" ans
     printf "\n"
     case "$ans" in
     "y"|"Y"|"yes"|"Yes"|"YES")
@@ -1421,7 +1421,7 @@ function get_entitlement_registry(){
 
         if [[ -z "$BAI_AUTO_ENTITLEMENT_KEY" && -z "$BAI_AUTO_LOCAL_REGISTRY" ]]; then
             printf "\x1B[1mDo you have a $BAI_FULL_NAME Entitlement Registry key (Yes/No, default: No): \x1B[0m"
-            read -rp "" ans
+            read -erp "" ans
         fi
 
         case "$ans" in
@@ -1529,7 +1529,7 @@ function get_domain_name(){
     while [[ $domain_name == '' ]]
     do
         if [ -z "$AUTO_DOMAIN_NAME" ]; then
-            read -p "Enter your domain name(for none 443 port, Also append port number, such as domain_name:port): " domain_name
+            read -erp "Enter your domain name(for none 443 port, Also append port number, such as domain_name:port): " domain_name
         else
             domain_name=$AUTO_DOMAIN_NAME
         fi
@@ -2100,7 +2100,7 @@ function select_ocp_olm(){
     while true; do
         printf "\x1B[1mAre you using the OCP Catalog (OLM) to perform this install? (Yes/No, default: No) \x1B[0m"
 
-        read -rp "" ans
+        read -erp "" ans
         case "$ans" in
         "y"|"Y"|"yes"|"Yes"|"YES")
             SCRIPT_MODE="OLM"
@@ -2128,7 +2128,7 @@ function get_local_registry_server(){
         local_public_registry_server=""
         while [[ $local_public_registry_server == "" ]]
         do
-            read -rp "" local_public_registry_server
+            read -erp "" local_public_registry_server
             if [ -z "$local_public_registry_server" ]; then
             printf '%b\n' "\x1B[1;31mEnter a valid service name or the URL for the docker registry.\x1B[0m"
             fi
@@ -2159,7 +2159,7 @@ function get_local_registry_server(){
         local_registry_server=""
         while [[ $local_registry_server == "" ]]
         do
-            read -rp "" local_registry_server
+            read -erp "" local_registry_server
             if [ -z "$local_registry_server" ]; then
                 printf '%b\n' "\x1B[1;31mEnter a valid service name or the URL for the docker registry.\x1B[0m"
             fi
@@ -2191,7 +2191,7 @@ function get_local_registry_user(){
         local_registry_user=""
         while [[ $local_registry_user == "" ]]
         do
-            read -rp "" local_registry_user
+            read -erp "" local_registry_user
             if [ -z "$local_registry_user" ]; then
             printf '%b\n' "\x1B[1;31mEnter a valid user name.\x1B[0m"
             fi
@@ -2229,7 +2229,7 @@ function verify_local_registry_password(){
     while true; do
         if [ -z "$BAI_AUTO_PUSH_IMAGE_LOCAL_REGISTRY" ]; then
             printf "\x1B[1mHave you pushed the images to the local registry using 'loadimages.sh' ($BAI_FULL_NAME images) (Yes/No)? \x1B[0m"
-            read -rp "" ans
+            read -erp "" ans
         else
             case "$BAI_AUTO_PUSH_IMAGE_LOCAL_REGISTRY" in
             "y"|"Y"|"yes"|"Yes"|"YES"|"True"|"TRUE"|"true")
@@ -2441,7 +2441,7 @@ function retrieve_domain_name(){
 
     while [ $attempts -lt $max_attempts ]; do
         printf "\x1B[1mProvide the domain name for your cluster (This is the ingress that must be created and provided as a prerequisite for the deployment): \x1B[0m"
-        read -rp "" OTHER_PLATFORM_TYPE_DOMAIN
+        read -erp "" OTHER_PLATFORM_TYPE_DOMAIN
         
         if [[ -z "$OTHER_PLATFORM_TYPE_DOMAIN" ]]; then
             warning "It is mandatory to provide a domain name for any deployment on Cloud Native Computing Foundation Platform( CNCF )."

@@ -211,7 +211,7 @@ spec:
     # Image pull policy for BAI images.
     # If not set, shared_configuration.images.pull_policy is used.
     image_pull_policy: "IfNotPresent"
-
+      
     # The Flink job for processing BPMN events.
     bpmn:
       # Set to true to enable the Flink job for BAW.

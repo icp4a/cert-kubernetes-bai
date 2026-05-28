@@ -92,7 +92,7 @@ function get_namespace() {
 
     while [ -z "$BAI_NAMESPACE" ] && [ $attempts -lt $max_attempts ]; do
         printf "\x1B[1mEnter namespace of your BAI deployment: \x1B[0m"
-        read -rp "" ans
+        read -erp "" ans
         BAI_NAMESPACE=$ans
         if [[ $CLI_CMD == "kubectl" ]]; then
             namespace_check_command="${CLI_CMD} get namespace ${BAI_NAMESPACE} -o name"
@@ -123,7 +123,7 @@ function separation_of_duties_check() {
         max_retries=0
         while [ $max_retries -lt 4 ]; do
             printf "\x1B[1m\nDid you install BAI Standalone with Separation of Duties? (Yes/No, default: No) \x1B[0m"
-            read -rp "" ans
+            read -erp "" ans
             # If the user provides no input, set the default to 'No'
             if [ -z "$ans" ]; then
                 ans="No"
@@ -135,7 +135,7 @@ function separation_of_duties_check() {
                     max_counter=0
                     while [ $max_counter -lt 4 ]; do
                         printf "\x1B[1mEnter Operand namespace of your BAI deployment: \x1B[0m"
-                        read -rp "" ans 
+                        read -erp "" ans 
                         BAI_SERVICE_NAMESPACE=$ans
                         if [ -z "$(${CLI_CMD} get project "${BAI_SERVICE_NAMESPACE}" 2>/dev/null)" ]; then
                             printf '%b\n' "\x1B[1;31mError: Namespace ${BAI_SERVICE_NAMESPACE} does not exist. Please re-enter the namespace.\x1B[0m"
@@ -279,7 +279,7 @@ function uninstall_bai_operators(){
     info " The script will now proceed to uninstalling the BAI Standalone Operators. This step will not uninstall any CPFS operators"
     printf "\n"
     printf "\x1B[1mDo you want to proceed with the uninstallation of BAI Standalone Operators (Yes/No, default: No): \x1B[0m"
-    read -rp "" ans
+    read -erp "" ans
     case "$ans" in
     "y"|"Y"|"yes"|"Yes"|"YES")
         uninstall_bai_operators_flag=true
@@ -343,7 +343,7 @@ function pv_pvc_cm_secrets_to_delete(){
 
     # Ask for confirmation
     printf "\x1B[1mDo you want to proceed with deleting these resources (Yes/No, default: No): \x1B[0m"
-    read -rp "" confirm
+    read -erp "" confirm
     if [[ "$confirm" == "yes" || "$confirm" == "y" || "$confirm" == "Y"|| "$confirm" == "yes" || "$confirm" == "Yes" || "$confirm" == "YES" ]]; then
         info "Proceeding with the deletion of Secrets , PVs,PVCs and Service Accounts...."
         delete_resource_type "pvc" "$namespace"

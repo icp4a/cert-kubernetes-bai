@@ -39,12 +39,12 @@ OLM_VERSION=v0.27.0
 #Licensing service related variables that required during the creation of subscription and the checks.
 # NEED TO BE UPDATED WHEN WE UPDATE THE VERSIONS
 LICENSING_SERVICE_CHANNEL=v4.2
-LICENSING_SERVICE_TARGET_VERSION="4.2.20"
+LICENSING_SERVICE_TARGET_VERSION="4.2.21"
 
 #Cert Manager related variables that required during the creation of subscription and the checks.
 # NEED TO BE UPDATED WHEN WE UPDATE THE VERSIONS
 CERT_MANAGER_CHANNEL=v4.2
-CERT_MANAGER_TARGET_VERSION="4.2.20"
+CERT_MANAGER_TARGET_VERSION="4.2.21"
 
 # CATALOG SOURCE file name
 CATALOG_SOURCE_FILENAME=${PARENT_DIR}/descriptors/op-olm/catalog_source.yaml
@@ -65,7 +65,7 @@ cs_maximal_version_for_ifix="5.0.0" # Maximal supported Common Service version b
 BAI_S_FC_CR=${PARENT_DIR}/descriptors/patterns/ibm_cp4a_cr_production_FC_bai.yaml
 
 #Change required each sprint for using dev mode
-CURRENT_SPRINT_TAG="25.0.0-IF004"
+CURRENT_SPRINT_TAG="25.0.0-IF005"
 
 
 # End of Section for BAI Rancher specific variables
@@ -112,35 +112,35 @@ LDAP_SECRET_FILE=${SECRET_FILE_FOLDER}/ldap-bind-secret.yaml
 # Release/Patch version for CP4BA
 # BAI_RELEASE_BASE is for fetch content/foundation operator pod, only need to change for major release.
 BAI_RELEASE_BASE="25.0.0"
-BAI_PATCH_VERSION="IF004"
+BAI_PATCH_VERSION="IF005"
 # BAI_RELEASE_BASE_MAJOR_VERSION is used in certain checks where we used to hardcode to see if a upgrade is not ifix to ifix,change this only for major release
 BAI_RELEASE_BASE_MAJOR_VERSION="25.0"
 # BAI_CSV_VERSION is for checking CP4BA operator upgrade status, need to update for each IFIX
-BAI_CSV_VERSION="v25.0.4"
+BAI_CSV_VERSION="v25.0.5"
 # BAI_CHANNEL_VERSION is for switch CP4BA operator upgrade status, need to update for major release
 BAI_CHANNEL_VERSION="v25.0"
 # CS_OPERATOR_VERSION is for checking CPFS operator upgrade status, need to update for each IFIX
-CS_OPERATOR_VERSION="v4.17.0"
+CS_OPERATOR_VERSION="v4.18.1"
 # CS_CHANNEL_VERSION is for for CPFS script -c option, need to update for each IFIX
-CS_CHANNEL_VERSION="v4.17"
+CS_CHANNEL_VERSION="v4.18"
 # CS CHANNEL VERSION that is used in the KC
 CS_CHANNEL_KC="4.x_cd"
 # CERT_LICENSE_OPERATOR_VERSION is for checking IBM cert-manager/licensing operator upgrade status, need to update for each IFIX
-CERT_LICENSE_OPERATOR_VERSION="v4.2.20"
+CERT_LICENSE_OPERATOR_VERSION="v4.2.21"
 # CERT_LICENSE_CHANNEL_VERSION is for for IBM cert-manager/licensing script -c option, need to update for each IFIX
 CERT_LICENSE_CHANNEL_VERSION="v4.2"
 # CS_CATALOG_VERSION is for CPFS script -s option, need to update for each IFIX
-CS_CATALOG_VERSION="ibm-cs-install-catalog-v4-17-0"
+CS_CATALOG_VERSION="ibm-cs-install-catalog-v4-18-0"
 # ZEN_OPERATOR_VERSION is for checking ZenService operator upgrade status, need to update for each IFIX
-ZEN_OPERATOR_VERSION="v6.4.0"
+ZEN_OPERATOR_VERSION="v6.4.5"
 # BTS_CHANNEL_VERSION is for for BTS, need to update for each IFIX
 BTS_CHANNEL_VERSION="v3.35"
-# BTS_CATALOG_VERSION is for BTS 3.35.8.
+# BTS_CATALOG_VERSION is for BTS 3.35.10.
 BTS_CATALOG_VERSION="ibm-bts-operator-catalog-v3-35"
 # REQUIREDVER_BTS is for checking bts operator upgrade status before run removal_iaf.sh, need to update for each IFIX
-REQUIREDVER_BTS="3.35.8"
+REQUIREDVER_BTS="3.35.10"
 # REQUIREDVER_POSTGRESQL is for checking postgresql operator upgrade status before run removal_iaf.sh, need to update for each IFIX
-REQUIREDVER_POSTGRESQL="1.25.5"
+REQUIREDVER_POSTGRESQL="1.25.6"
 # EVENTS_OPERATOR_VERSION is for checking IBM Events operator upgrade status, need to update for each IFIX
 EVENTS_OPERATOR_VERSION="v5.2.1"
 # List of BAI versions that are supported for upgrade to $BAI_CSV_VERSION
@@ -216,12 +216,14 @@ function set_global_env_vars() {
     if [[ "$machine" == "Mac" ]]; then
         SED_COMMAND='sed -i ""'
         SED_COMMAND_FORMAT='sed -i "" s/^M//g'
+        BASE64_DECODE='base64 --decode'
         YQ_CMD=${CUR_DIR}/helper/yq/yq_darwin_amd64
         CPFS_YQ_PATH=$COMMON_SERVICES_SCRIPT_YQ_FOLDER/macos/yq
         COPY_CMD=/bin/cp
     else
         SED_COMMAND='sed -i'
         SED_COMMAND_FORMAT='sed -i s/\r//g'
+        BASE64_DECODE='base64 -w 0 --decode'
         if [[ $(uname -m) == 'x86_64' ]]; then
             YQ_CMD=${CUR_DIR}/helper/yq/yq_linux_amd64
             CPFS_YQ_PATH=$COMMON_SERVICES_SCRIPT_YQ_FOLDER/amd64/yq
@@ -254,7 +256,7 @@ function validate_cli(){
             echo_bold "\"timeout\" Command Not Found\n"
             echo_bold "The \"timeout\" will be installed automatically\n"
             echo_bold "Do you accept (Yes/No, default: No):"
-            read -rp "" ans
+            read -erp "" ans
             case "$ans" in
             "y"|"Y"|"yes"|"Yes"|"YES")
                 install_timeout_cli
@@ -1072,7 +1074,7 @@ function prompt_license(){
     while true; do
         printf "\x1B[1mDo you accept the IBM Business Automation Insights standalone license (Yes/No, default: No): \x1B[0m"
 
-        read -rp "" ans
+        read -erp "" ans
         case "$ans" in
         "y"|"Y"|"yes"|"Yes"|"YES")
             printf '%b\n' "$message"
@@ -1191,7 +1193,7 @@ function check_ocp_version(){
 function prompt_to_continue() {
     while true; do
         printf "\x1B[1mPlease confirm that you are ready to continue.  Enter Yes to continue or No to exit (Yes/No, default: No): \x1B[0m"
-        read -rp "" ans
+        read -erp "" ans
         ans=$(echo "$ans" | tr '[:upper:]' '[:lower:]')
         if [ -z "$ans" ]; then
             ans="no"
@@ -1251,12 +1253,7 @@ function retrieve_network_details(){
 function generate_truststore_password() {
     local pwd_length="${1:-8}"
     local pwd_charset="${2:-A-Za-z0-9}"
-    local machine_lower=$(echo "${machine}" | tr '[:upper:]' '[:lower:]')
-    if [[ "$machine_lower" == "linux" ]]; then
-        < /dev/urandom tr -dc "$pwd_charset" | head -c "$pwd_length"
-    else
-        < /dev/urandom tr -dc "$pwd_charset" | cut -c1-"$pwd_length"
-    fi
+    openssl rand -base64 64 | tr -dc "$pwd_charset" | head -c "$pwd_length"
     echo
 }
 
@@ -1426,7 +1423,7 @@ function mark_optional() {
     cleaned_params=$(echo "$cleaned_params" | sed 's/,LDAP_SSL_CERT_FILE_FOLDER//g' | sed 's/LDAP_SSL_CERT_FILE_FOLDER,//g' | sed 's/LDAP_SSL_CERT_FILE_FOLDER//g')
     
     # Remove the old line
-    sed -i '/^OPTIONAL_PARAMETERS:/d' "$TEMPORARY_PROPERTY_FILE"
+    ${SED_COMMAND} '/^OPTIONAL_PARAMETERS:/d' "$TEMPORARY_PROPERTY_FILE"
     
     # Add new parameters to the cleaned list
     local final_params="$cleaned_params"
