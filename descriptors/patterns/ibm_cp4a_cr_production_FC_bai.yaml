@@ -386,8 +386,7 @@ spec:
 
     flink:
       # Use this parameter only for CNCF platform.
-      # Only update this parameter value to use "1001" when upgrading from 25.0.0-IF004 or later otherwise leave as default "1000"
-      run_as_user_cncf: 1000
+      run_as_user_cncf: 1001
       
       # Use this parameter to set the number of flink job manager pod replicas. The default value is 1.
       # If set to a value greater than 1, Flink HA (high-availability) will be enabled.
