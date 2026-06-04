@@ -211,10 +211,6 @@ spec:
     # Image pull policy for BAI images.
     # If not set, shared_configuration.images.pull_policy is used.
     image_pull_policy: "IfNotPresent"
-    
-    flink:
-      # Use this parameter only for CNCF platform.
-      run_as_user_cncf: 1001
       
     # The Flink job for processing BPMN events.
     bpmn:
