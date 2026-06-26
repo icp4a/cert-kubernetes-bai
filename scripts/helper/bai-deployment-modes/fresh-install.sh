@@ -574,6 +574,14 @@ function sync_property_into_final_cr(){
     tmp_value="$(prop_user_profile_property_file BAI_STANDALONE.BAI_LICENSE)"
     ${SED_COMMAND} "s|sc_deployment_license:.*|sc_deployment_license: \"$tmp_value\"|g" ${BAI_PATTERN_FILE_TMP}
 
+    # Applying the FNCM License Model parameter if it is defined in the property file
+    # This would only occur if the BAI S deployment is being added on to an existing Content Cortex Standalone deployment
+    tmp_value="$(prop_user_profile_property_file BAI_STANDALONE.FNCM_LICENSE_MODEL)"
+
+    if [[ -n "$tmp_value" && "$tmp_value" != "<Optional>" ]]; then
+        ${SED_COMMAND} "s|sc_fncm_license_model:.*|sc_fncm_license_model: \"$tmp_value\"|g" ${BAI_PATTERN_FILE_TMP}
+    fi
+
     # Apply shared_configuration.enable_fips to always be false
     ${YQ_CMD} w -i ${BAI_PATTERN_FILE_TMP} spec.shared_configuration.enable_fips "false"
 
@@ -604,7 +612,12 @@ function sync_property_into_final_cr(){
         fi
     else
         ${YQ_CMD} w -i ${BAI_PATTERN_FILE_TMP} spec.shared_configuration.sc_enable_instana_metric_collection "true"
-    fi 
+    fi
+
+    # Set sc_enable_usage_metering to true by default for UMS (Usage Metering Service)
+    # This flag controls whether the operator executes cron jobs for usage metrics collection
+    # https://jsw.ibm.com/browse/DBACLD-216414
+    ${YQ_CMD} w -i ${BAI_PATTERN_FILE_TMP} spec.shared_configuration.sc_enable_usage_metering "true"
 
     # echo "FAST_STORAGE_CLASS_NAME: $FAST_STORAGE_CLASS_NAME, STORAGE_CLASS_NAME=$STORAGE_CLASS_NAME, MEDIUM_STORAGE_CLASS_NAME=$MEDIUM_STORAGE_CLASS_NAME, BLOCK_STORAGE_CLASS_NAME=$BLOCK_STORAGE_CLASS_NAME, BAI_PATTERN_FILE_TMP=$BAI_PATTERN_FILE_TMP"
     # Set sc_dynamic_storage_classname
@@ -852,7 +865,7 @@ function apply_bai_final_cr(){
 function fresh_install(){
     
     # This function definition is in common.sh
-    prompt_license "Starting the script to generate the IBM Business Automation Insights standalone custom resource file..." "https://www.ibm.com/support/customer/csol/terms/?id=L-UXBF-EQ4UGB"
+    prompt_license "Starting the script to generate the IBM Business Automation Insights standalone custom resource file..." "https://www.ibm.com/support/customer/csol/terms/?id=L-ZXQC-F6K3TB"
 
 
     DEPLOYMENT_WITH_PROPERTY="Yes"

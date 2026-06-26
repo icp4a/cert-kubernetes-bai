@@ -13,9 +13,10 @@
 
 function show_help() {
     printf '%b\n' "\nUsage: ./bai-storage-validation.sh -m <mode> -n <BAI-NAMESPACE>\n"
-    echo "Options:"
-    echo "  --run-storage-validation              : Run Storage Validation without prompting"
-    echo "  --run-storage-performance-validation  : Run Storage Performance Validation without prompting"
+    echo "Modes:"
+    echo "  storage_validation                    : Run only Storage Validation"
+    echo "  performance_validation                : Run only Storage Performance Validation"
+    echo "  storage_and_performance_validation    : Run Storage Validation and Storage Performance Validation"
     echo
     echo "Examples:"
     echo "  ./bai-prerequisites.sh -m validate -n <BAI-NAMESPACE> --run-storage-validation"
@@ -169,7 +170,8 @@ function prompt_user_for_validation() {
     - These tests only verify the basic readiness of your storage and are intended as an initial pre-check before deploying any actual BAI workloads in the environment.
     - Running the Storage Validation and Storage Performance Validation on an airgap environment is not supported.${RESET}"
     echo
- 
+    
+    # Check if storage validation flag was provided, otherwise prompt
     # Check if storage validation flag was provided
     if [[ -n "${RUN_STORAGE_VALIDATION:-}" && "${RUN_STORAGE_VALIDATION}" == "yes" ]]; then
         run_storage="yes"
@@ -177,7 +179,8 @@ function prompt_user_for_validation() {
     else
         run_storage="no"
     fi
-
+    
+     # Check if storage performance validation flag was provided, otherwise prompt
     # Check if storage performance validation flag was provided
     if [[ -n "${RUN_STORAGE_PERFORMANCE_VALIDATION:-}" && "${RUN_STORAGE_PERFORMANCE_VALIDATION}" == "yes" ]]; then
         run_perf="yes"

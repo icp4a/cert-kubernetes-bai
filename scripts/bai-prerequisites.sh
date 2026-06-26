@@ -302,7 +302,7 @@ if [[ $RUNTIME_MODE == "property" ]]; then
     # Check for separation of duties
     check_bai_separate_operand $TARGET_PROJECT_NAME # Function Definition can be found in helper/common.sh
 
-    prompt_license "Starting the script to generate the IBM Business Automation Insights standalone property files..." "https://www.ibm.com/support/customer/csol/terms/?id=L-UXBF-EQ4UGB" # Function Definition can be found in helper/common.sh
+    # prompt_license "Starting the script to generate the IBM Business Automation Insights standalone property files..." "https://www.ibm.com/support/customer/csol/terms/?id=L-ZXQC-F6K3TB" # Function Definition can be found in helper/common.sh
     input_information # Function Definition can be found in helper/bai-prerequisites-modes/property-mode.sh
     create_property_file # Function Definition can be found in helper/bai-prerequisites-modes/property-mode.sh
     clean_up_temp_file # Function Definition can be found in helper/common.sh
@@ -355,16 +355,16 @@ if [[ $RUNTIME_MODE == "validate" ]]; then
     # Import the functions required for the generate runtime mode
     source ${CUR_DIR}/helper/bai-prerequisites-modes/validate-mode.sh
 
-    echo "*****************************************************************"
-    echo " Validating the prerequisites before you install BAI stand-alone "
-    echo "*****************************************************************"
+    echo  "*****************************************************************"
+    echo  " Validating the prerequisites before you install BAI stand-alone "
+    echo  "*****************************************************************"
     # Check for separation of duties
     check_bai_separate_operand $TARGET_PROJECT_NAME # Function Definition can be found in helper/common.sh
 
     validate_utility_tools_for_validate_mode # Function Definition can be found in helper/bai-prerequisites-modes/validate-mode.sh
     load_properties_from_temp_file # Function Definition can be found in helper/common.sh
     validate_prerequisites # Function Definition can be found in helper/bai-prerequisites-modes/validate-mode.sh
- 
+    
     tmp_platform_type=$(prop_user_profile_property_file BAI_STANDALONE.PLATFORM_TYPE)
     if [[ $tmp_platform_type != "other" ]]; then
         storage_and_performance_validation_tests $TARGET_PROJECT_NAME 

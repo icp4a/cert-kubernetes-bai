@@ -82,11 +82,11 @@ function get_catalog_type(){
     # Check if --enable-private-catalog is set or not
     # shared to shared code can be removed
     # Call select_private_catalog_bai if --enable-private-catalog option is not set
-    if ${CLI_CMD} get catalogsource -n $TARGET_PROJECT_NAME --no-headers --ignore-not-found | grep ibm-bai-operator-catalog >&3 2>&3; then
+    if ${CLI_CMD} get catalogsource -n $TARGET_PROJECT_NAME --no-headers --ignore-not-found | grep ibm-bai-operator-catalog >/dev/null 2>&1; then
         PRIVATE_CATALOG_FOUND="Yes"
         ENABLE_PRIVATE_CATALOG=1
         info "This BAI Standalone deployment is installed using private catalog in the project \"$TARGET_PROJECT_NAME\""
-    elif ${CLI_CMD} get catalogsource -n openshift-marketplace --no-headers --ignore-not-found | grep ibm-bai-operator-catalog >&3 2>&3; then
+    elif ${CLI_CMD} get catalogsource -n openshift-marketplace --no-headers --ignore-not-found | grep ibm-bai-operator-catalog >/dev/null 2>&1; then
         PRIVATE_CATALOG_FOUND="No"
         info "This BAI deployment is installed using global catalog in the project \"openshift-marketplace\""
         if [[ $ENABLE_PRIVATE_CATALOG -eq 1 && $UPGRADE_MODE == "shared2shared" ]]; then
@@ -138,8 +138,8 @@ function check_subscription(){
     for i in ${!sub_array[@]}; do
         if [[ ! -z "${sub_array[i]}" ]]; then
             if [[ ${sub_array[i]} = ibm-bai-operator-catalog* || ${sub_array[i]} = ibm-bai-foundation-operator* ]]; then
-                current_version=$(${CLI_CMD} get subscription.operators.coreos.com ${sub_array[i]} --no-headers --ignore-not-found -n $TEMP_OPERATOR_PROJECT_NAME -o 'jsonpath={.status.currentCSV}') >&3 2>&3
-                installed_version=$(${CLI_CMD} get subscription.operators.coreos.com ${sub_array[i]} --no-headers --ignore-not-found -n $TEMP_OPERATOR_PROJECT_NAME -o 'jsonpath={.status.installedCSV}') >&3 2>&3
+                current_version=$(${CLI_CMD} get subscription.operators.coreos.com ${sub_array[i]} --no-headers --ignore-not-found -n $TEMP_OPERATOR_PROJECT_NAME -o 'jsonpath={.status.currentCSV}') >/dev/null 2>&1
+                installed_version=$(${CLI_CMD} get subscription.operators.coreos.com ${sub_array[i]} --no-headers --ignore-not-found -n $TEMP_OPERATOR_PROJECT_NAME -o 'jsonpath={.status.installedCSV}') >/dev/null 2>&1
                 if [[ -z $current_version || -z $installed_version ]]; then
                     error "Failed to retrieve installed or current CSV. Aborting the upgrade procedure. Check the subscription status of ${sub_array[i]}."
                     exit 1
@@ -198,7 +198,7 @@ function create_bai_savepoints(){
 
         # Create BAI save points
         info "Checking for any BAI save points"
-        mkdir -p ${TEMP_FOLDER} >&3 2>&3
+        mkdir -p ${TEMP_FOLDER} >/dev/null 2>&1
         # Check the jq install on MacOS
         if [[ "$machine" == "Mac" ]]; then
             which jq &>/dev/null
@@ -207,7 +207,7 @@ function create_bai_savepoints(){
             exit 1
         fi
         info "Creating the BAI savepoints for recovery path used for updating the custom resource file"
-        ${CLI_CMD} get crd |grep insightsengines.bai.ibm.com >&3 2>&3
+        ${CLI_CMD} get crd |grep insightsengines.bai.ibm.com >/dev/null 2>&1
         if [ $? -eq 0 ]; then
             INSIGHTS_ENGINE_CR=$(${CLI_CMD} get insightsengines.bai.ibm.com --no-headers --ignore-not-found -n ${BAI_SERVICES_NS} -o name)
         fi
@@ -223,12 +223,12 @@ function create_bai_savepoints(){
                 error "Can not create the BAI savepoints for recovery path."
                 # exit 1
             else
-                # rm -rf ${UPGRADE_DEPLOYMENT_CR}/bai.json >&3 2>&3
-                touch ${UPGRADE_DEPLOYMENT_BAI_TMP} >&3 2>&3
+                # rm -rf ${UPGRADE_DEPLOYMENT_CR}/bai.json >/dev/null 2>&1
+                touch ${UPGRADE_DEPLOYMENT_BAI_TMP} >/dev/null 2>&1
                 if [[ -e ${UPGRADE_DEPLOYMENT_CR}/bai.json ]]; then
                     [ "$(cat ${UPGRADE_DEPLOYMENT_CR}/bai.json)" != "[]" ] && mkdir -p ${UPGRADE_DEPLOYMENT_CR}/bai-json-backup && cp ${UPGRADE_DEPLOYMENT_CR}/bai.json ${UPGRADE_DEPLOYMENT_CR}/bai-json-backup/bai_$(date +'%Y%m%d%H%M%S').json
                 fi
-                curl -X POST -k -u ${MANAGEMENT_USERNAME}:${MANAGEMENT_PASSWORD} "${MANAGEMENT_URL}/api/v1/processing/jobs/savepoints" -o ${UPGRADE_DEPLOYMENT_CR}/bai.json >&3 2>&3
+                curl -X POST -k -u ${MANAGEMENT_USERNAME}:${MANAGEMENT_PASSWORD} "${MANAGEMENT_URL}/api/v1/processing/jobs/savepoints" -o ${UPGRADE_DEPLOYMENT_CR}/bai.json >/dev/null 2>&1
 
                 json_file_content="[]"
                 if [ "$json_file_content" == "$(cat ${UPGRADE_DEPLOYMENT_CR}/bai.json)" ] ;then
@@ -350,7 +350,7 @@ function switch_to_private_catalog(){
     for i in ${!sub_array[@]}; do
         if [[ ! -z "${sub_array[i]}" ]]; then
             if [[ ${sub_array[i]} = ibm-bai-operator-catalog* || ${sub_array[i]} = ibm-bai-foundation-operator* ]]; then
-                ${CLI_CMD} patch subscription.operators.coreos.com ${sub_array[i]} -n $TARGET_PROJECT_NAME -p '{"spec":{"sourceNamespace":"'"$TARGET_PROJECT_NAME"'"}}' --type=merge >&3 2>&3
+                ${CLI_CMD} patch subscription.operators.coreos.com ${sub_array[i]} -n $TARGET_PROJECT_NAME -p '{"spec":{"sourceNamespace":"'"$TARGET_PROJECT_NAME"'"}}' --type=merge >/dev/null 2>&1
                 if [ $? -eq 0 ]
                 then
                     sleep 1
@@ -379,7 +379,7 @@ function patch_channel_version(){
     for i in ${!sub_array[@]}; do
         if [[ ! -z "${sub_array[i]}" ]]; then
             if [[ ${sub_array[i]} = ibm-bai-operator-catalog* || ${sub_array[i]} = ibm-bai-foundation-operator* ]]; then
-                ${CLI_CMD} patch subscription.operators.coreos.com ${sub_array[i]} -n $TARGET_PROJECT_NAME -p "{\"spec\":{\"channel\":\"$BAI_CHANNEL_VERSION\"}}" --type=merge >&3 2>&3
+                ${CLI_CMD} patch subscription.operators.coreos.com ${sub_array[i]} -n $TARGET_PROJECT_NAME -p "{\"spec\":{\"channel\":\"$BAI_CHANNEL_VERSION\"}}" --type=merge >/dev/null 2>&1
                 if [ $? -eq 0 ]
                 then
                     success "Updated the channel of subscription '${sub_array[i]}' to $BAI_CHANNEL_VERSION"
@@ -401,10 +401,10 @@ function create_project() {
     local project_name=$1
     project_name=$(sed -e 's/^"//' -e 's/"$//' <<<"$project_name")
 
-    isProjExists=`${CLI_CMD} get namespace $project_name --ignore-not-found | wc -l`  >&3 2>&3
+    isProjExists=`${CLI_CMD} get namespace $project_name --ignore-not-found | wc -l`  >/dev/null 2>&1
 
     if [ $isProjExists -ne 2 ] ; then
-        ${CLI_CMD} create namespace ${project_name} >&3 2>&3
+        ${CLI_CMD} create namespace ${project_name} >/dev/null 2>&1
         returnValue=$?
         if [ "$returnValue" == 1 ]; then
             if [ -z "$BAI_AUTO_NAMESPACE" ]; then
@@ -449,7 +449,7 @@ function apply_new_catalog_sources(){
         fi
 
         # Additionally, we would check if cs-control namespace exists.
-        isProjExists=`${CLI_CMD} get project $DEDICATED_CS_PROJECT --no-headers --ignore-not-found | wc -l`  >&3 2>&3
+        isProjExists=`${CLI_CMD} get project $DEDICATED_CS_PROJECT --no-headers --ignore-not-found | wc -l`  >/dev/null 2>&1
         if [ $isProjExists -eq 1 ] ; then
             # If it exists, we will deploy the same ibm-licensing-catalog into cs-control namespace.
             if [[ $machine == "Linux" ]]; then
@@ -479,14 +479,14 @@ function apply_new_catalog_sources(){
             # replace openshift-marketplace for ibm-licensing-catalog with cs-control
             ${SED_COMMAND} "/name: ibm-licensing-catalog/{n;s/namespace: .*/namespace: \"$DEDICATED_CS_PROJECT\"/;}" ${TMP_LICENSING_OLM_CATALOG}
 
-            ${CLI_CMD} apply -f $TMP_LICENSING_OLM_CATALOG >&3 2>&3
+            ${CLI_CMD} apply -f $TMP_LICENSING_OLM_CATALOG >/dev/null 2>&1
             if [ $? -eq 0 ]; then
                 echo "Create IBM License Manager Catalog source in project \"$DEDICATED_CS_PROJECT\"!"
             else
                 echo "Generic Operator catalog source update failed"
                 exit 1
             fi
-            rm -rf $TMP_LICENSING_OLM_CATALOG >&3 2>&3
+            rm -rf $TMP_LICENSING_OLM_CATALOG >/dev/null 2>&1
         fi
 
         sed "s/REPLACE_CATALOG_SOURCE_NAMESPACE/$CATALOG_NAMESPACE/g" ${OLM_CATALOG} > ${OLM_CATALOG_TMP}
@@ -557,7 +557,7 @@ function apply_new_catalog_sources(){
         done
 
         OLM_CATALOG=${PARENT_DIR}/descriptors/op-olm/catalog_source.yaml
-        ${CLI_CMD} apply -f $OLM_CATALOG >&3 2>&3
+        ${CLI_CMD} apply -f $OLM_CATALOG >/dev/null 2>&1
         if [ $? -ne 0 ]; then
             echo "IBM Business Automation Insights Catalog source updated!"
             exit 1
@@ -579,6 +579,10 @@ function check_catalog_pod_status(){
     maxRetry=50
     for ((retry=0;retry<=${maxRetry};retry++)); do
         bai_catalog_pod_name=$(${CLI_CMD} get pod -l=olm.catalogSource=ibm-bai-operator-catalog -n $TEMP_CATALOG_PROJECT_NAME -o 'custom-columns=NAME:.metadata.name,PHASE:.status.phase,READY:.status.containerStatuses[0].ready,DELETED:.metadata.deletionTimestamp' --no-headers | grep 'Running' | grep 'true' | grep '<none>' | head -1 | awk '{print $1}')
+        # DBACLD-216925: Skip EDB catalog check for 26.0.0 GA, will be restored in 26.0.0-IF001 or later
+        if ! skip_edb_for_2501; then
+            postgresql_catalog_pod_name=$(${CLI_CMD} get pod -l=olm.catalogSource=cloud-native-postgresql-catalog -n $TEMP_CATALOG_PROJECT_NAME -o 'custom-columns=NAME:.metadata.name,PHASE:.status.phase,READY:.status.containerStatuses[0].ready,DELETED:.metadata.deletionTimestamp' --no-headers | grep 'Running' | grep 'true' | grep '<none>' | head -1 | awk '{print $1}')
+        fi
         cs_catalog_pod_name=$(${CLI_CMD} get pod -l=olm.catalogSource=$CS_CATALOG_VERSION -n $TEMP_CATALOG_PROJECT_NAME -o 'custom-columns=NAME:.metadata.name,PHASE:.status.phase,READY:.status.containerStatuses[0].ready,DELETED:.metadata.deletionTimestamp' --no-headers | grep 'Running' | grep 'true' | grep '<none>' | head -1 | awk '{print $1}')
         if [ $ENABLE_PRIVATE_CATALOG -eq 1 ]; then
             cert_mgr_catalog_pod_name=$(${CLI_CMD} get pod -l=olm.catalogSource=ibm-cert-manager-catalog -n $CERT_MANAGER_PROJECT -o 'custom-columns=NAME:.metadata.name,PHASE:.status.phase,READY:.status.containerStatuses[0].ready,DELETED:.metadata.deletionTimestamp' --no-headers | grep 'Running' | grep 'true' | grep '<none>' | head -1 | awk '{print $1}')
@@ -587,11 +591,33 @@ function check_catalog_pod_status(){
             cert_mgr_catalog_pod_name=$(${CLI_CMD} get pod -l=olm.catalogSource=ibm-cert-manager-catalog -n openshift-marketplace -o 'custom-columns=NAME:.metadata.name,PHASE:.status.phase,READY:.status.containerStatuses[0].ready,DELETED:.metadata.deletionTimestamp' --no-headers | grep 'Running' | grep 'true' | grep '<none>' | head -1 | awk '{print $1}')
             license_catalog_pod_name=$(${CLI_CMD} get pod -l=olm.catalogSource=ibm-licensing-catalog -n openshift-marketplace -o 'custom-columns=NAME:.metadata.name,PHASE:.status.phase,READY:.status.containerStatuses[0].ready,DELETED:.metadata.deletionTimestamp' --no-headers | grep 'Running' | grep 'true' | grep '<none>' | head -1 | awk '{print $1}')
         fi
-        if [[ ( -z $cert_mgr_catalog_pod_name) || ( -z $license_catalog_pod_name) || ( -z $cs_catalog_pod_name) ]]; then
+        # DBACLD-216925: Skip EDB catalog check for 26.0.0 GA, will be restored in 26.0.0-IF001 or later
+            pods_to_check=(
+                "$cert_mgr_catalog_pod_name"
+                "$license_catalog_pod_name"
+                "$cs_catalog_pod_name"
+                "$bai_catalog_pod_name"
+            )
+            if ! skip_edb_for_2501; then
+                    pods_to_check+=("$postgresql_catalog_pod_name")
+            fi
+
+            # Check if all required catalog pods are ready
+            all_ready=true
+            for pod in "${pods_to_check[@]}"; do
+                if [[ -z "$pod" ]]; then
+                    all_ready=false
+                    break
+                fi
+            done
+        if [[ "$all_ready" == "false" ]]; then
             if [[ $retry -eq ${maxRetry} ]]; then
                 printf "\n"
                 if [[ -z $bai_catalog_pod_name ]]; then
                     warning "Timeout waiting for ibm-bai-operator-catalog catalog pod to be ready in the project \"$TEMP_CATALOG_PROJECT_NAME\""
+                # DBACLD-216925: Skip EDB catalog warning for 26.0.0 GA, will be restored in 26.0.0-IF001 or later
+                elif [[ -z $postgresql_catalog_pod_name ]]; then
+                    warning "Timeout waiting for cloud-native-postgresql-catalog catalog pod to be ready in the project \"$TEMP_CATALOG_PROJECT_NAME\""
                 elif [[ -z $cs_catalog_pod_name ]]; then
                     warning "Timeout waiting for $CS_CATALOG_VERSION catalog pod to be ready in the project \"$TEMP_CATALOG_PROJECT_NAME\""
                 elif [[ -z $cert_mgr_catalog_pod_name ]]; then
@@ -647,7 +673,7 @@ function upgrade_cpfs_operator(){
             # replace openshift-marketplace for ibm-licensing-catalog with cs-control
             ${SED_COMMAND} "/name: ibm-licensing-catalog/{n;s/namespace: .*/namespace: \"$DEDICATED_CS_PROJECT\"/;}" ${TMP_LICENSING_OLM_CATALOG}
 
-            ${CLI_CMD} apply -f $TMP_LICENSING_OLM_CATALOG
+            ${CLI_CMD} apply -f $TMP_LICENSING_OLM_CATALOG >&3 2>&3
             if [ $? -eq 0 ]; then
                 echo "Created IBM License Manager Catalog source in project \"$DEDICATED_CS_PROJECT\"!"
             else
@@ -901,15 +927,15 @@ function validate_csv_version(){
         if [[ ! -z "${sub_array[i]}" ]]; then
             if [[ ${sub_array[i]} = ibm-bai-insights-engine-operator* || ${sub_array[i]} = ibm-bai-foundation-operator* ]]; then
             info "Checking the channel of subscription '${sub_array[i]}'!"
-            currentChannel=$(${CLI_CMD} get subscription.operators.coreos.com ${sub_array[i]} -n $TEMP_OPERATOR_PROJECT_NAME -o 'jsonpath={.spec.channel}') >&3 2>&3
+            currentChannel=$(${CLI_CMD} get subscription.operators.coreos.com ${sub_array[i]} -n $TEMP_OPERATOR_PROJECT_NAME -o 'jsonpath={.spec.channel}') >/dev/null 2>&1
                 if [[ "$currentChannel" == "$BAI_CHANNEL_VERSION" ]];then
                     success "The channel of subscription '${sub_array[i]}' is $currentChannel!"
                     printf "\n"
                     maxRetry=40
                     info "Waiting for the \"${sub_array[i]}\" subscription be upgraded to the ClusterServiceVersions(CSV) \"v$target_csv_version\""
                     for ((retry=0;retry<=${maxRetry};retry++)); do
-                        current_version=$(${CLI_CMD} get subscription.operators.coreos.com ${sub_array[i]} --no-headers --ignore-not-found -n $TEMP_OPERATOR_PROJECT_NAME -o 'jsonpath={.status.currentCSV}') >&3 2>&3
-                        installed_version=$(${CLI_CMD} get subscription.operators.coreos.com ${sub_array[i]} --no-headers --ignore-not-found -n $TEMP_OPERATOR_PROJECT_NAME -o 'jsonpath={.status.installedCSV}') >&3 2>&3
+                        current_version=$(${CLI_CMD} get subscription.operators.coreos.com ${sub_array[i]} --no-headers --ignore-not-found -n $TEMP_OPERATOR_PROJECT_NAME -o 'jsonpath={.status.currentCSV}') >/dev/null 2>&1
+                        installed_version=$(${CLI_CMD} get subscription.operators.coreos.com ${sub_array[i]} --no-headers --ignore-not-found -n $TEMP_OPERATOR_PROJECT_NAME -o 'jsonpath={.status.installedCSV}') >/dev/null 2>&1
                         if [[ -z $current_version || -z $installed_version ]]; then
                             error "Failed to retrieve installed or current CSV, abort the upgrade procedure. Check the subscription status of ${sub_array[i]}."
                             exit 1
@@ -999,7 +1025,7 @@ function patch_elasticsearch_cr(){
 }
 
 function wait_for_csv() {
-    MAX_RETRIES=10
+    MAX_RETRIES=30
     SLEEP_TIME=4
     local expected_csv_name="$1"
     local search_filter="$2"
@@ -1020,9 +1046,28 @@ function wait_for_csv() {
     error "'$expected_csv_name' not found in CSV list after $MAX_RETRIES attempts."
     return 1
 }
+#DBACLD-222678: Function to check if EDB is installed and block upgrade if EDB is installed, and the version is 26.0.0-GA as there will be no EDB shipped with 26.0.0-GA
+# The check assumes that in 26.0.0-IF001 and later, CNPG will be supported and the upgrade will be able to proceed even if EDB is detected.
+function is_edb_detected() {
+    local ns=$1
+    is_edb=$($CLI_CMD get cluster.postgresql.k8s.enterprisedb.io -n $ns --no-headers --ignore-not-found 2>/dev/null | awk '{print $1}' || echo "")
+    if [[ ! -z "$is_edb" ]]; then
+        info "The following EDB instances are found: \n$is_edb"
+        return 0
+    else
+        return 1
+    fi
+}
+
 
 # Main function used for the upgradeOperator mode
 function upgradeoperator_mode(){
+# DBACLD-222678: Checking for EDB and exit if exists as EDB is not supported for BAI upgrade
+    if is_edb_detected $TARGET_PROJECT_NAME && skip_edb_for_2501 ; then
+        info "Upgrade is not supported on ${BAI_RELEASE_BASE}_${BAI_PATCH_VERSION} since EDB is being used. Upgrade with EDB will be supported in the upcoming iFix and next release "
+        exit 1
+    fi
+
     info "Starting to upgrade BAI standalone operators and IBM foundation services"
     # check current bai operator version
     check_bai_operator_version $TARGET_PROJECT_NAME
@@ -1050,8 +1095,8 @@ function upgradeoperator_mode(){
     # Sourcing the messages function
     source ${CUR_DIR}/helper/messages.sh
 
-    mkdir -p ${UPGRADE_DEPLOYMENT_CR} >&3 2>&3
-    mkdir -p ${TEMP_FOLDER} >&3 2>&3
+    mkdir -p ${UPGRADE_DEPLOYMENT_CR} >/dev/null 2>&1
+    mkdir -p ${TEMP_FOLDER} >/dev/null 2>&1
 
     ##### End of Definition of ENV variables required for this mode ######
 
@@ -1084,12 +1129,18 @@ function upgradeoperator_mode(){
             esac
         done
     fi
-    PLATFORM_SELECTED=$(eval echo "$(${CLI_CMD} get insightsengine $(${CLI_CMD} get insightsengine --no-headers --ignore-not-found -n $BAI_SERVICES_NS | grep NAME -v | awk '{print $1}') --no-headers --ignore-not-found -n $BAI_SERVICES_NS -o yaml | grep sc_deployment_platform | tail -1 | cut -d ':' -f 2)")
+    PLATFORM_SELECTED=$(eval echo $(${CLI_CMD} get insightsengine $(${CLI_CMD} get insightsengine --no-headers --ignore-not-found -n $BAI_SERVICES_NS | grep NAME -v | awk '{print $1}') --no-headers --ignore-not-found -n $BAI_SERVICES_NS -o yaml | grep sc_deployment_platform | tail -1 | cut -d ':' -f 2))
     if [[ -z $PLATFORM_SELECTED ]]; then
         fail "No custom resource found for BAI Standalone under project \"$BAI_SERVICES_NS\", exiting"
         exit 1
     fi
 
+    # Function call to check for airgap mode
+    # For interactive mode we ask the user whether the script is being executed in airgap mode or not
+    # For the upgrade Container, the script will only consider the deployment to be airgap if --airgap_deployment is passed as an argument
+    if [[ -z "$AIRGAP_INSTALL" ]]; then
+    check_airgap_mode
+    fi      
     
     ############## Start - Create ibm-bai-shared-info configMap ##############
     check_and_created_sharedinfo_configmap
@@ -1109,10 +1160,10 @@ function upgradeoperator_mode(){
         fi
     fi
     # checking existing catalog type
-    if ${CLI_CMD} get catalogsource -n openshift-marketplace --no-headers --ignore-not-found | grep ibm-bai-operator-catalog >&3 2>&3; then
+    if ${CLI_CMD} get catalogsource -n openshift-marketplace --no-headers --ignore-not-found | grep ibm-bai-operator-catalog >/dev/null 2>&1; then
         CATALOG_FOUND="Yes"
         PINNED="Yes"
-    elif ${CLI_CMD} get catalogsource -n openshift-marketplace --no-headers --ignore-not-found | grep ibm-operator-catalog >&3 2>&3; then
+    elif ${CLI_CMD} get catalogsource -n openshift-marketplace --no-headers --ignore-not-found | grep ibm-operator-catalog >/dev/null 2>&1; then
         CATALOG_FOUND="Yes"
         PINNED="No"
     else
@@ -1274,7 +1325,7 @@ function upgradeoperator_mode(){
         # Check if without option --enable-private-catalog, the catalog is in target project, set the private catalog as default.
         info "Checking if ibm-bai-operator-catalog catalog source is global or private namespace scoped"
         if [[ $ENABLE_PRIVATE_CATALOG -eq 0 ]]; then
-            if ${CLI_CMD} get catalogsource -n $TARGET_PROJECT_NAME --no-headers --ignore-not-found | grep ibm-bai-operator-catalog >&3 2>&3; then
+            if ${CLI_CMD} get catalogsource -n $TARGET_PROJECT_NAME --no-headers --ignore-not-found | grep ibm-bai-operator-catalog >/dev/null 2>&1; then
                 ENABLE_PRIVATE_CATALOG=1
             else
                 info "ibm-bai-operator-catalog catalog source is not found under target project \"$TARGET_PROJECT_NAME\""
@@ -1329,13 +1380,33 @@ function upgradeoperator_mode(){
     echo "****************************************************************************"
 
     ############## END - upgrading the CPFS operators ##############
+        ############## START - Install/Upgrade UMS operator ##############
+    # The cp4a-deployment.sh when run with the upgradeOperator mode will either install/upgrade the UMS operator
+    # and create the connection point secret and also apply the connection point CR.
+    # In the upgrade flow, we do not ask for the entitlement key so the script will retrieve it from the ibm-entitlement-key secret
+    # In an airgap based upgrade, the deployment will not have the ibm-entitlement-key secret as it is not a
+    # requirement and in that scenario the script will not create the connection point secret nor will it apply the connection point CR
+    # https://jsw.ibm.com/browse/DBACLD-225399
+    install_ibm_usage_metering "$TEMP_OPERATOR_PROJECT_NAME" "$BAI_SERVICES_NS" "upgrade" "" "$SCRIPT_MODE" "$TEMP_CATALOG_PROJECT_NAME" "$AIRGAP_INSTALL" 
+    
+    # Configure ILS to send VPC metrics to Software Central during upgrade
+    # The entitlement key will be retrieved from existing secrets
+    # ILS set up is only required for online/ non-airgap scenarios.
+    # https://jsw.ibm.com/browse/DBACLD-223165
+    if [[ "$AIRGAP_INSTALL" == "no" ]]; then
+        setup_ils_configuration_for_vpc_metrics "ibm-licensing" "$BAI_SERVICES_NS" "" "upgrade" "$SCRIPT_MODE"
+    fi
     
     # Function to check the csv version after upgrade
-    validate_csv_version 
+    validate_csv_version
     success "Completed the check for channels of all subscriptions of BAI Standalone operators"
 
     # DBACLD-166239 -> Update EDB configmap ibm-zen-metastore-edb-cm to add new parameters with CPFS 4.10 or later by calling patch_edb_configmap()
     patch_edb_configmap $BAI_SERVICES_NS
+
+    # Patch the BTS datastore secret and CM if required
+    # https://jsw.ibm.com/browse/DBACLD-238245 and https://jsw.ibm.com/browse/DBACLD-238566
+    update_bts_datastore_resources "$BAI_SERVICES_NS"
 
     # For Major release upgrade
     if [[ "$bai_original_csv_ver_for_upgrade_script" != "$BAI_RELEASE_BASE_MAJOR_VERSION"* ]]; then

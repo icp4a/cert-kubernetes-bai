@@ -379,6 +379,62 @@ function check_operator_status(){
             fi
         fi
     done
+    # Check IBM Usage Metering operator upgrade status
+    echo "****************************************************************************"
+    info "Checking for IBM Usage Metering operator pod initialization"
+    for ((retry=0;retry<=${maxRetry};retry++)); do
+        isReady=$(${CLI_CMD} get csv ibm-usage-metering-operator.$UMS_CSV_VERSION --no-headers --ignore-not-found -n $project_name -o jsonpath='{.status.phase}')
+        
+        if [[ -z $isReady ]]; then
+            csv_version=""
+            csv_version=$(${CLI_CMD} get csv $(${CLI_CMD} get csv --no-headers --ignore-not-found -n $project_name | grep ibm-usage-metering-operator.v |awk '{print $1}') --no-headers --ignore-not-found -n $project_name -o jsonpath='{.spec.version}')
+            if [[ "v$csv_version" != $UMS_CSV_VERSION ]]; then
+                if [[ $retry -eq ${maxRetry} ]]; then
+                    fail "Failed to upgrade the IBM Usage Metering operator to ibm-usage-metering-operator.$UMS_CSV_VERSION under project \"$project_name\"" 
+                    msg "Check the Subscription and ClusterServiceVersions and then fix the issues before proceeding."
+                    exit 1
+                else
+                    sleep 30
+                    printf '%s' "..."
+                    continue
+                fi
+            fi
+        elif [[ $isReady != "Succeeded" ]]; then
+            if [[ $retry -eq ${maxRetry} ]]; then
+                printf "\n"
+                warning "Timeout Waiting for IBM Usage Metering operator to start"
+                printf '%b\n' "\x1B[1mCheck the status of Pod by issuing the following command:\x1B[0m"
+                echo "${CLI_CMD} describe pod $(${CLI_CMD} get pod -n $project_name|grep ibm-usage-metering-operator|awk '{print $1}') -n $project_name"
+                printf "\n"
+                printf '%b\n' "\x1B[1mCheck the status of ReplicaSet by issuing the following command:\x1B[0m"
+                echo "${CLI_CMD} describe rs $(${CLI_CMD} get rs -n $project_name|grep ibm-usage-metering-operator|awk '{print $1}') -n $project_name"
+                printf "\n"
+                exit 1
+            else
+                sleep 30
+                printf '%s' "..."
+                continue
+            fi
+        elif [[ $isReady == "Succeeded" ]]; then
+            if [[ "$check_channel" != "channel" ]]; then
+                pod_name=$(${CLI_CMD} get pod -l=app.kubernetes.io/name=ibm-usage-metering-operator --no-headers --ignore-not-found -n $project_name -o 'custom-columns=NAME:.metadata.name,PHASE:.status.phase,READY:.status.containerStatuses[0].ready,DELETED:.metadata.deletionTimestamp' | grep 'Running' | grep 'true' | grep '<none>' | head -1 | awk '{print $1}')
+                if [ -z $pod_name ]; then
+                    error "IBM Usage Metering operator pod is NOT running"
+                    CHECK_BAI_OPERATOR_RESULT=( "${CHECK_BAI_OPERATOR_RESULT[@]}" "FAIL" )
+                    break
+                else
+                    success "IBM Usage Metering operator is running"
+                    info "Pod: $pod_name"
+                    CHECK_BAI_OPERATOR_RESULT=( "${CHECK_BAI_OPERATOR_RESULT[@]}" "PASS" )
+                    break
+                fi
+            elif [[ "$check_channel" == "channel" ]]; then
+                success "IBM Usage Metering operator is in the phase of \"$isReady\"!"
+                CHECK_BAI_OPERATOR_RESULT=( "${CHECK_BAI_OPERATOR_RESULT[@]}" "PASS" )
+                break
+            fi
+        fi
+    done
     echo "****************************************************************************"
 }
 

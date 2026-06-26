@@ -676,6 +676,14 @@ function create_user_property_file(){
     echo "BAI_STANDALONE.BAI_LICENSE=\"<Required>\"" >> ${USER_PROFILE_PROPERTY_FILE}
     echo "" >> ${USER_PROFILE_PROPERTY_FILE}
 
+    # Give the option to specify the FNCM License Model parameter
+    # This would only occur if the BAI S deployment is being added on to an existing Content Cortex Standalone deployment
+    echo "## Use this parameter to specify the license for the Content Cortex licensing model if this BAI Standalone deployment is being installed as a part of the Content Cortex Standalone product." >> ${USER_PROFILE_PROPERTY_FILE}
+    echo "## Possible values: ccx.ess.au, ccx.ess.ep, ccx.ee, ccx.ar, ccx.pr, ccx.er" >> ${USER_PROFILE_PROPERTY_FILE}
+    echo "## This parameter is an optional parameter and is required only in the above mentioned scenario.This value could be different from the other licenses in the CR." >> ${USER_PROFILE_PROPERTY_FILE}
+    echo "BAI_STANDALONE.FNCM_LICENSE_MODEL=\"<Optional>\"" >> ${USER_PROFILE_PROPERTY_FILE}
+    echo "" >> ${USER_PROFILE_PROPERTY_FILE}
+
     echo "## If the platform to be deployed is Other - Cloud Native Computing Foundation ( CNCF ), specify 'other' for the Platform type." >> ${USER_PROFILE_PROPERTY_FILE}
     echo "BAI_STANDALONE.PLATFORM_TYPE=\"$PLATFORM_SELECTED\"" >> ${USER_PROFILE_PROPERTY_FILE}
     echo "" >> ${USER_PROFILE_PROPERTY_FILE} 

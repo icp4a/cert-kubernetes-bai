@@ -276,7 +276,7 @@ function is_sub_exist() {
 function patch_csv() {
     local csv_prefix=$1
     local namespace=$2
-    local max_retries=10
+    local max_retries=30
     local retry_delay=20
     # Function to find a CSV that starts with the given prefix
     function get_csv_by_prefix() {

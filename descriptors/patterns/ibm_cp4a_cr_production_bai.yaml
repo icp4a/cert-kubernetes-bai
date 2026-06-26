@@ -16,15 +16,15 @@ metadata:
     app.kubernetes.io/instance: ibm-bai
     app.kubernetes.io/managed-by: ibm-bai
     app.kubernetes.io/name: ibm-bai
-    release: 25.0.1
+    release: 26.0.0
 spec:
 
-  ## You must read the license agreement: https://www.ibm.com/support/customer/csol/terms/?id=L-UXBF-EQ4UGB and accept the ibm license.
+  ## You must read the license agreement: https://www.ibm.com/support/customer/csol/terms/?id=L-ZXQC-F6K3TB and accept the ibm license.
   ## The only valid value is "true"
   license: 
     accept: "<Required>"
 
-  appVersion: 25.0.1
+  appVersion: 26.0.0
   ##########################################################################
   ## This section contains the shared configuration for all CP4A components #
   ##########################################################################
@@ -35,6 +35,18 @@ spec:
     ## be defaulted to production.  This value could be different from the other licenses in the CR.
     sc_deployment_license: "<Required>"
 
+    
+    ## Choose the Content Cortex licensing model if this deployment is being installed as a part of the Content Cortex Standalone product.
+    ## IBM Content Cortex Essentials:
+    ## - ccx.ess.au
+    ## - ccx.ess.ep
+    ## - ccx.ee
+    ## IBM Content Cortex Restricted:
+    ## - ccx.ar
+    ## - ccx.pr
+    ## - ccx.er
+    sc_fncm_license_model: ""
+    
     ## All CP4A components must use/share the image_pull_secrets to pull images
     image_pull_secrets:
     - ibm-entitlement-key
@@ -88,6 +100,14 @@ spec:
 
     ## This is the deployment hostname suffix, this is optional and the default hostname suffix will be used as {meta.namespace}.router-canonicalhostname
     # sc_deployment_hostname_suffix: "{{ meta.namespace }}"
+
+    ## For GKE only, This parameter is required when using Gateway API instead of Ingress to access deployment.
+    ## Uncomment this line when enabling Gateway API.
+    #sc_ingress_type: loadbalancer
+
+    ## For GKE only, This parameter is required for GKE storage
+    ## Uncomment this line and provide the fsGroup ID for your storage.
+    #sc_fs_group: <Required>
 
     ## For ROKS, this is used to enable the creation of ingresses. The default value is "false", which routes will be created.
     sc_ingress_enable: false
@@ -216,6 +236,11 @@ spec:
     # Image pull policy for BAI images.
     # If not set, shared_configuration.images.pull_policy is used.
     image_pull_policy: "IfNotPresent"
+
+    flink:
+      # Use this parameter only for CNCF platform.
+      # Only update this parameter value to use "1001" when upgrading from 25.0.0-IF004 or later otherwise leave as default "1000"
+      run_as_user_cncf: 1000
 
     # The Flink job for processing BPMN events.
     bpmn:

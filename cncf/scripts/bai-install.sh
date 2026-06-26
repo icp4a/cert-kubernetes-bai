@@ -171,6 +171,14 @@ function bai_cncf_rancher_install() {
     #create_bai_catalog_sources
     create_bai_operator_group
     create_bai_subscription ${bai_namespace} "" ${dev_mode}
+    
+    # Install IBM Usage Metering Operator
+    # The OperatorGroup already exists from create_bai_operator_group above
+    # DOCKER_REG_KEY is available from the parent script environment
+    # https://jsw.ibm.com/browse/DBACLD-216414
+    info "Installing IBM Usage Metering Operator..."
+    # https://jsw.ibm.com/browse/DBACLD-229334
+    install_ibm_usage_metering "${bai_namespace}" "${bai_namespace}" "fresh_install" "${DOCKER_REG_KEY}" "$RUNTIME_MODE" "${bai_namespace}" "$AIRGAP_INSTALL"
 }
 
 # --- Run ---

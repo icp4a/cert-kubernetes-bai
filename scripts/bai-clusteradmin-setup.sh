@@ -1429,25 +1429,26 @@ function display_airgap_prerequisites(){
     printf "\n"
     printf "\x1B[1;31mhttps://www.ibm.com/docs/en/bai/$BAI_RELEASE_BASE?topic=deployment-preparing-your-cluster-air-gapped-offline \n\x1B[0m"
     printf "\n"
-    printf "\x1B[1mDo you want to proceed with the offline/airgap cluster setup (Yes/No, default: No): \x1B[0m"
-    read -erp "" ans
-    printf "\n"
-    case "$ans" in
-    "y"|"Y"|"yes"|"Yes"|"YES")
-        printf "Starting with the offline/airgap cluster setup process...."
-        break
-        ;;
-    "n"|"N"|"no"|"No"|"NO"|"")
-        echo "Complete the offline/airgap prerequisite steps and re-run the script"
+    while true; do
+        printf "\x1B[1mDo you want to proceed with the offline/airgap cluster setup (Yes/No, default: No): \x1B[0m"
+        read -erp "" ans
         printf "\n"
-        echo "Exiting....."
-        exit 1
-        break
-        ;;
-    *)
-        printf '%b\n' "Answer must be \"Yes\" or \"No\"\n"
-        ;;
-    esac
+        case "$ans" in
+        "y"|"Y"|"yes"|"Yes"|"YES")
+            printf "Starting with the offline/airgap cluster setup process...."
+            break
+            ;;
+        "n"|"N"|"no"|"No"|"NO"|"")
+            echo "Complete the offline/airgap prerequisite steps and re-run the script"
+            printf "\n"
+            echo "Exiting....."
+            exit 1
+            ;;
+        *)
+            printf '%b\n' "Answer must be \"Yes\" or \"No\"\n"
+            ;;
+        esac
+    done
 
 
 }
@@ -1461,6 +1462,14 @@ function get_entitlement_registry(){
     entitlement_key=""
     printf "\n"
     printf "\n"
+
+    # if [[ "$AIRGAP_INSTALL" == "Yes" ]]; then
+    #     printf "\n"
+    #     printf "${BOLD_TEXT}${YELLOW_TEXT}[IMPORTANT]${RESET_TEXT} In order to set up the Usage Metering connection to Software Central which is a mandate from BAI $BAI_RELEASE_BASE, the script requires IBM Entitlement Key to be provided. \n${RESET_TEXT}"
+    #     printf "\n"
+    # fi
+
+
     printf "\x1B[1;31mFollow the instructions on how to get your Entitlement Key: \n\x1B[0m"
     printf "\x1B[1;31m https://www.ibm.com/docs/en/cloud-paks/cp-biz-automation/$BAI_RELEASE_BASE?topic=deployment-getting-access-images-from-public-entitled-registry\n\x1B[0m"
     printf "\n"
@@ -1534,13 +1543,13 @@ function get_entitlement_registry(){
                         fi
 
                         if $cli_command login -u "$DOCKER_REG_USER" -p "$DOCKER_REG_KEY" "$DOCKER_REG_SERVER"; then
-                            printf "Entitlement Registry key is valid.\n"
+                            printf 'Entitlement Registry key is valid.\n'
                             entitlement_verify_passed="passed"
                         else
-                            printf "\x1B[1;31mThe Entitlement Registry key failed. Try again...\n\x1B[0m"
+                            printf '\x1B[1;31mThe Entitlement Registry key failed. Try again...\n\x1B[0m'
                             ATTEMPTS=$((ATTEMPTS + 1))
                             if [[ $ATTEMPTS -eq 10 ]]; then
-                                printf "\x1B[1mEnter a valid Entitlement Registry key. Exiting ...\n\x1B[0m"
+                                printf '\x1B[1mEnter a valid Entitlement Registry key. Exiting ...\n\x1B[0m'
                                 exit 1
                             fi
                             entitlement_key=''
@@ -1554,17 +1563,11 @@ function get_entitlement_registry(){
         "n"|"N"|"no"|"No"|"NO"|"")
             use_entitlement="no"
             DOCKER_REG_KEY="None"
-            if [[ $PRIVATE_CATALOG == "No" ]]; then
-                if [[ "$PLATFORM_SELECTED" == "ROKS" || "$PLATFORM_SELECTED" == "OCP" ]]; then
-                    printf "\n"
-                    printf "\x1B[1;31mIBM $BAI_FULL_NAME only supports the Entitlement Registry on \"${PLATFORM_SELECTED}\", exiting...\n\x1B[0m"
-                    exit 1
-                else
-                    break
-                fi
-            else
-                break
-            fi
+
+            printf "\n"
+            printf "\x1B[1;31m$BAI_FULL_NAME only supports the Entitlement Registry on \"${PLATFORM_SELECTED}\", exiting...\n\x1B[0m"
+            exit 1
+
             ;;
         *)
             printf '%b\n' "Answer must be \"Yes\" or \"No\"\n"
@@ -1770,18 +1773,18 @@ function check_airgap_mode(){
         do
             case $opt in
                 "Offline/Airgap")
-                    AIRGAP_INSTALL="Yes"
+                    AIRGAP_INSTALL="yes"
                     break
                     ;;
                 "Online")
-                    AIRGAP_INSTALL="No"
+                    AIRGAP_INSTALL="no"
                     break
                     ;;
                 *) echo "invalid option $REPLY";;
             esac
         done
     else
-        AIRGAP_INSTALL=$BAI_AUTO_AIGRAP_MODE
+        AIRGAP_INSTALL=$(echo "$BAI_AUTO_AIGRAP_MODE" | tr '[:upper:]' '[:lower:]')
         printf '%b\n' "\x1B[1mWould you like to set up the cluster for an online based IBM Business Automation Insights deployment or for an airgap/offline based IBM Business Automation Insights deployment :\x1B[0m $BAI_AUTO_AIGRAP_MODE"
     fi
 }
@@ -2359,10 +2362,10 @@ function verify_local_registry_password(){
         then
             if [[ $OCP_VERSION == "3.11" ]];then
                 if docker login -u "$LOCAL_REGISTRY_USER" -p $(${CLI_CMD} whoami -t) "$LOCAL_REGISTRY_SERVER"; then
-                    printf "Verifying Local Registry passed...\n"
+                    printf 'Verifying Local Registry passed...\n'
                     verify_passed="passed"
                 else
-                    printf "\x1B[1;31mLogin failed...\n\x1B[0m"
+                    printf '\x1B[1;31mLogin failed...\n\x1B[0m'
                     verify_passed=""
                     local_registry_user=""
                     local_registry_server=""
@@ -2371,10 +2374,10 @@ function verify_local_registry_password(){
             elif [[ "$machine" == "Mac" ]]
             then
                 if docker login "$local_public_registry_server" -u "$LOCAL_REGISTRY_USER" -p $(${CLI_CMD} whoami -t); then
-                    printf "Verifying Local Registry passed...\n"
+                    printf 'Verifying Local Registry passed...\n'
                     verify_passed="passed"
                 else
-                    printf "\x1B[1;31mLogin failed...\n\x1B[0m"
+                    printf '\x1B[1;31mLogin failed...\n\x1B[0m'
                     verify_passed=""
                     local_registry_user=""
                     local_registry_server=""
@@ -2386,10 +2389,10 @@ function verify_local_registry_password(){
                 which podman &>/dev/null
                 if [[ $? -eq 0 ]];then
                     if podman login "$local_public_registry_server" -u "$LOCAL_REGISTRY_USER" -p $(${CLI_CMD} whoami -t) --tls-verify=false; then
-                        printf "Verifying Local Registry passed...\n"
+                        printf 'Verifying Local Registry passed...\n'
                         verify_passed="passed"
                     else
-                        printf "\x1B[1;31mLogin failed...\n\x1B[0m"
+                        printf '\x1B[1;31mLogin failed...\n\x1B[0m'
                         verify_passed=""
                         local_registry_user=""
                         local_registry_server=""
@@ -2398,10 +2401,10 @@ function verify_local_registry_password(){
                     fi
                 else
                      if docker login "$local_public_registry_server" -u "$LOCAL_REGISTRY_USER" -p $(${CLI_CMD} whoami -t); then
-                        printf "Verifying Local Registry passed...\n"
+                        printf 'Verifying Local Registry passed...\n'
                         verify_passed="passed"
                     else
-                        printf "\x1B[1;31mLogin failed...\n\x1B[0m"
+                        printf '\x1B[1;31mLogin failed...\n\x1B[0m'
                         verify_passed=""
                         local_registry_user=""
                         local_registry_server=""
@@ -2414,10 +2417,10 @@ function verify_local_registry_password(){
             which podman &>/dev/null
             if [[ $? -eq 0 ]];then
                 if podman login -u "$LOCAL_REGISTRY_USER" -p "$LOCAL_REGISTRY_PWD"  "$LOCAL_REGISTRY_SERVER" --tls-verify=false; then
-                    printf "Verifying the information for the local docker registry...\n"
+                    printf 'Verifying the information for the local docker registry...\n'
                     verify_passed="passed"
                 else
-                    printf "\x1B[1;31mLogin failed...\n\x1B[0m"
+                    printf '\x1B[1;31mLogin failed...\n\x1B[0m'
                     printf '%b\n' "\x1B[1;31mCheck the local docker registry information and try again.\x1B[0m"
                     if [ -z "$BAI_AUTO_LOCAL_REGISTRY" ]; then
                         verify_passed=""
@@ -2429,10 +2432,10 @@ function verify_local_registry_password(){
                 fi
             else
                 if docker login -u "$LOCAL_REGISTRY_USER" -p "$LOCAL_REGISTRY_PWD"  "$LOCAL_REGISTRY_SERVER"; then
-                    printf "Verifying the information for the local docker registry...\n"
+                    printf 'Verifying the information for the local docker registry...\n'
                     verify_passed="passed"
                 else
-                    printf "\x1B[1;31mLogin failed...\n\x1B[0m"
+                    printf '\x1B[1;31mLogin failed...\n\x1B[0m'
                     printf '%b\n' "\x1B[1;31mCheck the local docker registry information and try again.\x1B[0m"
                     if [ -z "$BAI_AUTO_LOCAL_REGISTRY" ]; then
                         verify_passed=""
@@ -2476,9 +2479,9 @@ function verify_silence_install(){
     if [[ ! -z "${BAI_AUTO_PLATFORM}" || ! -z "${BAI_AUTO_DEPLOYMENT_TYPE}" ]]; then
         local platform_array=("OCP" "ROKS" "other")
         local deployment_type_array=("production")
-        echo "==========================================================================="
+        echo           "==========================================================================="
         printf '%b\n' "\x1B[1mStarting silent installation for $BAI_FULL_NAME Operator\x1B[0m"
-        echo "==========================================================================="
+        echo           "==========================================================================="
         #support for only production deployment type
         if [[ ! " ${deployment_type_array[@]} " =~ " ${BAI_AUTO_DEPLOYMENT_TYPE} " ]]; then
             printf '%b\n' "\x1B[1;31mOnly \"Production\" deployment type is supported and is the only valid value for environment variable [BAI_AUTO_DEPLOYMENT_TYPE].\n\x1B[0m"
@@ -2529,15 +2532,16 @@ function retrieve_domain_name(){
 # DBACLD-168151
 function setup_other_type_platform()
 {
-    if [[ $AIRGAP_INSTALL == "Yes" ]]; then
+    if [[ $AIRGAP_INSTALL == "yes" ]]; then
         display_airgap_prerequisites
+        get_entitlement_registry
     fi
     source $BAI_CNCF_FOLDER/bai-utils.sh
     source $BAI_CNCF_FOLDER/bai-install-prereqs.sh
     check_cncf_rancher_prereqs  # function definition in bai-install-prereqs
     select_project
     SEPARATE_OPERATOR="No"
-    if [[ $AIRGAP_INSTALL == "No" ]]; then
+    if [[ $AIRGAP_INSTALL == "no" ]]; then
         get_entitlement_registry
         create_secret_entitlement_registry
     fi
@@ -2552,7 +2556,7 @@ function setup_other_type_platform()
     fi
     
     source $BAI_CNCF_FOLDER/bai-install.sh
-    # This function call is used to install the BAI operators
+    # This function call is used to install the BAI operators and UMS operator
     if [[ $CNCF_DEV == "Yes" ]]; then
         bai_cncf_rancher_install "$project_name" "$OTHER_PLATFORM_TYPE_DOMAIN" true
     else
@@ -2581,6 +2585,8 @@ else
     CNCF_DEV="No"
 
 fi
+
+prompt_license "Starting the IBM Business Automation Insights standalone cluster admin setup..." "https://www.ibm.com/support/customer/csol/terms/?id=L-ZXQC-F6K3TB"
 
 # DBACLD-187443: Check cert-manager installation status once and store in variable
 info "Checking cert-manager installation status..."
@@ -2653,8 +2659,9 @@ validate_docker_podman_cli
 if [[ $SCRIPT_MODE == "OLM" ]];then
     ${CLI_CMD} project $project_name >&3 2>&3
 
-    if [[ $AIRGAP_INSTALL == "Yes" ]]; then
+    if [[ $AIRGAP_INSTALL == "yes" ]]; then
         display_airgap_prerequisites
+        get_entitlement_registry
     else
         get_entitlement_registry
         # get_storage_class_name
@@ -2689,7 +2696,7 @@ if [[ $SCRIPT_MODE == "OLM" ]];then
             rm -fr ${TEMP_FOLDER}/cm-data.yaml >> ${LOG_FILE}
 
             printf '%b\n' "\x1B[1mCreating the configmap required by common service...\x1B[0m"
-            isNsExists=`${CLI_CMD} get namespace $DEDICATED_COMMON_PROJECT --ignore-not-found | wc -l`  >&3 2>&3 
+            isNsExists=`${CLI_CMD} get namespace $DEDICATED_COMMON_PROJECT --ignore-not-found | wc -l`  >&3 2>&3
             if [ $isNsExists -ne 2 ] ; then
                 ${CLI_CMD} create namespace $DEDICATED_COMMON_PROJECT >&3 2>&3
             fi
@@ -2697,7 +2704,7 @@ if [[ $SCRIPT_MODE == "OLM" ]];then
             apiVersion: v1
             kind: ConfigMap
             metadata:
-                name: ibm-cpp-config  
+                name: ibm-cpp-config
                 namespace: $DEDICATED_COMMON_PROJECT
             data:
                 kubernetes_cluster_type: cncf
@@ -2742,6 +2749,43 @@ else
     prepare_install
     apply_bai_operator
 fi
+
+# Install the Usage Metering Operator
+if [[ $SEPARATE_OPERATOR == "No" || -z $SEPARATE_OPERATOR ]]; then
+    operator_ns="$project_name"
+    services_ns="$project_name"
+else
+    operator_ns="$project_name_operator"
+    services_ns="$project_name_cs_service"
+fi
+echo
+
+# Function that handles all the usage metering operator related tasks
+# At this point the UMS Set up would happen only for production
+# https://jsw.ibm.com/browse/DBACLD-216414
+# $1 Operator namespace
+# $2 Services namespace
+# $3 scenario i.e fresh_install or upgrade
+# $4 entitlement_key which is the key used to generate the connection point secret
+# $5 runtime mode that tells the script if it is being used in dev mode and if so the sandbox setting is enabled
+# $6 catalog namespace ( helps differentiate in case global catalog was used)
+# $7 AIRGAP MODE
+if [[ $DEPLOYMENT_TYPE == "production" ]]; then
+    install_ibm_usage_metering "$operator_ns" "$services_ns" "fresh_install" "$DOCKER_REG_KEY" "$RUNTIME_MODE" "$CATALOG_NAMESPACE" "$AIRGAP_INSTALL"
+fi
+
+# Configure Software Central integration for an existing IBMLicensing resource.
+#
+# Arguments:
+#   $1 - namespace where the ILS connection point secret should exist i.e ibm-licensing
+#   $2 - services namespace where ibm-entitlement-key may exist
+#   $3 - entitlement key value; will be empty during upgrade
+#   $4 - scenario value such as "upgrade" or "fresh_install"
+# https://jsw.ibm.com/browse/DBACLD-223165
+if [[ $DEPLOYMENT_TYPE == "production" && "$AIRGAP_INSTALL" == "No" ]]; then
+    setup_ils_configuration_for_vpc_metrics "ibm-licensing" "$services_ns" "$DOCKER_REG_KEY" "fresh_install" "$RUNTIME_MODE"
+fi
+
 
 # create_scc
 display_storage_classes

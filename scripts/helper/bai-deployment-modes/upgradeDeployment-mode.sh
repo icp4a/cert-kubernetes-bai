@@ -265,9 +265,19 @@ function upgrade_deployment(){
     info "${YELLOW_TEXT}Setting \"shared_configuration.enable_fips\" as \"false\" while upgrading BAI Standalone deployment, you could change it according to your requirements.${RESET_TEXT}"
     ${YQ_CMD} w -i ${UPGRADE_DEPLOYMENT_BAI_CR_TMP} spec.shared_configuration.enable_fips "false"
 
-    # Function that will retrieve the network policies created in 24.0.1 by the operators and remove the references and re-apply them 
+    # By default we will always set the sc_enable_usage_metering flag to true and this will enable the
+    # operators to deploy the cron jobs to send usage metrics to software central
+    # https://jsw.ibm.com/browse/DBACLD-225399
+    ${YQ_CMD} w -i ${UPGRADE_DEPLOYMENT_BAI_CR_TMP} spec.shared_configuration.sc_enable_usage_metering "true"
+
+    # Function that will retrieve the network policies created in 24.0.1 by the operators and remove the references and re-apply them
     # For https://jsw.ibm.com/browse/DBACLD-167387
-    update_network_policies $deployment_project_name "InsightsEngine" ${UPGRADE_DEPLOYMENT_BAI_CR_TMP}
+    # For upgrades to 26.0.0 there are paths from 24.0.0 , 25.0.0 and 25.0.1 , this means that the only time we need to update network policies and set the sc_generate_network_policies flag is for upgrades from 24.0.0.
+    # 25.0.0 onwards already has the updated network policy approach
+    # https://jsw.ibm.com/browse/DBACLD-232074
+    if [[ "$cr_version" == "24.0.0" ]]; then
+        update_network_policies $deployment_project_name "InsightsEngine" ${UPGRADE_DEPLOYMENT_BAI_CR_TMP}
+    fi
 
     # Function that retrieves the networktype and network cidr range
     # https://jsw.ibm.com/browse/DBACLD-173602

@@ -1,5 +1,5 @@
 #!/bin/bash
-# set -x
+#set -x
 ###############################################################################
 #
 # Licensed Materials - Property of IBM
@@ -35,13 +35,10 @@ function show_help() {
     echo "                If BAI Standalone is deployed using separate namespaces for operators and operands/services and the script is being used for upgrade, the value is the namespace where the BAI Standalone operators are deployed"
     echo "                If BAI Standalone is deployed using separate namespaces for operators and operands/services and the script is being used for generating a custom resource file, the value is the namespace where BAI Standalone operands/services are to be deployed."
     echo
-    echo "  -i  Optional: Operator image name. By default, it is cp.icr.io/cp/cp4a/icp4a-operator:$BAI_RELEASE_BASE."
-    echo
-    echo "  -p  Optional: Pull secret to use to connect to the registry. By default, it is ibm-entitlement-key."
-    echo
     echo "  --ingress  Optional: Set this flag if you want to generate the ingress templates required for platform type -> Other - Cloud Native Computing Foundation ( CNCF )"
     echo
-    echo "  --enable-private-catalog Optional: Set this flag to switch CatalogSource from global to namespace-scoped. Default is in the openshift-marketplace namespace."
+    echo "  --gateway-api  Optional: Set this flag if you want to configure the Gateway API resources and generate the required templates for platform type -> Other - Cloud Native Computing Foundation ( CNCF )"
+    echo
     echo
     echo "Additional Information:"
     echo
@@ -127,6 +124,9 @@ function parse_arguments() {
             shift
             BAI_ORIGINAL_CSV_VERSION=$1
             ;;
+        --airgap-deployment)
+            AIRGAP_INSTALL=yes
+            ;;
         --cpfs-upgrade-mode)
             shift
             UPGRADE_MODE=$1
@@ -140,6 +140,11 @@ function parse_arguments() {
         # DBACLD-168345
         --ingress)
         INGRESS_MODE=true
+        ;;
+        # adding a flag to generate apigateway related resources for CNCF (primarly for GKE)
+        # DBACLD-235709
+        --gateway-api)
+            GATEWAY_API_MODE=true
         ;;
         dev)
         SCRIPT_MODE="dev"
@@ -258,7 +263,7 @@ foundation_component_arr=()
 #                ;;
 #            "Existing")
 #                INSTALLATION_TYPE="existing"
-#                mkdir -p $TEMP_FOLDER  >&3 2>&3
+#                mkdir -p $TEMP_FOLDER >&3 2>&3
 #                mkdir -p $BAK_FOLDER >&3 2>&3
 #                mkdir -p $FINAL_CR_FOLDER >&3 2>&3
 #                get_existing_pattern_name
@@ -272,7 +277,7 @@ foundation_component_arr=()
 #        rm -rf $BAK_FOLDER >&3 2>&3
 #        rm -rf $FINAL_CR_FOLDER >&3 2>&3
 #
-#        mkdir -p $TEMP_FOLDER  >&3 2>&3
+#        mkdir -p $TEMP_FOLDER >&3 2>&3
 #        mkdir -p $BAK_FOLDER >&3 2>&3
 #        mkdir -p $FINAL_CR_FOLDER >&3 2>&3
 #    fi
@@ -390,7 +395,43 @@ foundation_component_arr=()
 #}
 
 
+#Function to ask if customer if the deployment being upgraded is an airgap based deployment or not.
+function check_airgap_mode(){
+    local max_retries=3
+    local attempt=0
 
+    printf "\n"
+
+    printf '%b\n' "${BOLD_TEXT}Confirm if the upgrade is being executed for an online based standalone deployment or for an airgap/offline based BAI standalone deployment : ${RESET_TEXT}"
+
+    options=("Online" "Offline/Airgap")
+    PS3='Enter a valid option [1 to 2]: '
+
+    while [[ $attempt -lt $max_retries ]]; do
+        select opt in "${options[@]}"
+        do
+            case $opt in
+                "Offline/Airgap")
+                    AIRGAP_INSTALL="yes"
+                    return 0
+                    ;;
+                "Online")
+                    AIRGAP_INSTALL="no"
+                    return 0
+                    ;;
+                *)
+                    attempt=$((attempt + 1))
+                    if [[ $attempt -ge $max_retries ]]; then
+                        error "Maximum retry limit reached while selecting airgap mode. Exiting..."
+                        exit 1
+                    fi
+                    echo "invalid option $REPLY"
+                    break
+                    ;;
+            esac
+        done
+    done
+}
 
 
 ########################################################################
@@ -438,11 +479,31 @@ if [[ ! -z "$INGRESS_MODE" ]]; then
     # Import the functions required when ingress flag is passed to the script
     source ${CUR_DIR}/helper/bai-deployment-modes/ingress-mode.sh
     generate_ingress_templates $tls_flag # function definition can be found in helper/bai-deployment-modes/ingress-mode.sh
+    exit 0 
 fi
 
 ###################################################################################
 ### END - Code for generating ingress templates (--ingress flag being passed) ###
 ###################################################################################
+
+
+###################################################################################
+### BEGIN - Code for generating Gateway API templates ( --api-gateway flag being passed) ###
+###################################################################################
+
+# IF the GATEWAY_API_MODE variable is set that means the user has used --api-gateway flag and wants to generate apigateway related resource template files for CNCF
+if [[ ! -z "$GATEWAY_API_MODE" ]]; then
+
+    # Import the functions required when api-gateway flag is passed to the script
+    source ${CUR_DIR}/helper/bai-deployment-modes/api-gateway-mode.sh
+    generate_gateway_api_templates # function definition can be found in helper/bai-deployment-modes/api-gateway-mode.sh
+    exit 0 
+fi
+
+###################################################################################
+### END - Code for generating Gateway API templates ( --api-gateway flag being passed) ###
+###################################################################################
+
 
 
 ###################################################################################

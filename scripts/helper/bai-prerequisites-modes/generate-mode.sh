@@ -386,7 +386,6 @@ function generate_external_postgres_secrets_configmaps_for_bts(){
     fi
     ${SED_COMMAND} "s|<cp4a-db-crt-file-in-local>|$bts_external_db_cert_folder|g" ${BTS_SSL_SECRET_FILE}
 
-    
     create_bts_external_db_configmap_template
     #  replace <DatabaseHostName>
     tmp_name="$(prop_user_profile_property_file BAI.BTS_EXTERNAL_POSTGRES_DATABASE_HOSTNAME)"
@@ -408,6 +407,7 @@ function generate_external_postgres_secrets_configmaps_for_bts(){
     tmp_name=$(sed -e 's/^"//' -e 's/"$//' <<<"$tmp_name")
     ${SED_COMMAND} "s|<DatabaseUserName>|$tmp_name|g" ${BTS_CONFIGMAP_FILE}
 }
+
 
 #### END - Functions being called by the generate_secrets function ####
 

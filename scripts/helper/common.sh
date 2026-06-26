@@ -18,7 +18,7 @@
 TEMP_FOLDER=${CUR_DIR}/.tmp
 mkdir -p $TEMP_FOLDER
 
-# Define the required Java version based on CP4BA release
+# Define the required Java version based on BAI release
 REQUIRED_JAVA_MAJOR_VERSION=17  # Semeru 17 is required for BAI S 
 
 
@@ -40,12 +40,12 @@ OLM_VERSION=v0.27.0
 #Licensing service related variables that required during the creation of subscription and the checks.
 # NEED TO BE UPDATED WHEN WE UPDATE THE VERSIONS
 LICENSING_SERVICE_CHANNEL=v4.2
-LICENSING_SERVICE_TARGET_VERSION="4.2.21"
+LICENSING_SERVICE_TARGET_VERSION="4.2.23"
 
 #Cert Manager related variables that required during the creation of subscription and the checks.
 # NEED TO BE UPDATED WHEN WE UPDATE THE VERSIONS
 CERT_MANAGER_CHANNEL=v4.2
-CERT_MANAGER_TARGET_VERSION="4.2.21"
+CERT_MANAGER_TARGET_VERSION="4.2.22"
 #Cert manager owner.
 CERT_MANAGER_V1ALPHA1_OWNER="operator.ibm.com/v1alpha1"
 CERT_MANAGER_V1_OWNER="operator.ibm.com/v1"
@@ -69,11 +69,11 @@ cs_maximal_version_for_ifix="5.0.0" # Maximal supported Common Service version b
 BAI_S_FC_CR=${PARENT_DIR}/descriptors/patterns/ibm_cp4a_cr_production_FC_bai.yaml
 
 #Change required each sprint for using dev mode
-CURRENT_SPRINT_TAG="25.0.1-IF001"
+CURRENT_SPRINT_TAG="26.0.0"
 
 #DBACLD-194974: This variable is used to specify the version that will block EDB option for IM ZEN BTS.The user will HAVE to use external postgres for this. It should be in the format of ${BAI_RELEASE_BASE}_${BAI_PATCH_VERSION}
 # For 25.0.1_GA we will remove the Starter option and EDB option.
-VERSION_TO_SKIP_EDB="25.0.1_IF001"
+VERSION_TO_SKIP_EDB="26.0.0_GA"
 
 
 # End of Section for BAI Rancher specific variables
@@ -83,6 +83,7 @@ PREREQUISITES_FOLDER=${CUR_DIR}/bai-prerequisites/project/$1
 PREREQUISITES_FOLDER_BAK=${CUR_DIR}/bai-prerequisites-backup/project/$1
 PROPERTY_FILE_FOLDER=${PREREQUISITES_FOLDER}/propertyfile
 GENERATED_INGRESS_FILE_FOLDER=${PREREQUISITES_FOLDER}/ingress_template
+GENERATED_API_GATEWAY_FOLDER=${PREREQUISITES_FOLDER}/api_gateway_template
 PROPERTY_FILE_FOLDER_BAK=${PREREQUISITES_FOLDER_BAK}/propertyfile
 CREATE_SECRET_SCRIPT_FILE=$PREREQUISITES_FOLDER/create_secret.sh
 
@@ -117,45 +118,62 @@ CP4A_LDAP_SSL_SECRET_FILE=${LDAP_SSL_SECRET_FOLDER}/ibm-bai-ldap-ssl-cert-secret
 
 LDAP_SECRET_FILE=${SECRET_FILE_FOLDER}/ldap-bind-secret.yaml
 
-# Release/Patch version for CP4BA
+# Release/Patch version for BAI
 # BAI_RELEASE_BASE is for fetch content/foundation operator pod, only need to change for major release.
-BAI_RELEASE_BASE="25.0.1"
-BAI_PATCH_VERSION="IF001"
+BAI_RELEASE_BASE="26.0.0"
+BAI_PATCH_VERSION="GA"
 # BAI_RELEASE_BASE_MAJOR_VERSION is used in certain checks where we used to hardcode to see if a upgrade is not ifix to ifix,change this only for major release
-BAI_RELEASE_BASE_MAJOR_VERSION="25.1"
-# BAI_CSV_VERSION is for checking CP4BA operator upgrade status, need to update for each IFIX
-BAI_CSV_VERSION="v25.1.1"
-# BAI_CHANNEL_VERSION is for switch CP4BA operator upgrade status, need to update for major release
-BAI_CHANNEL_VERSION="v25.1"
+BAI_RELEASE_BASE_MAJOR_VERSION="26.0"
+# BAI_CSV_VERSION is for checking BAI operator upgrade status, need to update for each IFIX
+BAI_CSV_VERSION="v26.0.0"
+# BAI_CHANNEL_VERSION is for switch BAI operator upgrade status, need to update for major release
+BAI_CHANNEL_VERSION="v26.0"
 # CS_OPERATOR_VERSION is for checking CPFS operator upgrade status, need to update for each IFIX
-CS_OPERATOR_VERSION="v4.18.0"
+CS_OPERATOR_VERSION="v4.18.1"
 # CS_CHANNEL_VERSION is for for CPFS script -c option, need to update for each IFIX
 CS_CHANNEL_VERSION="v4.18"
 # CS CHANNEL VERSION that is used in the KC
 CS_CHANNEL_KC="4.x_cd"
-# CERT_LICENSE_OPERATOR_VERSION is for checking IBM cert-manager/licensing operator upgrade status, need to update for each IFIX
-CERT_LICENSE_OPERATOR_VERSION="v4.2.21"
 # CERT_LICENSE_CHANNEL_VERSION is for for IBM cert-manager/licensing script -c option, need to update for each IFIX
 CERT_LICENSE_CHANNEL_VERSION="v4.2"
 # CS_CATALOG_VERSION is for CPFS script -s option, need to update for each IFIX
 CS_CATALOG_VERSION="ibm-cs-install-catalog-v4-18-0"
 # ZEN_OPERATOR_VERSION is for checking ZenService operator upgrade status, need to update for each IFIX
-ZEN_OPERATOR_VERSION="v6.4.2"
+ZEN_OPERATOR_VERSION="v6.4.7"
 # BTS_CHANNEL_VERSION is for for BTS, need to update for each IFIX
 BTS_CHANNEL_VERSION="v3.35"
-# BTS_CATALOG_VERSION is for BTS 3.35.9.
+# BTS_CATALOG_VERSION is for BTS 3.35.12.
 BTS_CATALOG_VERSION="ibm-bts-operator-catalog-v3-35"
 # REQUIREDVER_BTS is for checking bts operator upgrade status before run removal_iaf.sh, need to update for each IFIX
-REQUIREDVER_BTS="3.35.9"
+REQUIREDVER_BTS="3.35.12"
 # REQUIREDVER_POSTGRESQL is for checking postgresql operator upgrade status before run removal_iaf.sh, need to update for each IFIX
 REQUIREDVER_POSTGRESQL="1.25.6"
 # EVENTS_OPERATOR_VERSION is for checking IBM Events operator upgrade status, need to update for each IFIX
 EVENTS_OPERATOR_VERSION="v5.2.1"
 # List of BAI versions that are supported for upgrade to $BAI_CSV_VERSION
 # When setting to an empty array, only fresh installation is supported.
-MINIMUM_SUPPORTED_UPGRADE_VERSIONS=("25.1.0")
+# In 26.0.0, we will only support upgrade from 25.0.4, 25.1.1, and 24.0.6, which means if the customer is on 24.1.x, they need to first upgrade to 25.0.4 before upgrading to 26.0.0.
+MINIMUM_SUPPORTED_UPGRADE_VERSIONS=(24.0.7 25.0.4 25.1.1)
 
+# UMS related variables
+# UMS_CHANNEL_VERSION is for UMS, need to update for each IFIX
+UMS_CHANNEL_VERSION="v1.0"
+# UMS_CSV_VERSION is for UMS, need to update for each IFIX
+UMS_CSV_VERSION="v1.0.6"
+# UMS_CATALOG_VERSION is the current UMS catalog name.
+UMS_CATALOG_VERSION="ibm-usage-metering-catalog"
+# UMS connection point secret name
+UMS_CONNECTION_POINT_SECRET_NAME="bai-ums-secret"
+# UMS OPERATOR subscription template location
+UMS_OLM_SUBSCRIPTION=${PARENT_DIR}/descriptors/op-olm/bais-metrics/subscription.yaml
+# UMS static CR location
+UMS_STATIC_CR_LOCATION="${PARENT_DIR}/descriptors/patterns/bais-metrics"
+# UMS Connection Point Static CR location
+UMS_CONNECTION_POINT_STATIC_CR_LOCATION="${PARENT_DIR}/descriptors/patterns/bais-metrics/software-central-connection"
 
+# ILS (IBM Licensing Service) related variables for Software Central integration
+# ILS connection point secret name
+ILS_SWC_SECRET_NAME="bai-ils-secret"
 
 # Zen metastore EDB configmap name
 ZEN_EDB_CFG="ibm-zen-metastore-edb-cm"
@@ -359,8 +377,7 @@ function validate_java_runtime() {
             printf '%b\n' "\x1B[1;31mPlease provide a valid path to Java (JRE) $REQUIRED_JAVA_MAJOR_VERSION or higher installation.\x1B[0m"
             exit 1
         fi
-
-    else
+      else
         JAVA_CMD="java"
         KEYTOOL_CMD="keytool"
         
@@ -415,9 +432,9 @@ function validate_java_runtime() {
         printf '%b\n' "  - Re-run this script with the Java (JRE) path parameter, using --java-path <path_to_java>; e.g., ${EXAMPLE_CMD}"
         exit 1
     fi
-
+    
     info "Using Java version: $CURRENT_JAVA_VERSION located at: $(command -v "$JAVA_CMD")"
-
+    
     # Step 3: Validate keytool
     "$KEYTOOL_CMD" -help &>/dev/null
     if [[ $? -ne 0 ]]; then
@@ -602,7 +619,6 @@ function check_cluster_login() {
     fi
 }
 
-
 #DBACLD-194974: Version to remove EDB and make external postgres mandatory for IM ZEN BTS by checking the version $BAI_PATCH_VERSION and $BAI_RELEASE_BASE 
 function skip_edb_for_2501() {
     local _existing_cp4ba_version=${BAI_RELEASE_BASE}_${BAI_PATCH_VERSION}
@@ -611,7 +627,7 @@ function skip_edb_for_2501() {
     if [[ "$_existing_cp4ba_version" == "$_version_to_skip" ]]; then
         return 0  # Make external Postgres mandatory
     else
-        return 1  # Give the option to use externa Postgres
+        return 1  # Give the option to use external Postgres
     fi
 }
 
@@ -1086,14 +1102,13 @@ function validate_docker_podman_cli(){
 # 2. license -> contains the license link to be displayed
 function prompt_license(){
     clear
+    echo
     local message=$1
     local license=$2
     printf '%b\n' "\x1B[1;31mIMPORTANT: Review the IBM Business Automation Insights standalone license information here: \n\x1B[0m"
     printf '%b\n' "\x1B[1;31m$license\n\x1B[0m" 
     INSTALL_BAW_ONLY="No"
-
-    prompt_press_any_key_to_continue
-
+    
     printf "\n"
     while true; do
         printf "\x1B[1mDo you accept the IBM Business Automation Insights standalone license (Yes/No, default: No): \x1B[0m"
@@ -1101,12 +1116,19 @@ function prompt_license(){
         read -erp "" ans
         case "$ans" in
         "y"|"Y"|"yes"|"Yes"|"YES")
+            printf "\n"
+            # New license message from 26.0.0 GA for https://jsw.ibm.com/browse/DBACLD-218047
+            printf '%b\n' "${BOLD_TEXT}${RED_TEXT}IMPORTANT: By accepting the license, you agree and understand that by default the program collects certain data and metrics regarding deployment and usage.\nFor more information, please consult the License Information for Business Automation Insights standalone.${RESET_TEXT}"
+            echo
+            prompt_press_any_key_to_continue
+            echo
             printf '%b\n' "$message"
             IBM_LICENSE="Accept"
             validate_cli
             break
             ;;
         "n"|"N"|"no"|"No"|"NO"|"")
+            echo
             printf '%b\n' "The license agreement was not accepted. The license agreement must be accepted to continue. The script is exiting...\n"
             exit 0
             ;;
@@ -1277,8 +1299,9 @@ function retrieve_network_details(){
 function generate_truststore_password() {
     local pwd_length="${1:-8}"
     local pwd_charset="${2:-A-Za-z0-9}"
-    local machine_lower=$(echo "${machine}" | tr '[:upper:]' '[:lower:]')
+
     openssl rand -base64 64 | tr -dc "$pwd_charset" | head -c "$pwd_length"
+
     echo
 }
 
@@ -1564,7 +1587,7 @@ function validate_property_file_required_fields() {
 function is_cert_manager_installed(){
 
     info "Checking to see if any cert-manager is installed\n"
-    "$CLI_CMD" get subscriptions.operators.coreos.com -A |grep  "cert-manager"  >  /dev/null 2>&1 # this will catch the packagenames of all cert-manager-operators
+    "$CLI_CMD" get subscription.operators.coreos.com -A |grep  "cert-manager"  >  /dev/null 2>&1 # this will catch the packagenames of all cert-manager-operators
     if [ $? -eq 0 ]; then
         warning "There is a cert-manager Subscription already existed\n"
     fi
@@ -1724,4 +1747,791 @@ function patch_strimzi_podset(){
     else
         echo "Events operator is not at channel v5.2"
     fi
+}
+
+
+#############################################################
+##### Functions to install IBM Usage Metering Operator ######
+# Function to create the ibm usage metering connection point secret
+# It uses the Entitlement key to generate a secret named bai-ums-secret
+# In the future the entitlement key secret already created would be used
+# Function to extract entitlement key password from ibm-entitlement-key secret
+# Enhanced to support global pull-secret fallback for OpenShift clusters
+# https://jsw.ibm.com/browse/DBACLD-225399
+function get_entitlement_key_from_secret() {
+    local secret_name="$1"
+    local namespace="$2"
+    local source_secret_name=""
+    local source_namespace=""
+    local dockerconfigjson=""
+
+    info "Extracting entitlement key from secret '$secret_name' in namespace '$namespace'..."
+
+    # Step 1: Check whether the requested secret exists in the provided namespace
+    if ${CLI_CMD} get secret "$secret_name" -n "$namespace" &>/dev/null; then
+        source_secret_name="$secret_name"
+        source_namespace="$namespace"
+        info "Found secret '$source_secret_name' in namespace '$source_namespace'"
+    else
+        warning "Secret '$secret_name' not found in namespace '$namespace'. Checking 'pull-secret' in namespace 'openshift-config'..."
+
+        # Step 2: If the original secret is not present, fall back to the cluster pull-secret.
+        if ${CLI_CMD} get secret pull-secret -n openshift-config &>/dev/null; then
+            source_secret_name="pull-secret"
+            source_namespace="openshift-config"
+            info "Found fallback secret '$source_secret_name' in namespace '$source_namespace'"
+        else
+            error "Neither secret '$secret_name' in namespace '$namespace' nor secret 'pull-secret' in namespace 'openshift-config' was found."
+            return 1
+        fi
+    fi
+
+    # Step 3: Extract .dockerconfigjson using oc's go-template (bypasses yq key-escaping issues)
+    dockerconfigjson=$(${CLI_CMD} get secret "$source_secret_name" -n "$source_namespace" \
+        -o go-template='{{index .data ".dockerconfigjson" | base64decode}}' 2>/dev/null)
+
+    if [[ -z "$dockerconfigjson" ]]; then
+        error "Failed to extract .dockerconfigjson from secret '$source_secret_name' in namespace '$source_namespace'."
+        return 1
+    fi
+
+    # Step 3: Extract password for cp.icr.io (yq v3 handles the nested path fine)
+    entitlement_key=$(printf '%s' "$dockerconfigjson" | ${YQ_CMD} r - 'auths."cp.icr.io".password')
+
+    # Step 4: If password field missing, decode the auth field
+    if [[ -z "$entitlement_key" ]] || [[ "$entitlement_key" == "null" ]]; then
+        local auth_value=$(printf '%s' "$dockerconfigjson" | ${YQ_CMD} r - 'auths."cp.icr.io".auth')
+        if [[ -n "$auth_value" ]] && [[ "$auth_value" != "null" ]]; then
+            local decoded_auth=$(printf '%s' "$auth_value" | base64 -d)
+            entitlement_key=$(printf '%s' "$decoded_auth" | sed 's/^[^:]*://')
+        fi
+    fi
+
+    # Step 6: Final validation
+    if [[ -z "$entitlement_key" ]] || [[ "$entitlement_key" == "null" ]]; then
+        error "Failed to extract entitlement key from secret '$source_secret_name' in namespace '$source_namespace'."
+        return 1
+    fi
+
+    success "Entitlement key extracted successfully from '$source_secret_name' in namespace '$source_namespace'"
+    return 0
+}
+
+# Function to patch UMS subscription with new channel
+# https://jsw.ibm.com/browse/DBACLD-225399
+function patch_ums_subscription() {
+    local operator_namespace=$1
+    local channel=$2
+    local catalog_namespace=$3
+    
+    # Find subscription with "ibm-usage-metering" in the name
+    local subscription_name=$(${CLI_CMD} get subscription -n "$operator_namespace" --no-headers 2>/dev/null | grep "ibm-usage-metering" | awk '{print $1}' | head -n 1)
+    
+    if [ -z "$subscription_name" ]; then
+        error "No subscription containing 'ibm-usage-metering' found in namespace '$operator_namespace'"
+        return 1
+    fi
+    
+    info "Found subscription: $subscription_name"
+    
+    # Patch channel
+    info "Patching subscription with channel '$channel'..."
+    ${CLI_CMD} patch subscription "$subscription_name" -n "$operator_namespace" \
+        --type='json' \
+        -p='[{"op": "replace", "path": "/spec/channel", "value": "'$channel'"}]'
+    
+    if [ $? -ne 0 ]; then
+        error "Failed to patch subscription '$subscription_name' with channel"
+        return 1
+    fi
+    
+    success "Subscription '$subscription_name' patched successfully with channel '$channel'"
+    
+    # Patch sourceNamespace if provided
+    if [ -n "$catalog_namespace" ]; then
+        info "Patching subscription with sourceNamespace '$catalog_namespace'..."
+        ${CLI_CMD} patch subscription "$subscription_name" -n "$operator_namespace" \
+            --type='json' \
+            -p="[{'op': 'replace', 'path': '/spec/sourceNamespace', 'value': '$catalog_namespace'}]"
+        
+        if [ $? -eq 0 ]; then
+            success "Subscription '$subscription_name' patched successfully with sourceNamespace '$catalog_namespace'"
+        else
+            error "Failed to patch subscription '$subscription_name' with sourceNamespace"
+            return 1
+        fi
+    fi
+    
+    return 0
+}
+# Function to create the connection point secret
+# https://jsw.ibm.com/browse/DBACLD-216413
+function create_connection_point_secret(){
+    local secret_name=$1
+    local services_namespace=$2
+    local entitlement_key=$3
+    # Use a variable to detect if the connection point creation passed 
+    connection_point_secret_creation="false"
+
+    if ${CLI_CMD} get secret "$secret_name" -n "${services_namespace}" >/dev/null 2>&1; then
+        success "Secret $secret_name already exists in namespace $services_namespace, skipping recreation."
+        connection_point_secret_creation="true"
+        return 0
+    fi
+    info "Creating the $secret_name secret using the Entitlement key which will be used for configuring the connection point in the project $services_namespace..."
+    echo
+
+    if ${CLI_CMD} create secret generic "$secret_name" --from-literal="token=$entitlement_key" -n "$services_namespace"; then
+    success "Secret $secret_name has been successfully created"
+    connection_point_secret_creation="true"
+    else
+        fail "Failed to create secret $secret_name."
+    fi
+
+}
+
+# Function to process and apply IBMServiceMeterDefinition YAMLs
+# Parameters:
+#   $1 - namespace
+#   $2 - file location (directory containing YAML files)
+# https://jsw.ibm.com/browse/DBACLD-216414
+function apply_service_meter_definitions() {
+    local namespace="$1"
+    local file_location="$2"
+
+    if [[ -z "$file_location" ]]; then
+        error "File location parameter is required"
+        return 1
+    fi
+
+    if [[ ! -d "$file_location" ]]; then
+        error "Directory '$file_location' does not exist"
+        return 1
+    fi
+
+    info "Processing IBMServiceMeterDefinition YAMLs in: $file_location"
+    info "Target namespace for the YAMLs to be applied in: $namespace"
+
+    # Process each YAML file in the directory
+    for yaml_file in "$file_location"/*.yaml "$file_location"/*.yml; do
+        # Skip if no files match
+        [[ -e "$yaml_file" ]] || continue
+
+        local filename=$(basename "$yaml_file")
+
+        # Check if the file is of kind IBMServiceMeterDefinition
+        local kind=$(${YQ_CMD} r "$yaml_file" 'kind' 2>/dev/null)
+
+        if [[ "$kind" != "IBMServiceMeterDefinition" ]]; then
+            #echo "Skipping $filename - not an IBMServiceMeterDefinition (kind: $kind)"
+            continue
+        fi
+
+        # Create a temporary file for modifications
+        local temp_file="${TEMP_FOLDER}/${filename}"
+        cp "$yaml_file" "$temp_file"
+
+        # Update namespace
+        ${YQ_CMD} w -i "$temp_file" "metadata.namespace" "$namespace"
+
+        # Apply the modified YAML
+        info "  - Applying $filename to namespace $namespace"
+        if ${CLI_CMD} apply -f "$temp_file" -n "$namespace"; then
+            success "Successfully applied $filename"
+        else
+            error "Failed to apply $filename"
+        fi
+
+        # Clean up temp file
+        rm -f "$temp_file"
+        echo ""
+    done
+
+    success "All IBMServiceMeterDefinition Static CRs for the Usage Metering Service have been applied."
+    echo
+}
+
+
+# Function to process and apply IBMUsageMetering YAMLs. As of right now there is only 1 yaml to be applied but function can handle multiple
+# Parameters:
+#   $1 - namespace (replaces REPLACE_NAMESPACE)
+#   $3 - file location (directory containing YAML files)
+# https://jsw.ibm.com/browse/DBACLD-216413
+function apply_usage_metering_definition () {
+    local namespace="$1"
+    local secret_name="$2"
+    local file_location="$3"
+    local mode="$4"
+    local airgap_mode="$5"
+
+
+    if [[ -z "$file_location" ]]; then
+        error "File location parameter is required"
+        return 1
+    fi
+
+    if [[ ! -d "$file_location" ]]; then
+        error "Directory '$file_location' does not exist"
+        return 1
+    fi
+
+    # Create temp folder if it doesn't exist
+    mkdir -p "$TEMP_FOLDER"
+
+    info "Processing IBMUsageMetering YAMLs in: $file_location"
+    info "Target namespace: $namespace"
+
+    # Process each YAML file in the directory
+    for yaml_file in "$file_location"/*.yaml "$file_location"/*.yml; do
+        # Skip if no files match
+        [[ -e "$yaml_file" ]] || continue
+
+        local filename=$(basename "$yaml_file")
+
+        # Check if the file is of kind IBMUsageMetering
+        local kind=$(${YQ_CMD} r "$yaml_file" 'kind' 2>/dev/null)
+
+        if [[ "$kind" != "IBMUsageMetering" ]]; then
+            echo "Skipping $filename - not an IBMUsageMetering (kind: $kind)"
+            continue
+        fi
+
+
+        # Create a temporary file for modifications
+        local temp_file="${TEMP_FOLDER}/${filename}"
+        cp "$yaml_file" "$temp_file"
+
+        # Check and replace namespace if it contains REPLACE_NAMESPACE
+        local current_namespace=$(${YQ_CMD} r "$temp_file" 'metadata.namespace' 2>/dev/null)
+        if [[ "$current_namespace" == "REPLACE_NAMESPACE" ]]; then
+            ${YQ_CMD} w -i "$temp_file" "metadata.namespace" "$namespace"
+        fi
+
+        if [[ "$airgap_mode" == "true" || "$airgap_mode" == "yes" || "$airgap_mode" == "Yes" ]]; then
+            ${YQ_CMD} d -i "$temp_file" "spec.sender.softwareCentral"
+        else
+            # Check and replace secret name if it contains REPLACE_SECRET_NAME
+            local current_secret=$(${YQ_CMD} r "$temp_file" 'spec.sender.softwareCentral.entitlementKeySecret' 2>/dev/null)
+            if [[ "$current_secret" == "REPLACE_SECRET_NAME" ]]; then
+                ${YQ_CMD} w -i "$temp_file" "spec.sender.softwareCentral.entitlementKeySecret" "$secret_name"
+            fi
+
+            # If mode is dev, set sandbox to true
+            # https://jsw.ibm.com/browse/DBACLD-225399
+            if [[ "$mode" == "dev" ]]; then
+                ${YQ_CMD} w -i "$temp_file" "spec.sender.softwareCentral.sandbox" "true"
+            fi
+        fi
+
+        # Apply the modified YAML
+        info "  - Applying $filename to namespace $namespace"
+        if ${CLI_CMD} apply -f "$temp_file" -n "$namespace"; then
+            success "Successfully applied $filename"
+        else
+            error "Failed to apply $filename"
+        fi
+
+        # Clean up temp file
+        rm -f "$temp_file"
+        echo ""
+    done
+
+    success "All IBM Usage Metering Static CRs for the Usage Metering Service have been applied."
+    echo
+}
+
+#############################################################
+
+# Function to apply Subscription for the UMS Operator
+# https://jsw.ibm.com/browse/DBACLD-216414
+function apply_subscription() {
+    local namespace="$1"
+    local channel="$2"
+    local catalog_name="$3"
+    local catalog_namespace="$4"
+    UMS_OLM_SUBSCRIPTION_TMP=${TEMP_FOLDER}/.ums_subscription.yaml
+
+    info "Creating IBM Usage Metering Subscription in namespace: $namespace"
+
+    if [ ! -f "$UMS_OLM_SUBSCRIPTION" ]; then
+        error "Template file $UMS_OLM_SUBSCRIPTION not found"
+        exit 1
+    fi
+
+    # Copy template to temp file
+    cp "$UMS_OLM_SUBSCRIPTION" "$UMS_OLM_SUBSCRIPTION_TMP"
+
+    # Replace placeholders using sed
+    ${SED_COMMAND} "s/REPLACE_NAMESPACE/${namespace}/g" "$UMS_OLM_SUBSCRIPTION_TMP"
+    ${SED_COMMAND} "s/REPLACE_CHANNEL/${channel}/g" "$UMS_OLM_SUBSCRIPTION_TMP"
+
+    # Set sourceNamespace and source using yq
+    ${YQ_CMD} w -i "$UMS_OLM_SUBSCRIPTION_TMP" "spec.sourceNamespace" "$catalog_namespace"
+    ${YQ_CMD} w -i "$UMS_OLM_SUBSCRIPTION_TMP" "spec.source" "$catalog_name"
+
+    ${CLI_CMD} apply -f ${UMS_OLM_SUBSCRIPTION_TMP}
+    if [ $? -eq 0 ]
+        then
+        success "UMS Operator Subscription Created!"
+    else
+        error "UMS Operator Subscription creation failed"
+        exit 1
+    fi
+}
+
+# Main installation function for UMS either the freshinstall or the upgrade
+# based on argument 3 the function is able to perform the required steps for either of those scenarios
+# $1 Operator namespace
+# $2 Services namespace
+# $3 scenario i.e fresh_install or upgrade
+# $4 entitlement_key which is the key used to generate the connection point secret
+# $5 airgap_mode which tells us if the user is using airgap (we will only get this data during fresh install and for upgrade we will get to know this based on the contents of the ibm-entitlement-key)
+# https://jsw.ibm.com/browse/DBACLD-224820
+function install_ibm_usage_metering() {
+    local operator_namespace=$1
+    local services_namespace=$2
+    local scenario=$3
+    local entitlement_key=$4
+    local runtime_mode=$5
+    local catalog_namespace=$6
+    local airgap_mode=$7
+    local create_secret="true"
+    echo ""
+    echo "=========================================="
+    echo "IBM Usage Metering Operator Installation"
+    echo "=========================================="
+    echo ""
+
+    # Step 1: Check if CatalogSource exists
+    echo "Step 1: Checking CatalogSource..."
+    if ! ${CLI_CMD} get catalogsource "$UMS_CATALOG_VERSION" -n "$catalog_namespace" &>/dev/null; then
+        error "CatalogSource '$UMS_CATALOG_VERSION' not found in namespace '$catalog_namespace'"
+        echo ""
+        return 1
+    fi
+
+    # Wait for CatalogSource to be ready
+    echo "Waiting for CatalogSource to be READY..."
+    local timeout=300
+    local elapsed=0
+    while [ $elapsed -lt $timeout ]; do
+        local state=$(${CLI_CMD} get catalogsource "$UMS_CATALOG_VERSION" -n "$catalog_namespace" -o jsonpath='{.status.connectionState.lastObservedState}' 2>/dev/null)
+        if [ "$state" = "READY" ]; then
+            info "IBM Usage Metering CatalogSource is ready."
+            break
+        fi
+        sleep 10
+        elapsed=$((elapsed + 10))
+    done
+
+    if [ $elapsed -ge $timeout ]; then
+        error "IBM Usage Metering CatalogSource did not become ready in time."
+        exit 1
+    fi
+    echo ""
+
+    # Step 2: Handle Subscription based on scenario
+    if [[ "$scenario" == "fresh_install" ]]; then
+        # Step 2: Apply Subscription
+        info "Creating the IBM Usage Metering Subscription..."
+        apply_subscription "$operator_namespace" "$UMS_CHANNEL_VERSION" "$UMS_CATALOG_VERSION" "$catalog_namespace"
+        echo ""
+    elif [[ "$scenario" == "upgrade" ]]; then
+        # For upgrade scenario we might have to apply a new subscription or patch it based on the version
+        info "Checking for existing IBM Usage Metering subscription..."
+        local subscription_exists=$(${CLI_CMD} get subscription -n "$operator_namespace" --no-headers 2>/dev/null | grep "ibm-usage-metering" | wc -l)
+        
+        if [ "$subscription_exists" -gt 0 ]; then
+            info "Patching existing IBM Usage Metering subscription..."
+            patch_ums_subscription "$operator_namespace" "$UMS_CHANNEL_VERSION" "$catalog_namespace"
+            if [ $? -ne 0 ]; then
+                exit 1
+            fi
+        else
+            info "No IBM Usage Metering subscription found. Creating new subscription..."
+            apply_subscription "$operator_namespace" "$UMS_CHANNEL_VERSION" "$UMS_CATALOG_VERSION" "$catalog_namespace"
+        fi
+        echo ""
+    fi
+
+    # Step 3: Wait for UMS operator to be ready
+    echo "Waiting for the UMS operator to be ready and in running state"
+    timeout=600
+    elapsed=0
+    while [ $elapsed -lt $timeout ]; do
+        if ${CLI_CMD} get csv -n "$operator_namespace" 2>/dev/null | grep -q "ibm-usage-metering.*Succeeded"; then
+            echo "Operator is ready"
+            break
+        fi
+        sleep 10
+        elapsed=$((elapsed + 10))
+        echo " Waiting... (${elapsed}s/${timeout}s)"
+    done
+
+    if [ $elapsed -ge $timeout ]; then
+        echo "ERROR: Operator did not become ready in time"
+        exit 1
+    fi
+    echo ""
+
+    # This block makes sure the UMS operator pod is running
+    timeout=300
+    elapsed=0
+    while [ $elapsed -lt $timeout ]; do
+        if ${CLI_CMD} get pods -n "$operator_namespace" -l app.kubernetes.io/name=ibm-usage-metering-operator --field-selector=status.phase=Running 2>/dev/null | grep -q Running; then
+            echo "Operator pod is running"
+            break
+        fi
+        sleep 10
+        elapsed=$((elapsed + 10))
+    done
+
+    if [ $elapsed -ge $timeout ]; then
+        echo "WARNING: Operator pod not running yet, but continuing..."
+    fi
+    echo ""
+
+    # Step 4: Applying the service metering definition static CRs from the descriptors folder
+    apply_service_meter_definitions "$services_namespace" "$UMS_STATIC_CR_LOCATION"
+    
+    # Step 5 which is to create the connection point secret and connection point CR
+    # Step 5(a) For airgap deployments, do not create the UMS secret and apply the UsageMetering CR without the softwareCentral section.
+    # Step 5(b) For non-airgap deployments, create the secret only when needed and only apply the CR if the secret exists or was created successfully.
+    if [[ "$airgap_mode" == "true" || "$airgap_mode" == "yes" || "$airgap_mode" == "Yes" || "$runtime_mode" == "dev" ]]; then
+        info "Airgap mode detected. Skipping creation of secret '$UMS_CONNECTION_POINT_SECRET_NAME' and applying UsageMetering CR."
+        apply_usage_metering_definition "$services_namespace" "$UMS_CONNECTION_POINT_SECRET_NAME" "$UMS_CONNECTION_POINT_STATIC_CR_LOCATION" "$runtime_mode" "$airgap_mode"
+    else
+        # Production non-airgap mode only
+        if ${CLI_CMD} get secret "$UMS_CONNECTION_POINT_SECRET_NAME" -n "$services_namespace" >/dev/null 2>&1; then
+            info "UMS connection point secret '$UMS_CONNECTION_POINT_SECRET_NAME' already exists in namespace '$services_namespace', skipping creation"
+            connection_point_secret_creation="true"
+        else
+            info "UMS connection point secret '$UMS_CONNECTION_POINT_SECRET_NAME' not found in namespace '$services_namespace', the script will now proceed to creating it using the Entitlement key present in the \"ibm-entitlement-key\" secret"
+
+            # For upgrade non-airgap, if the entitlement key was not passed in, retrieve it from an existing secret.
+            if [[ -z "$entitlement_key" && "$scenario" == "upgrade" ]]; then
+                get_entitlement_key_from_secret "ibm-entitlement-key" "$services_namespace"
+                if [ $? -ne 0 ]; then
+                    warning "Failed to extract entitlement key from secret.Refer to https://www.ibm.com/docs/en/bai/$BAI_RELEASE_BASE for more information on how to create the $UMS_CONNECTION_POINT_SECRET_NAME secret and the UsageMetering connection point custom resource file."
+                    create_secret="false"
+                fi
+            fi
+
+            # For fresh install non-airgap, entitlement key is expected to be passed in. If not present, do not create the secret or CR.
+            if [[ -z "$entitlement_key" ]]; then
+                warning "[IMPORTANT]The IBM Entitlement key is not available, so the $UMS_CONNECTION_POINT_SECRET_NAME secret and the UsageMetering connection point Custom Resource file will not be created.Refer to https://www.ibm.com/docs/en/cloud-paks/cp-biz-automation/$CP4BA_RELEASE_BASE for more information on how to create the $UMS_CONNECTION_POINT_SECRET_NAME secret and the UsageMetering connection point Custom Resource file."
+                create_secret="false"
+            fi
+            
+            # Creating the connection point secret only if we were able to retrieve the entitlement key
+            if [[ "$create_secret" == "true" ]]; then
+                create_connection_point_secret "$UMS_CONNECTION_POINT_SECRET_NAME" "$services_namespace" "$entitlement_key"
+                # Note: create_connection_point_secret sets connection_point_secret_creation="true" on success
+            fi
+        fi
+        
+        # Apply CR only if secret exists or was successfully created
+        # The connection_point_secret_creation flag is set by create_connection_point_secret function
+        if [[ "$connection_point_secret_creation" == "true" ]]; then
+            info "Applying the usage metering static CRs from the descriptors folder"
+            apply_usage_metering_definition "$services_namespace" "$UMS_CONNECTION_POINT_SECRET_NAME" "$UMS_CONNECTION_POINT_STATIC_CR_LOCATION" "$runtime_mode" "$airgap_mode"
+        else
+            warning "[IMPORTANT]Since the $UMS_CONNECTION_POINT_SECRET_NAME could not be created, the UsageMetering connection point Custom Resource file will not be created.Refer to https://www.ibm.com/docs/en/bai/$BAI_RELEASE_BASE for more information on how to create the $UMS_CONNECTION_POINT_SECRET_NAME secret and the UsageMetering connection point Custom Resource file."
+        fi
+    fi
+        
+    echo "================================================="
+    echo "Usage Metering Operator Installation Complete!"
+    echo "================================================="
+    echo ""
+
+}
+
+# Patch an existing IBMLicensing resource to configure Software Central uploads.
+# Arguments:
+#   $1 - secret name to set in spec.softwareCentral.entitlementKeySecret
+#   $2 - IBMLicensing resource name
+function patch_ils_instance() {
+    local secret_name="$1"
+    local licensing_name="$2"
+    local patch_payload=""
+
+    # Build the merge patch payload with sandbox=false for GA
+    patch_payload=$(cat <<EOF
+{
+  "spec": {
+      "softwareCentral": {
+        "enable": true,
+        "frequency": "5 0 * * *",
+        "entitlementKeySecret": "$secret_name"
+      }
+    }
+}
+EOF
+)
+
+    # Add sandbox only in dev mode
+    if [[ "$mode" == "dev" ]]; then
+        info "Runtime mode is dev, setting spec.softwareCentral.sandbox=true"
+        patch_payload=$(cat <<EOF
+{
+  "spec": {
+      "softwareCentral": {
+        "enable": true,
+        "frequency": "5 0 * * *",
+        "entitlementKeySecret": "$secret_name",
+        "sandbox": true
+      }
+  }
+}
+EOF
+)
+    fi
+
+    # Patch the IBMLicensing custom resource
+    info "Patching IBMLicensing resource \"$licensing_name\""
+    if ${CLI_CMD} patch IBMLicensing "$licensing_name" --type=merge -p "$patch_payload"; then
+        success "Successfully patched IBMLicensing resource \"$licensing_name\""
+        return 0
+    else
+        error "Failed to patch IBMLicensing resource \"$licensing_name\""
+        return 1
+    fi
+}
+
+
+# Configure Software Central integration for an existing IBMLicensing resource.
+#
+# Flow:
+#   1. Check whether an IBMLicensing resource exists.
+#   2. If no IBMLicensing resource exists, skip the configuration.
+#   3. Check whether the ILS connection point secret already exists.
+#   4. If the secret does not exist:
+#      - use the provided entitlement key if available
+#      - otherwise, for upgrade scenario only, try to retrieve it from ibm-entitlement-key
+#      - if no entitlement key can be obtained, skip secret creation and CR patching
+#      - if entitlement key is available, create the secret
+#   5. Patch the IBMLicensing resource to enable Software Central uploads.
+#
+# Arguments:
+#   $1 - namespace where the ILS connection point secret should exist
+#   $2 - services namespace where ibm-entitlement-key may exist
+#   $3 - entitlement key value; may be empty during upgrade
+#   $4 - scenario value such as "upgrade" or "fresh_install"
+function setup_ils_configuration_for_vpc_metrics() {
+    local licensing_namespace="$1"
+    local services_namespace="$2"
+    local entitlement_key="$3"
+    local scenario="$4"
+    local mode="$5"
+    local licensing_name=""
+    local mode_lower=""
+    local create_secret="true"
+
+    # Normalize runtime mode to lowercase for comparison
+    mode_lower=$(echo "$mode" | tr '[:upper:]' '[:lower:]')
+
+    # Step 1: Check whether an IBMLicensing resource exists
+    info "Checking for IBMLicensing resource..."
+    licensing_name=$(${CLI_CMD} get IBMLicensing --no-headers --ignore-not-found 2>/dev/null | awk 'NR==1{print $1}')
+
+    if [[ -z "$licensing_name" ]]; then
+        warning "No IBMLicensing resource found. Skipping ILS Software Central configuration."
+        return 0
+    fi
+
+    success "Found IBMLicensing resource: $licensing_name"
+
+    # Step 2: Check whether the ILS connection point secret already exists
+    if ${CLI_CMD} get secret "$ILS_SWC_SECRET_NAME" -n "$licensing_namespace" >/dev/null 2>&1; then
+        success "ILS connection point secret '$ILS_SWC_SECRET_NAME' already exists in namespace '$licensing_namespace'."
+
+        # Step 3: Patch the IBMLicensing resource even if the secret already exists
+        patch_ils_instance "$ILS_SWC_SECRET_NAME" "$licensing_name" "$mode_lower"
+        return $?
+    fi
+
+    info "ILS connection point secret '$ILS_SWC_SECRET_NAME' not found in namespace '$licensing_namespace'. The script will attempt to create it."
+
+    # Step 4: If no entitlement key was passed and this is an upgrade, try retrieving it
+    if [[ -z "$entitlement_key" && "$scenario" == "upgrade" ]]; then
+        info "Entitlement key was not passed in upgrade scenario. Attempting to retrieve it from secret \"ibm-entitlement-key\" in namespace \"$services_namespace\"."
+
+        get_entitlement_key_from_secret "ibm-entitlement-key" "$services_namespace"
+        if [ $? -ne 0 ]; then
+            warning "Failed to extract entitlement key from secret. Refer to https://www.ibm.com/docs/en/bai/$BAI_RELEASE_BASE for more information on how to create the $ILS_SWC_SECRET_NAME secret and update the IBMLicensing custom resource."
+            create_secret="false"
+        fi
+    fi
+
+    # Step 5: If entitlement key is still empty, do not create the secret or patch the CR
+    if [[ -z "$entitlement_key" ]]; then
+        warning "Entitlement key is empty. Skipping creation of secret '$ILS_SWC_SECRET_NAME' and the script will skip the patch of IBMLicensing."
+        return 0
+    fi
+
+    # Step 6: Create the secret only if allowed
+    if [[ "$create_secret" == "true" ]]; then
+        info "Creating ILS connection point secret '$ILS_SWC_SECRET_NAME' in namespace '$licensing_namespace'"
+        create_connection_point_secret "$ILS_SWC_SECRET_NAME" "$licensing_namespace" "$entitlement_key"
+
+        if [[ "$connection_point_secret_creation" == "true" ]]; then
+            # Step 7: Patch the IBMLicensing resource after secret creation
+            patch_ils_instance "$ILS_SWC_SECRET_NAME" "$licensing_name" "$mode_lower"
+            return $?
+        else
+            warning "[IMPORTANT]Since the $ILS_SWC_SECRET_NAME could not be created, the IBMLicensing instance will not be patched by the script.Refer to https://www.ibm.com/docs/en/bai/$BAI_RELEASE_BASE for more information on how to create the $ILS_SWC_SECRET_NAME secret and patch the IBMLicensing Instance."
+        fi
+    fi
+
+    return 0
+}
+
+
+# Function to update BTS datastore configuration for tls.key to tls.pk8 migration
+# This function checks for the ConfigMap 'ibm-bts-config-extension' and Secret 'bts-datastore-edb-secret'
+# and updates tls.key references to tls.pk8 where needed.
+#
+# Usage: update_bts_datastore_resources $services_namespace
+#
+# Parameters:
+#   $1 - namespace: The CP4BA namespace to check
+
+function update_bts_datastore_resources() {
+    local namespace="$1"
+    local bts_configmap_name="ibm-bts-config-extension"
+    local bts_secret_name="bts-datastore-edb-secret"
+
+    info "Checking if the current deployment has the Secret '$bts_secret_name' and ConfigMap '$bts_configmap_name' created in the namespace: $namespace"
+    echo
+    # Check if ConfigMap exists
+    local cm_exists=false
+    if ${CLI_CMD} get configmap "$bts_configmap_name" -n "$namespace" &> /dev/null; then
+        cm_exists=true
+        info "ConfigMap '$bts_configmap_name' found in namespace '$namespace'"
+    else
+        info "ConfigMap '$bts_configmap_name' not found in namespace '$namespace'"
+    fi
+
+    # Check if Secret exists
+    local secret_exists=false
+    if ${CLI_CMD} get secret "$bts_secret_name" -n "$namespace" &> /dev/null; then
+        secret_exists=true
+        info "Secret '$bts_secret_name' found in namespace '$namespace'"
+    else
+        info "Secret '$bts_secret_name' not found in namespace '$namespace'"
+    fi
+
+    # Exit if neither resource exists
+    if [[ "$cm_exists" == "false" && "$secret_exists" == "false" ]]; then
+        info "Neither ConfigMap '$bts_configmap_name' nor Secret '$bts_secret_name' exist in this deployment. Skipping the resource updates as they are not required."
+        return 0
+    fi
+    echo
+    # Process Secret if it exists
+    if [[ "$secret_exists" == "true" ]]; then
+        info "Processing Secret '$bts_secret_name' to check for 'tls.key' field..."
+
+        # Check if secret has tls.key using jsonpath
+        local has_tls_key=$(${CLI_CMD} get secret "$bts_secret_name" -n "$namespace" -o jsonpath='{.data.tls\.key}' 2>/dev/null)
+
+        if [[ -n "$has_tls_key" ]]; then
+            warning "Found 'tls.key' field in Secret '$bts_secret_name'. This field needs to be renamed to 'tls.pk8' for compatibility with the latest BTS version."
+            info "Applying patch to rename 'tls.key' to 'tls.pk8' in Secret '$bts_secret_name'..."
+
+            # Create a patch to rename tls.key to tls.pk8
+            ${CLI_CMD} patch secret "$bts_secret_name" -n "$namespace" --type=json -p="[
+                {\"op\": \"add\", \"path\": \"/data/tls.pk8\", \"value\": \"$has_tls_key\"},
+                {\"op\": \"remove\", \"path\": \"/data/tls.key\"}
+            ]"
+
+            if [[ $? -eq 0 ]]; then
+                success "Successfully renamed 'tls.key' to 'tls.pk8' in Secret '$bts_secret_name'"
+            else
+                error "Failed to update Secret '$bts_secret_name'. Please check the secret permissions and try again."
+                return 1
+            fi
+        else
+            # Check if tls.pk8 already exists
+            local has_tls_pk8=$(${CLI_CMD} get secret "$bts_secret_name" -n "$namespace" -o jsonpath='{.data.tls\.pk8}' 2>/dev/null)
+            if [[ -n "$has_tls_pk8" ]]; then
+                info "Secret '$bts_secret_name' already has 'tls.pk8' field. No changes needed."
+            fi
+        fi
+    fi
+
+    # Process ConfigMap if it exists
+    if [[ "$cm_exists" == "true" ]]; then
+        info "Processing ConfigMap '$bts_configmap_name' to check for 'tls.key' file path references..."
+
+        # Get all keys from ConfigMap data section
+        local all_keys=$(${CLI_CMD} get configmap "$bts_configmap_name" -n "$namespace" -o jsonpath='{.data}' 2>/dev/null)
+
+        if [[ -z "$all_keys" || "$all_keys" == "{}" ]]; then
+            warning "No data found in ConfigMap '$bts_configmap_name'. ConfigMap appears to be empty."
+        else
+            # Find all customPropertyName keys and check for sslKey value
+            local ssl_key_num=""
+            local custom_prop_names=$(${CLI_CMD} get configmap "$bts_configmap_name" -n "$namespace" -o json | grep -o '"customPropertyName[0-9]*"' | tr -d '"')
+
+            if [[ -z "$custom_prop_names" ]]; then
+                info "No 'customPropertyName' keys found in ConfigMap '$bts_configmap_name'. No SSL key configuration to update."
+            else
+                # Check each customPropertyName to find sslKey
+                while IFS= read -r key; do
+                    if [[ -n "$key" ]]; then
+                        local value=$(${CLI_CMD} get configmap "$bts_configmap_name" -n "$namespace" -o jsonpath="{.data.$key}" 2>/dev/null)
+
+                        if [[ "$value" == "sslKey" ]]; then
+                            # Extract the number from customPropertyNameX
+                            ssl_key_num=$(echo "$key" | grep -o '[0-9]*$')
+                            info "Found 'sslKey' property at '$key'"
+                            break
+                        fi
+                    fi
+                done <<< "$custom_prop_names"
+
+                if [[ -n "$ssl_key_num" ]]; then
+                    # Check the corresponding customPropertyValue
+                    local custom_prop_value_key="customPropertyValue$ssl_key_num"
+                    local current_value=$(${CLI_CMD} get configmap "$bts_configmap_name" -n "$namespace" -o jsonpath="{.data.$custom_prop_value_key}" 2>/dev/null)
+
+                    if [[ -n "$current_value" ]]; then
+
+                        # Check if the path ends with tls.key
+                        if [[ "$current_value" == *"tls.key" ]]; then
+                            local new_value="${current_value%tls.key}tls.pk8"
+                            warning "File path ends with 'tls.key' which needs to be updated to 'tls.pk8' for compatibility with the latest BTS version."
+                            info "Applying patch to update '$custom_prop_value_key' from '$current_value' to '$new_value'..."
+
+                            # Patch the ConfigMap
+                            ${CLI_CMD} patch configmap "$bts_configmap_name" -n "$namespace" --type=json -p="[
+                                {\"op\": \"replace\", \"path\": \"/data/$custom_prop_value_key\", \"value\": \"$new_value\"}
+                            ]"
+
+                            if [[ $? -eq 0 ]]; then
+                                success "Successfully updated the '$custom_prop_value_key' key in ConfigMap '$bts_configmap_name'"
+                            else
+                                error "Failed to update ConfigMap '$bts_configmap_name'. Please check the configmap '$bts_configmap_name' permissions and try again."
+                                return 1
+                            fi
+                        elif [[ "$current_value" == *"tls.pk8" ]]; then
+                            info "File path already ends with 'tls.pk8'. No changes needed."
+                        else
+                            echo
+                        fi
+                    else
+                        warning "Property '$custom_prop_value_key' not found or is empty in ConfigMap '$bts_configmap_name'."
+                        warning "Expected to find the SSL key file path at this property."
+                    fi
+                else
+                    info "No 'sslKey' property found in ConfigMap '$bts_configmap_name'."
+                    info "Please verify the '$bts_configmap_name' configmap before proceeding with next steps."
+                fi
+            fi
+        fi
+    fi
+
+    success "BTS Datasource resources are compatible with the latest BTS version."
+    return 0
 }

@@ -20,7 +20,7 @@ function install_ibm_cert_manager(){
     wait_msg "Installing IBM Cert-manager Operator..."
     mkdir -p $UPGRADE_PREREQUISITE_FOLDER >/dev/null 2>&1
     ${CLI_CMD} new-project ibm-cert-manager >/dev/null 2>&1
-    install_plan_approval_flag=$(echo "$install_plan_approval" | tr '[:upper:]' '[:lower:]')
+    install_plan_approval_flag=$(echo $install_plan_approval | tr '[:upper:]' '[:lower:]')
     if [[ $install_plan_approval_flag == "automatic" ]]; then
         install_plan_approval="Automatic"
     elif [[ $install_plan_approval_flag == "manual" ]]; then

@@ -16,7 +16,7 @@ metadata:
     app.kubernetes.io/instance: ibm-bai
     app.kubernetes.io/managed-by: ibm-bai
     app.kubernetes.io/name: ibm-bai
-    release: 25.0.1
+    release: 26.0.0
 spec:
   replicas: 1
   selector:
@@ -30,7 +30,7 @@ spec:
         productID: eb91d896dbbc4472861b9d2b71cebd68
         productMetric: VIRTUAL_PROCESSOR_CORE
         productName: IBM Business Automation Insights
-        productVersion: 25.0.1
+        productVersion: 26.0.0
       labels:
         app.kubernetes.io/instance: ibm-bai
         app.kubernetes.io/managed-by: olm
@@ -65,7 +65,7 @@ spec:
                       - ppc64le
       initContainers:
         - name: folder-prepare-container
-          image: icr.io/cpopen/icp4a-insights-engine-operator@sha256:d51aedb47119697c58775ae60774fc6ceb32a58686b749c4600792686dd15fb8
+          image: icr.io/cpopen/icp4a-insights-engine-operator@sha256:cf5623e5478ad9cb603401f6d09d732caf0cd7ff1b14ac6ec853bbcef5e5fbc9
           imagePullPolicy: IfNotPresent
           securityContext:
             readOnlyRootFilesystem: true
@@ -104,25 +104,25 @@ spec:
           env:
             - name: COCKPIT_IMAGES
               value: >
-                25.0.1=cp.icr.io/cp/cp4a/bai/insights-engine-cockpit@sha256:e9715cb1d8121583c87069caf70e2b1192203ca5d12871eb016692148c59dd5c                      
+                26.0.0=cp.icr.io/cp/cp4a/bai/insights-engine-cockpit@sha256:e9715cb1d8121583c87069caf70e2b1192203ca5d12871eb016692148c59dd5c                      
             - name: APPLICATION_SETUP_IMAGES
               value: >
-                25.0.1=cp.icr.io/cp/cp4a/bai/insights-engine-application-setup@sha256:21ba40e68edc471a61967631bbe4f55227742056b68e4868a5df874ccbefbdad
+                26.0.0=cp.icr.io/cp/cp4a/bai/insights-engine-application-setup@sha256:21ba40e68edc471a61967631bbe4f55227742056b68e4868a5df874ccbefbdad
             - name: MANAGEMENT_IMAGES
               value: >
-                25.0.1=cp.icr.io/cp/cp4a/bai/insights-engine-management@sha256:5745bfb5a8604a707bca593f8b67582103c501f35353601964130c0cf58b7a2f
+                26.0.0=cp.icr.io/cp/cp4a/bai/insights-engine-management@sha256:5745bfb5a8604a707bca593f8b67582103c501f35353601964130c0cf58b7a2f
             - name: MANAGEMENT_BACKEND_IMAGES
               value: >
-                25.0.1=cp.icr.io/cp/cp4a/bai/insights-engine-management-backend@sha256:cf84705e4e1dfdd55ed384f1212709e959bd8ec7c1f17acee35991a113625f09
+                26.0.0=cp.icr.io/cp/cp4a/bai/insights-engine-management-backend@sha256:cf84705e4e1dfdd55ed384f1212709e959bd8ec7c1f17acee35991a113625f09
             - name: MINIMAL_IMAGES
               value: >
-                25.0.1=cp.icr.io/cp/cp4a/bai/bai-init@sha256:3eff33a5d337cdcdadda5e76581fa3680407a3b1fc4be5ad47322d27c0691474
+                26.0.0=cp.icr.io/cp/cp4a/bai/bai-init@sha256:3eff33a5d337cdcdadda5e76581fa3680407a3b1fc4be5ad47322d27c0691474
             - name: INIT_KEYTOOL_IMAGES
               value: >
-                25.0.1=cp.icr.io/cp/cp4a/bai/dba-keytool-initcontainer@sha256:e17580e09fe40a45ac7d46f4e58a845fbbed7cec8f781f9c84850e42ade086c2
+                26.0.0=cp.icr.io/cp/cp4a/bai/dba-keytool-initcontainer@sha256:e17580e09fe40a45ac7d46f4e58a845fbbed7cec8f781f9c84850e42ade086c2
             - name: UMS_REGISTRATION_IMAGES
               value: >
-                25.0.1=cp.icr.io/cp/cp4a/bai/dba-umsregistration-initjob@sha256:137e8d1ab6e04cbff9686efa3a9a9431c05d6d9767e2f9a5c048de6adee9b1ed
+                26.0.0=cp.icr.io/cp/cp4a/bai/dba-umsregistration-initjob@sha256:137e8d1ab6e04cbff9686efa3a9a9431c05d6d9767e2f9a5c048de6adee9b1ed
             - name: OPERATOR_NAMESPACE
               valueFrom:
                 fieldRef:
@@ -137,7 +137,7 @@ spec:
               value: "10"
             - name: bai_license
               value: BAI
-          image: icr.io/cpopen/icp4a-insights-engine-operator@sha256:d51aedb47119697c58775ae60774fc6ceb32a58686b749c4600792686dd15fb8
+          image: icr.io/cpopen/icp4a-insights-engine-operator@sha256:cf5623e5478ad9cb603401f6d09d732caf0cd7ff1b14ac6ec853bbcef5e5fbc9
           imagePullPolicy: IfNotPresent
           livenessProbe:
             httpGet:
