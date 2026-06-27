@@ -15,6 +15,34 @@ function verify_storage_class_valid(){
   local sc_name=$1
   local sc_mode=$2
   local sample_pvc_name=$3
+  # Check if storage class exists first
+  if ! ${CLI_CMD} get storageclass "$sc_name" &>/dev/null; then
+    fail "Storage class '$sc_name' does not exist!"
+    verification_sc_passed="No"
+    return 1
+  fi
+
+  # Get the volumeBindingMode
+  local binding_mode=$(${CLI_CMD} get storageclass "$sc_name" -o jsonpath='{.volumeBindingMode}' 2>/dev/null)
+
+  # If binding mode is empty, default is Immediate
+  if [[ -z "$binding_mode" ]]; then
+    binding_mode="Immediate"
+  fi
+
+  # Skip PVC test for WaitForFirstConsumer
+  # https://jsw.ibm.com/browse/DBACLD-229416
+  if [[ "$binding_mode" == "WaitForFirstConsumer" ]]; then
+    info "Storage class '$sc_name' detected with volumeBindingMode: WaitForFirstConsumer"
+    warning "Skipping PVC binding test - PVC will bind when first pod is scheduled during deployment"
+    success "Verification storage class: \"${sc_name}\", PASSED (existence and configuration verified)!"
+    verification_sc_passed="Yes"
+    printf "\n"
+    return 0
+  fi
+
+  # Continue with normal PVC test for Immediate binding mode
+  info "Storage class '$sc_name' uses volumeBindingMode: $binding_mode . The script will now perform a PVC binding test for the storage class"
 
 cat << EOF > ${STORAGE_CLASS_SAMPLE}
 # YAML template for sample storage class

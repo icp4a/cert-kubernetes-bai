@@ -697,7 +697,7 @@ function create_prerequisites() {
 
 
     msgB "* You can use this shell script to create the secret automatically: $CREATE_SECRET_SCRIPT_FILE"
-    msgB "* Create the Kubernetes secrets manually based on your modified \"YAML template for secret\".\n* And then run the  \"bai-prerequisites.sh -m validate\" command to verify that the secrets are created correctly."
+    msgB "* Create the Kubernetes secrets manually based on your modified \"YAML template for secret\".\n* And then run the \"./bai-prerequisites.sh -m validate -n $TARGET_PROJECT_NAME\" command to verify that the secrets are created correctly."
 }
 
 function create_temp_property_file(){
@@ -1164,7 +1164,11 @@ function create_property_file(){
     printf '%b\n'  "\x1b[32m* [bai_user_profile.property]:\x1B[0m"
     printf '%b\n'  "  - Properties for the global value used by the BAI stand-alone deployment, such as \"sc_deployment_license\".\n"
     printf '%b\n'  "  - Properties for the value used by each component of BAI stand-alone, such as \"sc_deployment_profile_size\"\n"
-
+    
+    printf '%b\n' "\x1b[32m* [Next Step]:\x1B[0m"
+    printf '%b\n' "  - When all the required certificates and property files are prepared, run the following command to generate the database scripts and secret YAML files:"
+    printf '%b\n' "    $RED_TEXT\"./bai-prerequisites.sh -m generate -n $TARGET_PROJECT_NAME\"${RESET_TEXT}"
+    
     # show tips for IM metastore external Postgres DB
     if [[ $EXTERNAL_POSTGRESDB_FOR_IM == "true" ]]; then
         msgB "* You have enabled IM metastore external Postgres DB, please get \"<your-server-certification: root.crt>\" \"<your-client-certification: client.crt>\" \"<your-client-key: client.key>\" from your local or remote database server, and copy them into folder \"$IM_DB_SSL_CERT_FOLDER\" before you execute the generate mode of bai-prerequisites.sh script."
@@ -1763,10 +1767,13 @@ function validate_prerequisites(){
         tmp_serverport="$(prop_ldap_property_file LDAP_PORT)"
         tmp_basdn="$(prop_ldap_property_file LDAP_BASE_DN)"
         tmp_ldapssl="$(prop_ldap_property_file LDAP_SSL_ENABLED)"
-        tmp_user=$( ${CLI_CMD} get secret -l name=ldap-bind-secret -o yaml -n "$BAI_SERVICES_NS" | ${YQ_CMD} r - items.[0].data.ldapUsername | base64 --decode )
-        ## <https://jsw.ibm.com/browse/DBACLD-172803> - We are now asking user to use {xor} for special characters in password, so we need to use decode_xor_password to get the password decoded before validation.
-        bai_operator=$( ${CLI_CMD} get pods -l name=ibm-bai-insights-engine-operator --no-headers --ignore-not-found -n "$BAI_OPERATORS_NS" | awk '{print $1}' )
-        tmp_userpwd=$( decode_xor_password "$( ${CLI_CMD} get secret -n "$BAI_SERVICES_NS" -l name=ldap-bind-secret -o yaml | ${YQ_CMD} r - items.[0].data.ldapPassword | base64 --decode )" "$BAI_OPERATORS_NS" "$bai_operator" | sed  's/\$/\\$/g' )
+         ## <https://jsw.ibm.com/browse/DBACLD-172803> - We are now asking user to use {xor} for special characters in password, so we need to use decode_xor_password to get the password decoded before validation.        
+        tmp_user=$($CLI_CMD get secret -n "$bai_services_namespace" -l name=ldap-bind-secret -o jsonpath='{.items[0].data.ldapUsername}' | ${BASE64_DECODE})
+        tmp_userpwd=$($CLI_CMD get secret -n "$bai_services_namespace" -l name=ldap-bind-secret -o jsonpath='{.items[0].data.ldapPassword}' | ${BASE64_DECODE})
+        if [[ "$tmp_userpwd" =~ "{xor}" ]]; then
+            bai_operator=$( $CLI_CMD get pods -l name=ibm-bai-insights-engine-operator --no-headers --ignore-not-found -n $bai_operators_namespace | awk '{print $1}' )
+            tmp_userpwd=$(decode_xor_password $tmp_userpwd $bai_operators_namespace $bai_operator)
+        fi
 
         tmp_servername=$(sed -e 's/^"//' -e 's/"$//' <<<"$tmp_servername")
         tmp_serverport=$(sed -e 's/^"//' -e 's/"$//' <<<"$tmp_serverport")
@@ -1809,7 +1816,7 @@ function validate_prerequisites(){
         rm -rf ${im_external_db_cert_folder}/clientkey.pk8 2>&1 </dev/null
         openssl pkcs8 -topk8 -outform DER -in $postgres_clientkeyfile -out ${im_external_db_cert_folder}/clientkey.pk8 -nocrypt 2>&1 </dev/null
 
-        output=$($JAVA_CMD -Dsemeru.fips=$fips_flag -Duser.language=$BAI_AUTO_LANGUAGE -Duser.country=$BAI_AUTO_REGION -Dcom.ibm.jsse2.overrideDefaultTLS=true -Djavax.net.ssl.trustStoreType=PKCS12 -cp "${DB_JDBC_NAME}/postgresql-42.7.2.jar:${DB_CONNECTION_JAR_PATH}/PostgresJDBCConnection.jar" PostgresConnection -h $dbserver -p $dbport -db $dbname -u $dbuser -pwd $dbuserpwd -sslmode verify-ca -ca $postgres_cafile -clientkey ${im_external_db_cert_folder}/clientkey.pk8 -clientcert $postgres_clientcertfile 2>&1)
+        output=$($JAVA_CMD -Dsemeru.fips=$fips_flag -Duser.language=$BAI_AUTO_LANGUAGE -Duser.country=$BAI_AUTO_REGION -Dcom.ibm.jsse2.overrideDefaultTLS=true -Djavax.net.ssl.trustStoreType=PKCS12 -cp "${DB_JDBC_NAME}/postgresql-42.7.11.jar:${DB_CONNECTION_JAR_PATH}/PostgresJDBCConnection.jar" PostgresConnection -h $dbserver -p $dbport -db $dbname -u $dbuser -pwd $dbuserpwd -sslmode verify-ca -ca $postgres_cafile -clientkey ${im_external_db_cert_folder}/clientkey.pk8 -clientcert $postgres_clientcertfile 2>&1)
         retVal_verify_db_tmp=$?
         connection_time=$(echo "$output" | awk -F 'Round Trip time: ' '{print $2}' | awk '{print $1}')
         if [[ ! -z $connection_time ]]; then
@@ -1817,7 +1824,7 @@ function validate_prerequisites(){
         fi
 
         [[ retVal_verify_db_tmp -ne 0 ]] && \
-        warning "Execute: $JAVA_CMD -Dsemeru.fips=$fips_flag -Duser.language=$BAI_AUTO_LANGUAGE -Duser.country=$BAI_AUTO_REGION -Dcom.ibm.jsse2.overrideDefaultTLS=true -Djavax.net.ssl.trustStoreType=PKCS12 -cp \"${DB_JDBC_NAME}/postgresql-42.7.2.jar:${DB_CONNECTION_JAR_PATH}/PostgresJDBCConnection.jar\" PostgresConnection -h $dbserver -p $dbport -db $dbname -u $dbuser -pwd ****** -sslmode verify-ca -ca $postgres_cafile -clientkey ${im_external_db_cert_folder}/clientkey.pk8 -clientcert $postgres_clientcertfile" && \
+        warning "Execute: $JAVA_CMD -Dsemeru.fips=$fips_flag -Duser.language=$BAI_AUTO_LANGUAGE -Duser.country=$BAI_AUTO_REGION -Dcom.ibm.jsse2.overrideDefaultTLS=true -Djavax.net.ssl.trustStoreType=PKCS12 -cp \"${DB_JDBC_NAME}/postgresql-42.7.11.jar:${DB_CONNECTION_JAR_PATH}/PostgresJDBCConnection.jar\" PostgresConnection -h $dbserver -p $dbport -db $dbname -u $dbuser -pwd ****** -sslmode verify-ca -ca $postgres_cafile -clientkey ${im_external_db_cert_folder}/clientkey.pk8 -clientcert $postgres_clientcertfile" && \
         fail "Unable to connect to database \"$dbname\" on database server \"$dbserver\", please check the configuration again."
         [[ retVal_verify_db_tmp -eq 0 ]] && \
         success "The DB connection check for \"$dbname\" on database server \"$dbserver\" PASSED!"
@@ -1849,7 +1856,7 @@ function validate_prerequisites(){
         rm -rf ${zen_external_db_cert_folder}/clientkey.pk8 2>&1 </dev/null
         openssl pkcs8 -topk8 -outform DER -in $postgres_clientkeyfile -out ${zen_external_db_cert_folder}/clientkey.pk8 -nocrypt 2>&1 </dev/null
 
-        output=$($JAVA_CMD -Dsemeru.fips=$fips_flag -Duser.language=$BAI_AUTO_LANGUAGE -Duser.country=$BAI_AUTO_REGION -Dcom.ibm.jsse2.overrideDefaultTLS=true -Djavax.net.ssl.trustStoreType=PKCS12 -cp "${DB_JDBC_NAME}/postgresql-42.7.2.jar:${DB_CONNECTION_JAR_PATH}/PostgresJDBCConnection.jar" PostgresConnection -h $dbserver -p $dbport -db $dbname -u $dbuser -pwd $dbuserpwd -sslmode verify-ca -ca $postgres_cafile -clientkey ${zen_external_db_cert_folder}/clientkey.pk8 -clientcert $postgres_clientcertfile 2>&1)
+        output=$($JAVA_CMD -Dsemeru.fips=$fips_flag -Duser.language=$BAI_AUTO_LANGUAGE -Duser.country=$BAI_AUTO_REGION -Dcom.ibm.jsse2.overrideDefaultTLS=true -Djavax.net.ssl.trustStoreType=PKCS12 -cp "${DB_JDBC_NAME}/postgresql-42.7.11.jar:${DB_CONNECTION_JAR_PATH}/PostgresJDBCConnection.jar" PostgresConnection -h $dbserver -p $dbport -db $dbname -u $dbuser -pwd $dbuserpwd -sslmode verify-ca -ca $postgres_cafile -clientkey ${zen_external_db_cert_folder}/clientkey.pk8 -clientcert $postgres_clientcertfile 2>&1)
         retVal_verify_db_tmp=$?
         connection_time=$(echo "$output" | awk -F 'Round Trip time: ' '{print $2}' | awk '{print $1}')
         if [[ ! -z $connection_time ]]; then
@@ -1857,7 +1864,7 @@ function validate_prerequisites(){
         fi
 
         [[ retVal_verify_db_tmp -ne 0 ]] && \
-        warning "Execute: $JAVA_CMD -Dsemeru.fips=$fips_flag -Duser.language=$BAI_AUTO_LANGUAGE -Duser.country=$BAI_AUTO_REGION -Dcom.ibm.jsse2.overrideDefaultTLS=true -Djavax.net.ssl.trustStoreType=PKCS12 -cp \"${DB_JDBC_NAME}/postgresql-42.7.2.jar:${DB_CONNECTION_JAR_PATH}/PostgresJDBCConnection.jar\" PostgresConnection -h $dbserver -p $dbport -db $dbname -u $dbuser -pwd ****** -sslmode verify-ca -ca $postgres_cafile -clientkey ${zen_external_db_cert_folder}/clientkey.pk8 -clientcert $postgres_clientcertfile" && \
+        warning "Execute: $JAVA_CMD -Dsemeru.fips=$fips_flag -Duser.language=$BAI_AUTO_LANGUAGE -Duser.country=$BAI_AUTO_REGION -Dcom.ibm.jsse2.overrideDefaultTLS=true -Djavax.net.ssl.trustStoreType=PKCS12 -cp \"${DB_JDBC_NAME}/postgresql-42.7.11.jar:${DB_CONNECTION_JAR_PATH}/PostgresJDBCConnection.jar\" PostgresConnection -h $dbserver -p $dbport -db $dbname -u $dbuser -pwd ****** -sslmode verify-ca -ca $postgres_cafile -clientkey ${zen_external_db_cert_folder}/clientkey.pk8 -clientcert $postgres_clientcertfile" && \
         fail "Unable to connect to database \"$dbname\" on database server \"$dbserver\", please check the configuration again."
         [[ retVal_verify_db_tmp -eq 0 ]] && \
         success "The DB connection check for \"$dbname\" on database server \"$dbserver\" PASSED!"
@@ -1889,7 +1896,7 @@ function validate_prerequisites(){
         rm -rf ${bts_external_db_cert_folder}/clientkey.pk8 2>&1 </dev/null
         openssl pkcs8 -topk8 -outform DER -in $postgres_clientkeyfile -out ${bts_external_db_cert_folder}/clientkey.pk8 -nocrypt 2>&1 </dev/null
 
-        output=$($JAVA_CMD -Dsemeru.fips=$fips_flag -Duser.language=$BAI_AUTO_LANGUAGE -Duser.country=$BAI_AUTO_REGION -Dcom.ibm.jsse2.overrideDefaultTLS=true -Djavax.net.ssl.trustStoreType=PKCS12 -cp "${DB_JDBC_NAME}/postgresql-42.7.2.jar:${DB_CONNECTION_JAR_PATH}/PostgresJDBCConnection.jar" PostgresConnection -h $dbserver -p $dbport -db $dbname -u $dbuser -pwd $dbuserpwd -sslmode verify-ca -ca $postgres_cafile -clientkey ${bts_external_db_cert_folder}/clientkey.pk8 -clientcert $postgres_clientcertfile 2>&1)
+        output=$($JAVA_CMD -Dsemeru.fips=$fips_flag -Duser.language=$BAI_AUTO_LANGUAGE -Duser.country=$BAI_AUTO_REGION -Dcom.ibm.jsse2.overrideDefaultTLS=true -Djavax.net.ssl.trustStoreType=PKCS12 -cp "${DB_JDBC_NAME}/postgresql-42.7.11.jar:${DB_CONNECTION_JAR_PATH}/PostgresJDBCConnection.jar" PostgresConnection -h $dbserver -p $dbport -db $dbname -u $dbuser -pwd $dbuserpwd -sslmode verify-ca -ca $postgres_cafile -clientkey ${bts_external_db_cert_folder}/clientkey.pk8 -clientcert $postgres_clientcertfile 2>&1)
         retVal_verify_db_tmp=$?
         connection_time=$(echo "$output" | awk -F 'Round Trip time: ' '{print $2}' | awk '{print $1}')
         if [[ ! -z $connection_time ]]; then
@@ -1897,7 +1904,7 @@ function validate_prerequisites(){
         fi
 
         [[ retVal_verify_db_tmp -ne 0 ]] && \
-        warning "Execute: $JAVA_CMD -Dsemeru.fips=$fips_flag -Duser.language=$BAI_AUTO_LANGUAGE -Duser.country=$BAI_AUTO_REGION -Dcom.ibm.jsse2.overrideDefaultTLS=true -Djavax.net.ssl.trustStoreType=PKCS12 -cp \"${DB_JDBC_NAME}/postgresql-42.7.2.jar:${DB_CONNECTION_JAR_PATH}/PostgresJDBCConnection.jar\" PostgresConnection -h $dbserver -p $dbport -db $dbname -u $dbuser -pwd ****** -sslmode verify-ca -ca $postgres_cafile -clientkey ${bts_external_db_cert_folder}/clientkey.pk8 -clientcert $postgres_clientcertfile" && \
+        warning "Execute: $JAVA_CMD -Dsemeru.fips=$fips_flag -Duser.language=$BAI_AUTO_LANGUAGE -Duser.country=$BAI_AUTO_REGION -Dcom.ibm.jsse2.overrideDefaultTLS=true -Djavax.net.ssl.trustStoreType=PKCS12 -cp \"${DB_JDBC_NAME}/postgresql-42.7.11.jar:${DB_CONNECTION_JAR_PATH}/PostgresJDBCConnection.jar\" PostgresConnection -h $dbserver -p $dbport -db $dbname -u $dbuser -pwd ****** -sslmode verify-ca -ca $postgres_cafile -clientkey ${bts_external_db_cert_folder}/clientkey.pk8 -clientcert $postgres_clientcertfile" && \
         fail "Unable to connect to database \"$dbname\" on database server \"$dbserver\", please check the configuration again."
         [[ retVal_verify_db_tmp -eq 0 ]] && \
         success "The DB connection check for \"$dbname\" on database server \"$dbserver\" PASSED!"
@@ -2073,3 +2080,4 @@ fi
 ################################################
 #### End - Main step for install operator ####
 ################################################
+

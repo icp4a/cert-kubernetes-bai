@@ -3051,6 +3051,10 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
         # DBACLD-166239 -> Update EDB configmap ibm-zen-metastore-edb-cm to add new parameters with CPFS 4.10 or later by calling patch_edb_configmap()
         patch_edb_configmap $BAI_SERVICES_NS
 
+        # Patch the BTS datastore secret and CM if required
+        # https://jsw.ibm.com/browse/DBACLD-238245 and https://jsw.ibm.com/browse/DBACLD-238566
+        update_bts_datastore_resources "$BAI_SERVICES_NS"
+
         # DBACLD-166239 -> Update EDB configmap ibm-zen-metastore-edb-cm to add new parameters with CPFS 4.10 or later.
         # During upgrade, we check the existence of the configmap along with these 2 new parameters.
         # If those parameters exists then we will not patch the configmap as the configmap is same for embedded and external postgres.
