@@ -261,10 +261,6 @@ function upgrade_deployment(){
     #info "${YELLOW_TEXT}Setting \"shared_configuration.sc_egress_configuration.sc_restricted_internet_access\" to \"false\" while upgrading BAI Standalone deployment, you could change it according to your requirements of security.${RESET_TEXT}"
     #printf "\n"
     #${YQ_CMD} w -i ${UPGRADE_DEPLOYMENT_BAI_CR_TMP} spec.shared_configuration.sc_egress_configuration.sc_restricted_internet_access "false"
-    # Set shared_configuration.enable_fips always "false" in upgrade
-    info "${YELLOW_TEXT}Setting \"shared_configuration.enable_fips\" as \"false\" while upgrading BAI Standalone deployment, you could change it according to your requirements.${RESET_TEXT}"
-    ${YQ_CMD} w -i ${UPGRADE_DEPLOYMENT_BAI_CR_TMP} spec.shared_configuration.enable_fips "false"
-
     # By default we will always set the sc_enable_usage_metering flag to true and this will enable the
     # operators to deploy the cron jobs to send usage metrics to software central
     # https://jsw.ibm.com/browse/DBACLD-225399
@@ -355,10 +351,14 @@ function upgradedeployment_mode() {
 
     # Adding a statement to delete the old elastic search CR since we are updating the elastic search CR to switch the quiesce flag from false to true in 24.0.1 to 25.0.0 upgrade
     # https://jsw.ibm.com/browse/DBACLD-166681
-    echo "${YELLOW_TEXT}[IMPORTANT]: ${RESET_TEXT}From ($BAI_RELEASE_BASE) ,BAI Standalone will be moving from Opensearch version 2.17.0 (kind: ElasticsearchCluster) to Opensearch version 2.19.x (kind: Cluster). The upgrade process will automatically migrate all the existing indices to new Opensearch version.After the upgrade is completed you must validate and verify all the existing indices are migrated successfully."
-    echo "Once you have verified that indices are migrated successfully you may delete the old Opensearch instance (kind: ElasticsearchCluster) by executing \"${GREEN_TEXT} ${CLI_CMD} delete ElasticsearchCluster opensearch -n $BAI_SERVICES_NS ${RESET_TEXT} \" . "
-    echo "${YELLOW_TEXT}[NOTE]: ${RESET_TEXT} There will be no functional impact of leaving the old Opensearch  (kind: ElasticsearchCluster) running in the cluster."
-    printf "\n"
+    # Only show ElasticsearchCluster cleanup instructions when upgrading from 24.0.x, as that is the only path
+    # where the old kind:ElasticsearchCluster CR existed. From 25.0.0 onwards the CR is already kind:Cluster.
+    if [[ "${bai_original_csv_ver_for_upgrade_script}" == 24.0.* ]]; then
+        echo "${YELLOW_TEXT}[IMPORTANT]: ${RESET_TEXT}From ($BAI_RELEASE_BASE) ,BAI Standalone will be moving from Opensearch version 2.17.0 (kind: ElasticsearchCluster) to Opensearch version 2.19.x (kind: Cluster). The upgrade process will automatically migrate all the existing indices to new Opensearch version.After the upgrade is completed you must validate and verify all the existing indices are migrated successfully."
+        echo "Once you have verified that indices are migrated successfully you may delete the old Opensearch instance (kind: ElasticsearchCluster) by executing \"${GREEN_TEXT} ${CLI_CMD} delete ElasticsearchCluster opensearch -n $BAI_SERVICES_NS ${RESET_TEXT} \" . "
+        echo "${YELLOW_TEXT}[NOTE]: ${RESET_TEXT} There will be no functional impact of leaving the old Opensearch  (kind: ElasticsearchCluster) running in the cluster."
+        printf "\n"
+    fi
 
     echo "${YELLOW_TEXT}- How to check the overall upgrade status for BAI Operators/zenService/IM.${RESET_TEXT}"
     echo "${YELLOW_TEXT}  [TIPS]: ${RESET_TEXT}The [upgradeDeploymentStatus] option will first start the necessary BAI Standalone operators (ibm-bai-insights-engine-operator/ibm-bai-foundation-operator) to upgrade zenService.Once the zenService upgrade is completed , the rest of the BAI Standalone deployment will be upgraded."

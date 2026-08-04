@@ -100,8 +100,7 @@ verifyInputParameters(){
   if [ "$USERPASS" == "" ] # inforamtion in case of wrong parameters
   then
     echo
-    echo "*** CP4BA URLs verification ***"
-    #echo "$0 <cluster_domain> <CP4BA_namespace> <ApiKey> <LDAP/cp4admin_user> <user_password>"
+    echo "*** BAI URLs verification ***"
     printf '%b\n' "${BOLD_TEXT}Invalid parameters${RESET_TEXT}"
     echo "Make sure you have provided input parameters PROBE_USER_API_KEY, PROBE_USER_NAME, and PROBE_USER_PASSWORD"
     echo
@@ -110,17 +109,17 @@ verifyInputParameters(){
     then
       printf '%b\n' "1. Login to ${BLUE_TEXT}https://cpd-${NAMESPACE}.apps.${CLUSTER}${RESET_TEXT} as:"
     else
-      echo "1. Login to https://cpd-<CP4BA_namespace>.apps.<cluster_domain> as:"
+      echo "1. Login to https://cpd-<BAI_namespace>.apps.<cluster_domain> as:"
     fi
     printf '%b\n' " -  ${BOLD_TEXT}LDAP user${RESET_TEXT} in case of production deployment"
-    printf '%b\n' " -  ${BOLD_TEXT}cp4admin user${RESET_TEXT} in case of starter deployment"
+    printf '%b\n' " -  ${BOLD_TEXT}admin user${RESET_TEXT} in case of non-production deployment"
     echo "2. Open 'Profile and settings' window"
     echo "3. Generate new API key using 'API key' button on the right side"
     echo "4. Use red Generate button"
     echo "5. Use blue Copy button"
     echo
-    printf '%b\n' "* To get ${BOLD_TEXT}cp4admin${RESET_TEXT} password run:"
-    printf '%b\n' "${BLUE_TEXT}oc describe cm icp4adeploy-cp4ba-access-info -n $2 | grep password | awk '{split(\$0,a,\":\");print a[2]}' | uniq${RESET_TEXT}"
+    printf '%b\n' "* To get ${BOLD_TEXT}admin${RESET_TEXT} password run:"
+    printf '%b\n' "${BLUE_TEXT}oc get secret platform-auth-idp-credentials -n ${NAMESPACE} -o jsonpath='{.data.admin_password}' | base64 -d && echo${RESET_TEXT}"
     echo
     #echo "* Example:"
     #printf '%b\n' "${BOLD_TEXT}./checkURL4BA.sh cp4ba-multi-p1.cloudpak-bringup.com cp4ba-prod sAHHjkhjhAUlksjsIIJOSLS= BUAdmin BUPassword${RESET_TEXT}"

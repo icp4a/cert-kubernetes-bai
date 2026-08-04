@@ -28,7 +28,7 @@ CURRENT_DATE_TIME=`date +"%Y-%m-%d"`
 # This section is to customize the Cloud Pak foundational services install type.
 # By default, a shared Cloud Pak foundational services is used with a default ns of "ibm-common-services".
 # If needed, you can change the ns to a dedicated Cloud Pak foundational services ns.
-CP4BA_COMMON_SERVICES_NAMESPACE="ibm-common-services"
+BAI_COMMON_SERVICES_NAMESPACE="ibm-common-services"
 
 
 # PROBE: TESTING SERVICES URLs
@@ -42,39 +42,8 @@ PROBE_VERBOSE='-v'    # verbose option, empty or "-v" to see additional debug in
 #IBM Production Defaults
 ############################
 ### Optional - Place holders... ###
-CP4BA_DEPLOYMENT_PRODUCTION_ADMIN_USER="Located in your LDAP Sever"     # "BUAdmin"
-CP4BA_DEPLOYMENT_PRODUCTION_LDAP_PASSWORD="Located in your LDAP Sever"  # "admin"
+BAI_DEPLOYMENT_PRODUCTION_ADMIN_USER="Located in your LDAP Sever"     # "BUAdmin"
+BAI_DEPLOYMENT_PRODUCTION_LDAP_PASSWORD="Located in your LDAP Sever"  # "admin"
 
-CP4BA_DEPLOYMENT_PRODUCTION_DECISIONS_ADMIN_USER="Located in your LDAP Sever"     # "odmAdmin"
-CP4BA_DEPLOYMENT_PRODUCTION_DECISIONS_LDAP_PASSWORD="Located in your LDAP Sever"  # "admin"
-
-### FNCM - FileNet Content Manager - PRODUCTION
-CP4BA_DEPLOYMENT_PRODUCTION_FNCM_ADMIN_USER="Located in your LDAP Sever"
-CP4BA_DEPLOYMENT_PRODUCTION_FNCM_LDAP_PASSWORD="Located in your LDAP Sever"
-
-### BAW - Business Automation Workflow - PRODUCTION
-CP4BA_DEPLOYMENT_PRODUCTION_BAW_ADMIN_USER="Located in your LDAP Sever"
-CP4BA_DEPLOYMENT_PRODUCTION_BAW_LDAP_PASSWORD="Located in your LDAP Sever"
-
-### ADS - Automation Decision Services - PRODUCTION
-CP4BA_DEPLOYMENT_PRODUCTION_ADS_ADMIN_USER="Located in your LDAP Sever"
-CP4BA_DEPLOYMENT_PRODUCTION_ADS_LDAP_PASSWORD="Located in your LDAP Sever"
-
-### BAA - Business Automation Application - PRODUCTION
-CP4BA_DEPLOYMENT_PRODUCTION_BAA_ADMIN_USER="Located in your LDAP Sever"
-CP4BA_DEPLOYMENT_PRODUCTION_BAA_LDAP_PASSWORD="Located in your LDAP Sever"
-
-### AWS - Automation Workstream Services - PRODUCTION
-CP4BA_DEPLOYMENT_PRODUCTION_AWS_ADMIN_USER="Located in your LDAP Sever"
-CP4BA_DEPLOYMENT_PRODUCTION_AWS_LDAP_PASSWORD="Located in your LDAP Sever"
-
-### WPSA - Workflow Process Service Authoring - PRODUCTION
-CP4BA_DEPLOYMENT_PRODUCTION_WPSA_ADMIN_USER="Located in your LDAP Sever"
-CP4BA_DEPLOYMENT_PRODUCTION_WPSA_LDAP_PASSWORD="Located in your LDAP Sever"
-
-#IBM RPA
-############################
-CP4BA_RPA_SERVER_NAMESPACE=cp4ba-rpa-server
-CP4BA_RPA_SERVER_NAME=cp4ba-rpa-server
 
 

@@ -581,7 +581,7 @@ function check_catalog_pod_status(){
         bai_catalog_pod_name=$(${CLI_CMD} get pod -l=olm.catalogSource=ibm-bai-operator-catalog -n $TEMP_CATALOG_PROJECT_NAME -o 'custom-columns=NAME:.metadata.name,PHASE:.status.phase,READY:.status.containerStatuses[0].ready,DELETED:.metadata.deletionTimestamp' --no-headers | grep 'Running' | grep 'true' | grep '<none>' | head -1 | awk '{print $1}')
         # DBACLD-216925: Skip EDB catalog check for 26.0.0 GA, will be restored in 26.0.0-IF001 or later
         if ! skip_edb_for_2501; then
-            postgresql_catalog_pod_name=$(${CLI_CMD} get pod -l=olm.catalogSource=cloud-native-postgresql-catalog -n $TEMP_CATALOG_PROJECT_NAME -o 'custom-columns=NAME:.metadata.name,PHASE:.status.phase,READY:.status.containerStatuses[0].ready,DELETED:.metadata.deletionTimestamp' --no-headers | grep 'Running' | grep 'true' | grep '<none>' | head -1 | awk '{print $1}')
+            postgresql_catalog_pod_name=$(${CLI_CMD} get pod -l=olm.catalogSource=ibm-pg-operator-catalog -n $TEMP_CATALOG_PROJECT_NAME -o 'custom-columns=NAME:.metadata.name,PHASE:.status.phase,READY:.status.containerStatuses[0].ready,DELETED:.metadata.deletionTimestamp' --no-headers | grep 'Running' | grep 'true' | grep '<none>' | head -1 | awk '{print $1}')
         fi
         cs_catalog_pod_name=$(${CLI_CMD} get pod -l=olm.catalogSource=$CS_CATALOG_VERSION -n $TEMP_CATALOG_PROJECT_NAME -o 'custom-columns=NAME:.metadata.name,PHASE:.status.phase,READY:.status.containerStatuses[0].ready,DELETED:.metadata.deletionTimestamp' --no-headers | grep 'Running' | grep 'true' | grep '<none>' | head -1 | awk '{print $1}')
         if [ $ENABLE_PRIVATE_CATALOG -eq 1 ]; then
@@ -617,7 +617,7 @@ function check_catalog_pod_status(){
                     warning "Timeout waiting for ibm-bai-operator-catalog catalog pod to be ready in the project \"$TEMP_CATALOG_PROJECT_NAME\""
                 # DBACLD-216925: Skip EDB catalog warning for 26.0.0 GA, will be restored in 26.0.0-IF001 or later
                 elif [[ -z $postgresql_catalog_pod_name ]]; then
-                    warning "Timeout waiting for cloud-native-postgresql-catalog catalog pod to be ready in the project \"$TEMP_CATALOG_PROJECT_NAME\""
+                    warning "Timeout waiting for ibm-pg-operator-catalog catalog pod to be ready in the project \"$TEMP_CATALOG_PROJECT_NAME\""
                 elif [[ -z $cs_catalog_pod_name ]]; then
                     warning "Timeout waiting for $CS_CATALOG_VERSION catalog pod to be ready in the project \"$TEMP_CATALOG_PROJECT_NAME\""
                 elif [[ -z $cert_mgr_catalog_pod_name ]]; then
@@ -903,6 +903,8 @@ function upgrade_cpfs_operator_on_cncf(){
         ${CLI_CMD} patch subscription.operators.coreos.com $sub_name --type merge -p '{"spec": {"source": "'${CS_CATALOG_VERSION}'"}}' -n $TARGET_PROJECT_NAME
         ${CLI_CMD} patch subscription.operators.coreos.com $sub_name --type merge -p '{"spec": {"channel": "'${CS_CHANNEL_VERSION}'"}}' -n $TARGET_PROJECT_NAME
         cncf_wait_for_operator_upgrade $TARGET_PROJECT_NAME $package_name $CS_CHANNEL_VERSION
+        ${CLI_CMD} patch configmap ibm-cpp-config --type merge -p '{"metadata": {"labels": {"operator.ibm.com/managedByCsOperator": "true"}}}' -n $TARGET_PROJECT_NAME
+        ${CLI_CMD} rollout restart deployment/$package_name -n $TARGET_PROJECT_NAME
         cncf_wait_for_csv "$TARGET_PROJECT_NAME" "ibm-odlm"
         cncf_wait_for_operator "$TARGET_PROJECT_NAME" "operand-deployment-lifecycle-manager"
         cncf_wait_for_cscr_status "$TARGET_PROJECT_NAME" "common-service"
@@ -984,7 +986,7 @@ function validate_csv_version(){
 }
 
 function patch_edb_configmap(){
-    # DBACLD-166239 -> Update EDB configmap ibm-zen-metastore-edb-cm to add new parameters with CPFS 4.10 or later.
+    # DBACLD-166239 -> Update EDB configmap ibm-zen-metastore-cm to add new parameters with CPFS 4.10 or later.
     # During upgrade, we check the existence of the configmap along with these 2 new parameters (DATABASE_ENABLE_SSL and DATABASE_SSL_MODE).
     # If those parameters exists then we will not patch the configmap as the configmap is same for embedded and external postgres.
     # Input:
@@ -1012,16 +1014,20 @@ function patch_edb_configmap(){
 # https://jsw.ibm.com/browse/DBACLD-166681
 function patch_elasticsearch_cr(){
     local cr_namespace=$1
-    elasticsearch_cr_name=$(${CLI_CMD} get ElasticsearchCluster -n $cr_namespace --no-headers --ignore-not-found | awk '{print $1}')
-    if [[ -n $elasticsearch_cr_name ]]; then
-        info "Patching ElasticsearchCluster $elasticsearch_cr_name in namespace $cr_namespace..."
-        ${CLI_CMD} patch ElasticsearchCluster $elasticsearch_cr_name -n $cr_namespace --type=merge -p '{"spec": {"quiesce":true}}'
-        printf "\n"
-    else
-        info " Manually patch the Elasticsearch Cluster by executing \" ${CLI_CMD} patch ElasticsearchCluster $elasticsearch_cr_name -n $cr_namespace --type=merge -p '{\"spec\": {\"quiesce\":true}}' \" "
-        printf "\n"
-    
-    fi
+    # DBACLD-217914 Check if ElasticsearchCluster CRD exists first 
+    ${CLI_CMD} get crd elasticsearchclusters.elasticsearch.opencontent.ibm.com >&3 2>&3
+    if [ $? -eq 0 ]; then
+	    elasticsearch_cr_name=$(${CLI_CMD} get ElasticsearchCluster -n $cr_namespace --no-headers --ignore-not-found | awk '{print $1}')
+	    if [[ -n $elasticsearch_cr_name ]]; then
+	        info "Patching ElasticsearchCluster $elasticsearch_cr_name in namespace $cr_namespace..."
+	        ${CLI_CMD} patch ElasticsearchCluster $elasticsearch_cr_name -n $cr_namespace --type=merge -p '{"spec": {"quiesce":true}}'
+	        printf "\n"
+	    else
+	        info " Manually patch the Elasticsearch Cluster by executing \" ${CLI_CMD} patch ElasticsearchCluster $elasticsearch_cr_name -n $cr_namespace --type=merge -p '{\"spec\": {\"quiesce\":true}}' \" "
+	        printf "\n"
+	    
+	    fi
+     fi
 }
 
 function wait_for_csv() {
@@ -1226,6 +1232,30 @@ function upgradeoperator_mode(){
         switch_to_private_catalog
     fi
 
+    ############## Start - Check and annotate BusinessTeamsService for migration ##############
+    # Check if BusinessTeamsService CR exists and annotate it for migration
+    BTS_CR_NAME=$(${CLI_CMD} get BusinessTeamsService -n "$BAI_SERVICES_NS" --no-headers --ignore-not-found 2>/dev/null | awk '{print $1}')
+    
+    if [[ -n "$BTS_CR_NAME" ]]; then
+        info "Found BusinessTeamsService CR: $BTS_CR_NAME in namespace $BAI_SERVICES_NS"
+        info "Annotating BusinessTeamsService CR with migration-in-progress annotation..."
+        
+        if ${CLI_CMD} patch BusinessTeamsService "$BTS_CR_NAME" -n "$BAI_SERVICES_NS" \
+            --type=merge \
+            -p '{"metadata":{"annotations":{"operator.ibm.com/migration-in-progress":"true"}}}' >&3 2>&3; then
+            success "Successfully annotated BusinessTeamsService CR: $BTS_CR_NAME"
+        else
+            error "Failed to annotate BusinessTeamsService CR: $BTS_CR_NAME"
+            echo
+            echo "${YELLOW_TEXT}[ATTENTION]:${RESET_TEXT} Please manually run the following command to annotate the BusinessTeamsService CR:"
+            echo "           ${GREEN_TEXT}${CLI_CMD} patch BusinessTeamsService $BTS_CR_NAME -n $BAI_SERVICES_NS --type=merge -p '{\"metadata\":{\"annotations\":{\"operator.ibm.com/migration-in-progress\":\"true\"}}}'${RESET_TEXT}"
+            echo
+            displayUpgradeOperatorMessage '' $TARGET_PROJECT_NAME $cp4a_operator_csv_version
+            exit 1
+        fi
+        echo
+    fi
+
     # For CNCF we want to use the functions from the CNCF folder so that we can patch the catalog source for dev mode
     if [[ "$PLATFORM_SELECTED" == "other" ]]; then
         source $BAI_CNCF_FOLDER/bai-utils.sh
@@ -1332,11 +1362,13 @@ function upgradeoperator_mode(){
             fi
         fi
         # For 25.0.0 IF001 , CPFS scripts are not supported on CNCF, hence there is an additional function that will do the required steps
-        if [[ "$PLATFORM_SELECTED" == "other" ]]; then
-            upgrade_cpfs_operator_on_cncf
-        else
-            upgrade_cpfs_operator
-        fi
+        #if [[ "$PLATFORM_SELECTED" == "other" ]]; then
+        #    upgrade_cpfs_operator_on_cncf
+        #else
+        #    upgrade_cpfs_operator
+        #fi
+        # From 4.19 , CPFS scripts are supported on CNCF -> https://jsw.ibm.com/browse/DBACLD-190717 and https://jsw.ibm.com/browse/DBACLD-228475
+        upgrade_cpfs_operator
 
     fi
 
@@ -1401,7 +1433,7 @@ function upgradeoperator_mode(){
     validate_csv_version
     success "Completed the check for channels of all subscriptions of BAI Standalone operators"
 
-    # DBACLD-166239 -> Update EDB configmap ibm-zen-metastore-edb-cm to add new parameters with CPFS 4.10 or later by calling patch_edb_configmap()
+    # DBACLD-166239 -> Update EDB configmap ibm-zen-metastore-cm to add new parameters with CPFS 4.10 or later by calling patch_edb_configmap()
     patch_edb_configmap $BAI_SERVICES_NS
 
     # Patch the BTS datastore secret and CM if required

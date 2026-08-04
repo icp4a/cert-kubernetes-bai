@@ -59,12 +59,12 @@ EOF
 }
 
 function create_zen_external_db_secret_template(){
-  wait_msg "Creating ibm-zen-metastore-edb-secret secret YAML template for Zen metastore external Postgres DB"
+  wait_msg "Creating ibm-zen-metastore-secret secret YAML template for Zen metastore external Postgres DB"
   mkdir -p $ZEN_SECRET_FOLDER >/dev/null 2>&1
 
 cat << EOF > ${ZEN_SECRET_FILE}
 #!/bin/bash
-# Shell template for ibm-zen-metastore-edb-secret.sh
+# Shell template for ibm-zen-metastore-secret.sh
 if [[ -f "<cp4a-db-crt-file-in-local>/root.crt" && -f "<cp4a-db-crt-file-in-local>/client.crt" && -f "<cp4a-db-crt-file-in-local>/client.key" ]]; then
   openssl x509 -in <cp4a-db-crt-file-in-local>/root.crt -noout -subject -issuer -startdate -enddate >/dev/null 2>&1
 
@@ -76,8 +76,8 @@ if [[ -f "<cp4a-db-crt-file-in-local>/root.crt" && -f "<cp4a-db-crt-file-in-loca
 
   openssl x509 -in <cp4a-db-crt-file-in-local>/root.crt -outform PEM -out <cp4a-db-crt-file-in-local>/root.pem >/dev/null 2>&1
 
-  ${CLI_CMD} delete secret generic "ibm-zen-metastore-edb-secret" -n ${bai_services_namespace} >/dev/null 2>&1
-  ${CLI_CMD} create secret generic "ibm-zen-metastore-edb-secret" --from-file=ca.crt="<cp4a-db-crt-file-in-local>/root.pem"\
+  ${CLI_CMD} delete secret generic "ibm-zen-metastore-secret" -n ${bai_services_namespace} >/dev/null 2>&1
+  ${CLI_CMD} create secret generic "ibm-zen-metastore-secret" --from-file=ca.crt="<cp4a-db-crt-file-in-local>/root.pem"\
   --from-file=tls.crt="<cp4a-db-crt-file-in-local>/client.pem"\
   --from-file=tls.key="<cp4a-db-crt-file-in-local>/client_key.pem"\
   --type=kubernetes.io/tls -n ${bai_services_namespace}
@@ -86,21 +86,21 @@ else
   exit 1
 fi
 EOF
-  success "Created ibm-zen-metastore-edb-secret secret YAML template for Zen metastore external Postgres DB\n"
+  success "Created ibm-zen-metastore-secret secret YAML template for Zen metastore external Postgres DB\n"
   chmod 755 ${ZEN_SECRET_FILE}
 }
 
 function create_zen_external_db_configmap_template(){
-  wait_msg "Creating ibm-zen-metastore-edb-cm configMap YAML template for Zen metastore external Postgres DB"
+  wait_msg "Creating ibm-zen-metastore-cm configMap YAML template for Zen metastore external Postgres DB"
   mkdir -p $ZEN_SECRET_FOLDER >/dev/null 2>&1
 cat << EOF > ${ZEN_CONFIGMAP_FILE}
-# YAML template for ibm-zen-metastore-edb-cm configMap
+# YAML template for ibm-zen-metastore-cm configMap
 # Updated for issue https://jsw.ibm.com/browse/DBACLD-166239 with these 2 DATABASE_ENABLE_SSL,DATABASE_SSL_MODE parameters
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: ibm-zen-metastore-edb-cm
+  name: ibm-zen-metastore-cm
   namespace: ${bai_services_namespace}
 data:
   IS_EMBEDDED: "false"
@@ -117,7 +117,7 @@ data:
   DATABASE_ENABLE_SSL: "true"
   DATABASE_SSL_MODE: require 
 EOF
-  success "Created ibm-zen-metastore-edb-cm configMap YAML template for Zen metastore external Postgres DB\n"
+  success "Created ibm-zen-metastore-cm configMap YAML template for Zen metastore external Postgres DB\n"
 }
 
 function create_im_external_db_secret_template(){

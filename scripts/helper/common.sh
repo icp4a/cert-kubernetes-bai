@@ -40,12 +40,12 @@ OLM_VERSION=v0.27.0
 #Licensing service related variables that required during the creation of subscription and the checks.
 # NEED TO BE UPDATED WHEN WE UPDATE THE VERSIONS
 LICENSING_SERVICE_CHANNEL=v4.2
-LICENSING_SERVICE_TARGET_VERSION="4.2.23"
+LICENSING_SERVICE_TARGET_VERSION="4.2.24"
 
 #Cert Manager related variables that required during the creation of subscription and the checks.
 # NEED TO BE UPDATED WHEN WE UPDATE THE VERSIONS
 CERT_MANAGER_CHANNEL=v4.2
-CERT_MANAGER_TARGET_VERSION="4.2.22"
+CERT_MANAGER_TARGET_VERSION="4.2.23"
 #Cert manager owner.
 CERT_MANAGER_V1ALPHA1_OWNER="operator.ibm.com/v1alpha1"
 CERT_MANAGER_V1_OWNER="operator.ibm.com/v1"
@@ -69,7 +69,7 @@ cs_maximal_version_for_ifix="5.0.0" # Maximal supported Common Service version b
 BAI_S_FC_CR=${PARENT_DIR}/descriptors/patterns/ibm_cp4a_cr_production_FC_bai.yaml
 
 #Change required each sprint for using dev mode
-CURRENT_SPRINT_TAG="26.0.0"
+CURRENT_SPRINT_TAG="26.0.0-IF001"
 
 #DBACLD-194974: This variable is used to specify the version that will block EDB option for IM ZEN BTS.The user will HAVE to use external postgres for this. It should be in the format of ${BAI_RELEASE_BASE}_${BAI_PATCH_VERSION}
 # For 25.0.1_GA we will remove the Starter option and EDB option.
@@ -101,8 +101,8 @@ SECRET_FILE_FOLDER=${PREREQUISITES_FOLDER}/secret_template
 
 LDAP_SSL_SECRET_FOLDER=${SECRET_FILE_FOLDER}/bai_ldap_ssl_secret
 ZEN_SECRET_FOLDER=${SECRET_FILE_FOLDER}/zen_external_db
-ZEN_SECRET_FILE=${ZEN_SECRET_FOLDER}/ibm-zen-metastore-edb-secret.sh
-ZEN_CONFIGMAP_FILE=${ZEN_SECRET_FOLDER}/ibm-zen-metastore-edb-cm.yaml
+ZEN_SECRET_FILE=${ZEN_SECRET_FOLDER}/ibm-zen-metastore-secret.sh
+ZEN_CONFIGMAP_FILE=${ZEN_SECRET_FOLDER}/ibm-zen-metastore-cm.yaml
 
 IM_SECRET_FOLDER=${SECRET_FILE_FOLDER}/im_external_db
 IM_SECRET_FILE=${IM_SECRET_FOLDER}/ibm-im-datastore-edb-secret.sh
@@ -121,45 +121,45 @@ LDAP_SECRET_FILE=${SECRET_FILE_FOLDER}/ldap-bind-secret.yaml
 # Release/Patch version for BAI
 # BAI_RELEASE_BASE is for fetch content/foundation operator pod, only need to change for major release.
 BAI_RELEASE_BASE="26.0.0"
-BAI_PATCH_VERSION="GA"
+BAI_PATCH_VERSION="IF001"
 # BAI_RELEASE_BASE_MAJOR_VERSION is used in certain checks where we used to hardcode to see if a upgrade is not ifix to ifix,change this only for major release
 BAI_RELEASE_BASE_MAJOR_VERSION="26.0"
 # BAI_CSV_VERSION is for checking BAI operator upgrade status, need to update for each IFIX
-BAI_CSV_VERSION="v26.0.0"
+BAI_CSV_VERSION="v26.0.1"
 # BAI_CHANNEL_VERSION is for switch BAI operator upgrade status, need to update for major release
 BAI_CHANNEL_VERSION="v26.0"
 # CS_OPERATOR_VERSION is for checking CPFS operator upgrade status, need to update for each IFIX
-CS_OPERATOR_VERSION="v4.18.1"
+CS_OPERATOR_VERSION="v4.19.2"
 # CS_CHANNEL_VERSION is for for CPFS script -c option, need to update for each IFIX
-CS_CHANNEL_VERSION="v4.18"
+CS_CHANNEL_VERSION="v4.19"
 # CS CHANNEL VERSION that is used in the KC
 CS_CHANNEL_KC="4.x_cd"
 # CERT_LICENSE_CHANNEL_VERSION is for for IBM cert-manager/licensing script -c option, need to update for each IFIX
 CERT_LICENSE_CHANNEL_VERSION="v4.2"
 # CS_CATALOG_VERSION is for CPFS script -s option, need to update for each IFIX
-CS_CATALOG_VERSION="ibm-cs-install-catalog-v4-18-0"
+CS_CATALOG_VERSION="ibm-cs-install-catalog-v4-19-0"
 # ZEN_OPERATOR_VERSION is for checking ZenService operator upgrade status, need to update for each IFIX
-ZEN_OPERATOR_VERSION="v6.4.7"
+ZEN_OPERATOR_VERSION="v6.10.3"
 # BTS_CHANNEL_VERSION is for for BTS, need to update for each IFIX
 BTS_CHANNEL_VERSION="v3.35"
-# BTS_CATALOG_VERSION is for BTS 3.35.12.
+# BTS_CATALOG_VERSION is for BTS 3.35.13.
 BTS_CATALOG_VERSION="ibm-bts-operator-catalog-v3-35"
 # REQUIREDVER_BTS is for checking bts operator upgrade status before run removal_iaf.sh, need to update for each IFIX
-REQUIREDVER_BTS="3.35.12"
+REQUIREDVER_BTS="3.35.13"
 # REQUIREDVER_POSTGRESQL is for checking postgresql operator upgrade status before run removal_iaf.sh, need to update for each IFIX
-REQUIREDVER_POSTGRESQL="1.25.6"
+REQUIREDVER_POSTGRESQL="1.28.4"
 # EVENTS_OPERATOR_VERSION is for checking IBM Events operator upgrade status, need to update for each IFIX
 EVENTS_OPERATOR_VERSION="v5.2.1"
 # List of BAI versions that are supported for upgrade to $BAI_CSV_VERSION
 # When setting to an empty array, only fresh installation is supported.
-# In 26.0.0, we will only support upgrade from 25.0.4, 25.1.1, and 24.0.6, which means if the customer is on 24.1.x, they need to first upgrade to 25.0.4 before upgrading to 26.0.0.
-MINIMUM_SUPPORTED_UPGRADE_VERSIONS=(24.0.7 25.0.4 25.1.1)
+# In 26.0.0-IF001, we will support upgrade from 25.0.4, 25.1.1, and 24.0.6, which means if the customer is on 24.1.x, they need to first upgrade to 25.0.4 before upgrading to 26.0.0-IF001.
+MINIMUM_SUPPORTED_UPGRADE_VERSIONS=(24.0.7 25.0.4 25.1.1 26.0.0)
 
 # UMS related variables
 # UMS_CHANNEL_VERSION is for UMS, need to update for each IFIX
 UMS_CHANNEL_VERSION="v1.0"
 # UMS_CSV_VERSION is for UMS, need to update for each IFIX
-UMS_CSV_VERSION="v1.0.6"
+UMS_CSV_VERSION="v1.0.7"
 # UMS_CATALOG_VERSION is the current UMS catalog name.
 UMS_CATALOG_VERSION="ibm-usage-metering-catalog"
 # UMS connection point secret name
@@ -176,7 +176,7 @@ UMS_CONNECTION_POINT_STATIC_CR_LOCATION="${PARENT_DIR}/descriptors/patterns/bais
 ILS_SWC_SECRET_NAME="bai-ils-secret"
 
 # Zen metastore EDB configmap name
-ZEN_EDB_CFG="ibm-zen-metastore-edb-cm"
+ZEN_EDB_CFG="ibm-zen-metastore-cm"
 CERT_MANAGER_PROJECT="ibm-cert-manager"
 LICENSE_MANAGER_PROJECT="ibm-licensing"
 DEDICATED_CS_PROJECT="cs-control"
@@ -943,9 +943,6 @@ function load_properties_from_temp_file(){
     IFS=',' read -ra optional_component_arr <<< "$optional_component_name_list"
     IFS=',' read -ra foundation_component_arr <<< "$foundation_list"    
     IFS=$OIFS
-
-    # load fips enabled flag
-    FIPS_ENABLED="false"
 
     # load profile size  flag
     PROFILE_TYPE=$(prop_tmp_property_file PROFILE_SIZE_FLAG) 

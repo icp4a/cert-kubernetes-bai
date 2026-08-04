@@ -582,10 +582,6 @@ function sync_property_into_final_cr(){
         ${SED_COMMAND} "s|sc_fncm_license_model:.*|sc_fncm_license_model: \"$tmp_value\"|g" ${BAI_PATTERN_FILE_TMP}
     fi
 
-    # Apply shared_configuration.enable_fips to always be false
-    ${YQ_CMD} w -i ${BAI_PATTERN_FILE_TMP} spec.shared_configuration.enable_fips "false"
-
-    
     # Set generate_sample_network_policies
     generate_network_policy_flag="$(prop_user_profile_property_file BAI_STANDALONE.ENABLE_GENERATE_SAMPLE_NETWORK_POLICIES)"
     generate_network_policy_flag=$(sed -e 's/^"//' -e 's/"$//' <<<"$generate_network_policy_flag")
@@ -632,12 +628,6 @@ function sync_property_into_final_cr(){
 
     # set the sc_iam.default_admin_username
     ${YQ_CMD} w -i ${BAI_PATTERN_FILE_TMP} spec.shared_configuration.sc_iam.default_admin_username "\"$NON_DEFAULT_IAM_ADMIN\""
-
-    if [[ $FIPS_ENABLED == "true" ]]; then
-        ${YQ_CMD} w -i ${BAI_PATTERN_FILE_TMP} spec.shared_configuration.enable_fips "true"
-    else
-        ${YQ_CMD} w -i ${BAI_PATTERN_FILE_TMP} spec.shared_configuration.enable_fips "false"
-    fi
 
     # Applying value in LDAP property file into final CR, if LDAP option was selected
     # DBACLD-168779
