@@ -129,9 +129,6 @@ spec:
       ## Provide non default admin user for IAM in case you do not want to use cpadmin
       default_admin_username: ""
 
-    # Enable/disable FIPS mode for the deployment (default value is "false")
-    enable_fips: false
-
   ## The beginning section of LDAP configuration for CP4A
   ldap_configuration:
     ## The possible values are: "IBM Security Directory Server" or "Microsoft Active Directory" or "Custom"

@@ -60,7 +60,7 @@ spec:
     images:
       keytool_init_container:
         repository: cp.icr.io/cp/cp4a/bai/dba-keytool-initcontainer
-        tag: "BAIS-24.0.0-IF007"
+        tag: "BAIS-24.0.0-IF008"
 
       ## All CP4A components should use this pull_policy as the default, but it can override by each component
       pull_policy: IfNotPresent
@@ -135,9 +135,6 @@ spec:
       ## Provide non default admin user for IAM in case you do not want to use cpadmin
       default_admin_username: ""
 
-    # Enable/disable FIPS mode for the deployment (default value is "false")
-    enable_fips: false
-    
     ## If your Openshift cluster is configured for Hugepages and you want the applicable deployment resources to consume Hugepages.
     ## You must set "true" for sc_hugepages.enabled. Default is "false".
     ## You must set type for "Hugepages" like hugepages-2Mi or hugepages-1Gi. Default is "hugepages-2Mi".
@@ -275,8 +272,6 @@ spec:
     #  type: # RuntimeDefault, Localhost, Unconfined
     #  localhost_profile: # Local path of custom seccomp profile when type `Localhost` is used. The custom profile must be accessible by the pod and must exist locally on all worker nodes.  For example: `/profiles/fine-grained.json`
     
-    ## # Disable FIPS for the component (default value is "false"), change it to "true" if you enable FIPS mode for the deployment with shared_configuration.enable_fips = true, but want to disable FIPS mode for the component. 
-    # disable_fips: false 
     # This section allow to enhance the configuration of Kafka clients.
     # Those parameters are not mandatory.
     kafka:
@@ -304,7 +299,7 @@ spec:
     application_setup:
       image:
         repository: cp.icr.io/cp/cp4a/bai/insights-engine-application-setup
-        tag: "BAIS-24.0.0-IF007"
+        tag: "BAIS-24.0.0-IF008"
       # The back-off limit property specifies the number of retries before the setup job is considered failed. Default: 6.
       backoff_limit: 7
       resources:
@@ -328,7 +323,7 @@ spec:
     setup:
       image:
         repository: cp.icr.io/cp/cp4a/bai/bai-setup
-        tag: "BAIS-24.0.0-IF007"
+        tag: "BAIS-24.0.0-IF008"
       # The back-off limit property specifies the number of retries before the setup job is considered failed. Default: 6.
       backoff_limit: 7
       resources:
@@ -351,11 +346,11 @@ spec:
     management:
       image:
         repository: cp.icr.io/cp/cp4a/bai/insights-engine-management
-        tag: "BAIS-24.0.0-IF007"
+        tag: "BAIS-24.0.0-IF008"
       backend:
         image:
           repository: cp.icr.io/cp/cp4a/bai/insights-engine-management-backend
-          tag: "BAIS-24.0.0-IF007"
+          tag: "BAIS-24.0.0-IF008"
       # You can use this parameter to customize the hostname of the management service route.
       # If not set, the value of shared_configuration.sc_deployment_hostname_suffix is used.
       # hostname: "management.bai.{{ shared_configuration.sc_deployment_hostname_suffix }}"
@@ -365,15 +360,6 @@ spec:
       ## This flag enable or disable Pod Disruption Budget (PDB) creation for BAI management component.  This flag will override the shared_configuration.sc_enable_pdb flag.  Default is true
       ## A PDB for Management will be created with a `minAvailable: 1` only if the replica count is greater than 1.  Otherwise, the PDB will have `minAvailable: 0` if the replica is 1.
       enable_pdb: true
-      # Optional: Enables SSL with an existing certificate for the automatic creation of the OpenShift route
-      # for the Management service.
-      # If not specified, the value of shared_configuration.external_tls_certificate_secret parameter is used.
-      # If this later parameter is not present, the operator generates a self-signed certificate.
-      external_tls_secret_name: "{{ meta.name }}-bai-management-external-tls-secret"
-      # Optional. The Certificate Authority (CA) used to sign the external TLS secret for the automatic creation
-      # of the OpenShift route for the Management service.
-      # If you do not want to provide a CA to sign the external TLS certificate, leave this parameter empty.
-      external_tls_ca_secret_name:
 
     flink_pv:
       # The capacity of the persistent volume. Default: "20Gi"
@@ -404,6 +390,7 @@ spec:
       # Corresponding Flink parameter: jobmanager.memory.process.size
       # Valid units: https://ci.apache.org/projects/flink/flink-docs-release-1.11/api/java/org/apache/flink/configuration/MemorySize.MemoryUnit.html
       # Default: 1728mb
+      job_manager_cpu: 1
       job_manager_memory: '1728mb'
       # The number of CPUs that are used by Flink task managers (in CPU units).
       # Corresponding Flink parameter: kubernetes.taskmanager.cpu
@@ -425,16 +412,6 @@ spec:
       # The name of a ConfigMap object that is already deployed to Kubernetes and contains RocksDB properties for Flink.
       # Optional. Default: none.
       rocks_db_properties_config_map: ""
-
-      # Optional: Enables SSL with an existing certificate for the automatic creation of the OpenShift route
-      # for the Flink UI.
-      # If not specified, the value of shared_configuration.external_tls_certificate_secret parameter is used.
-      # If this later parameter is not present, the operator generates a self-signed certificate.
-      external_tls_secret_name: "{{ meta.name }}-bai-flink-ui-external-tls-secret"
-      # Optional. The Certificate Authority (CA) used to sign the external TLS secret for the automatic creation
-      # of the OpenShift route for the Flink UI.
-      # If you do not want to provide a CA to sign the external TLS certificate, leave this parameter empty.
-      external_tls_ca_secret_name:
 
       # The parameters below configure the memory and CPU requests and limits at Kubernetes level.
       # For the valid units of memory requests and limits,
@@ -459,6 +436,14 @@ spec:
       job_manager_cpu_request: 1
       # The CPU limit for pods of Apache Flink job managers.
       job_manager_cpu_limit: 1
+      # The ephemeral storage limit for pods of Apache Flink task managers.
+      task_manager_ephemeral_storage_limit: '2Gi'
+      # The ephemeral storage limit for pods of Apache Flink job managers.
+      job_manager_ephemeral_storage_limit: '2Gi'
+      # The ephemeral storage request for pods of Apache Flink task managers.
+      task_manager_ephemeral_storage_request: '500Mi'
+      # The ephemeral storage request for pods of Apache Flink job managers.
+      job_manager_ephemeral_storage_request: '500Mi'
       # The number of additional Flink task managers that must be created to host custom Processing Applications.
       # Required only if using custom Processing Applications.
       # Default: 0
@@ -472,7 +457,7 @@ spec:
       install: false
       image:
         repository: cp.icr.io/cp/cp4a/bai/bai-bpmn
-        tag: "BAIS-24.0.0-IF007"
+        tag: "BAIS-24.0.0-IF008"
       # The path to the savepoint or checkpoint from which a job will recover.
       # You can use this path to restart the job from a previous state in case of failure.
       # To use the default workflow of the job, leave this option empty.
@@ -510,7 +495,7 @@ spec:
       install: false
       image:
         repository: cp.icr.io/cp/cp4a/bai/bai-bawadv
-        tag: "BAIS-24.0.0-IF007"
+        tag: "BAIS-24.0.0-IF008"
       # The path to the savepoint or checkpoint from which a job will recover.
       # You can use this path to restart the job from a previous state in case of failure.
       # To use the default workflow of the job, leave this option empty.
@@ -542,7 +527,7 @@ spec:
       install: false
       image:
         repository: cp.icr.io/cp/cp4a/bai/bai-icm
-        tag: "BAIS-24.0.0-IF007"
+        tag: "BAIS-24.0.0-IF008"
       # The path to the savepoint or checkpoint from which a job will recover.
       # You can use this path to restart the job from a previous state in case of failure.
       # To use the default workflow of the job, leave this option empty.
@@ -580,7 +565,7 @@ spec:
       install: false
       image:
         repository: cp.icr.io/cp/cp4a/bai/bai-flink
-        tag: "BAIS-24.0.0-IF007"
+        tag: "BAIS-24.0.0-IF008"
       # The path to the savepoint or checkpoint from which a job will recover.
       # You can use this path to restart the job from a previous state in case of failure.
       # To use the default workflow of the job, leave this option empty.
@@ -612,7 +597,7 @@ spec:
       install: false
       image:
         repository: cp.icr.io/cp/cp4a/bai/bai-flink
-        tag: "BAIS-24.0.0-IF007"
+        tag: "BAIS-24.0.0-IF008"
       # The path to the savepoint or checkpoint from which a job will recover.
       # You can use this path to restart the job from a previous state in case of failure.
       # To use the default workflow of the job, leave this option empty.
@@ -644,7 +629,7 @@ spec:
       install: false
       image:
         repository: cp.icr.io/cp/cp4a/bai/bai-flink
-        tag: "BAIS-24.0.0-IF007"
+        tag: "BAIS-24.0.0-IF008"
       # The path to the savepoint or checkpoint from which a job will recover.
       # You can use this path to restart the job from a previous state in case of failure.
       # To use the default workflow of the job, leave this option empty.
@@ -676,7 +661,7 @@ spec:
       install: false
       image:
         repository: cp.icr.io/cp/cp4a/bai/bai-flink
-        tag: "BAIS-24.0.0-IF007"
+        tag: "BAIS-24.0.0-IF008"
       # The path to the savepoint or checkpoint from which a job will recover.
       # You can use this path to restart the job from a previous state in case of failure.
       # To use the default workflow of the job, leave this option empty.
@@ -704,13 +689,13 @@ spec:
     init_image:
       image:
         repository: cp.icr.io/cp/cp4a/bai/bai-init
-        tag: "BAIS-24.0.0-IF007"
+        tag: "BAIS-24.0.0-IF008"
 
     # Business data dashboarding.
     business_performance_center:
       image:
         repository: cp.icr.io/cp/cp4a/bai/insights-engine-cockpit
-        tag: "BAIS-24.0.0-IF007"
+        tag: "BAIS-24.0.0-IF008"
       # Set to false to disable Business Performance Center. Default: true.
       install: true
 
@@ -735,7 +720,7 @@ spec:
       # init_ums:
       #   image:
       #     repository: cp.icr.io/cp/cp4a/aae/dba-umsregistration-initjob
-      #     tag: "BAIS-24.0.0-IF007"
+      #     tag: "BAIS-24.0.0-IF008"
       ## For SaaS
       # oidc:
       #   # The internal communication with single-sign-on (SSO) service.
@@ -786,6 +771,9 @@ spec:
       # If not set, the value of shared_configuration.sc_deployment_hostname_suffix is used.
       # hostname: "business-performance-center.bai.{{ shared_configuration.sc_deployment_hostname_suffix }}"
       resources:
+        requests:
+          # The minimum ephemeral storage required to start the application setup pod.
+          ephemeral_storage: "2000Mi"
         limits:
           # The maximum memory, including JVM heap size and file system cache, to allocate to the Business Performance Center pod.
           # Adjust this parameter value for better resource allocation and better performance.
@@ -793,18 +781,11 @@ spec:
           # The maximum amount of CPU to allocate to the Business Performance Center pod.
           # Adjust this parameter value for better resource allocation and better performance.
           cpu: "2000m"
+          # The maximum ephemeral storage required to allocate to the application setup pod.
+          ephemeral_storage: "2100Mi"
       # Set this parameter to false if you do not want
       # the Business Performance Center plug-in to be automatically installed into Navigator.
       auto_plugin: true
-      # Optional: Enables SSL with an existing certificate for the automatic creation of the OpenShift route
-      # for the Business Performance Center.
-      # If not specified, the value of shared_configuration.external_tls_certificate_secret parameter is used.
-      # If this later parameter is not present, the operator generates a self-signed certificate.
-      external_tls_secret_name: "{{ meta.name }}-bai-bperf-external-tls-secret"
-      # Optional. The Certificate Authority (CA) used to sign the external TLS secret for the automatic creation
-      # of the OpenShift route for the Business Performance Center.
-      # If you do not want to provide a CA to sign the external TLS certificate, leave this parameter empty.
-      external_tls_ca_secret_name:
       alert:
         # The Kafka alert topic. Default is icp4ba-bai-alerts
         topic: "icp4ba-bai-alerts"

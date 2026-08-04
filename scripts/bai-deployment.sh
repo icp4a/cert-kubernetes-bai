@@ -384,9 +384,6 @@ function load_property_before_generate(){
     LDAP_WFPS_AUTHORING=$(prop_tmp_property_file LDAP_WFPS_AUTHORING_FLAG)
     EXTERNAL_DB_WFPS_AUTHORING=$(prop_tmp_property_file EXTERNAL_DB_WFPS_AUTHORING_FLAG)
 
-    # load fips enabled flag
-    FIPS_ENABLED="false"
-
     # load profile size  flag
     PROFILE_TYPE=$(prop_tmp_property_file PROFILE_SIZE_FLAG)   
 }
@@ -1205,37 +1202,6 @@ function set_ldap_type_content_pattern(){
     fi
 }
 
-function select_fips_enable(){
-    select_project
-    all_fips_enabled_flag=$(${CLI_CMD} get configmap bai-fips-status --no-headers --ignore-not-found -n $TARGET_PROJECT_NAME -o jsonpath={.data.all-fips-enabled})
-    if [ -z $all_fips_enabled_flag ]; then
-        warning "Not found configmap \"bai-fips-status\" in project \"$TARGET_PROJECT_NAME\". setting shared_configuration.enable_fips as \"false\" by default in final custom resource file"
-        sleep 3
-        FIPS_ENABLED="false"
-    elif [[ "$all_fips_enabled_flag" == "Yes" ]]; then
-        printf "\n"
-        while true; do
-            printf "\x1B[1mYour OCP cluster has FIPS enabled, do you want to enable FIPS with this BAI standalone deployment？\x1B[0m (Yes/No, default: No): "
-            read -erp "" ans
-            case "$ans" in
-            "y"|"Y"|"yes"|"Yes"|"YES")
-                FIPS_ENABLED="true"
-                break
-                ;;
-            "n"|"N"|"no"|"No"|"NO"|"")
-                FIPS_ENABLED="false"
-                break
-                ;;
-            *)
-                printf '%b\n' "Answer must be \"Yes\" or \"No\"\n"
-                ;;
-            esac
-        done
-    elif [[ "$all_fips_enabled_flag" == "No" ]]; then
-        FIPS_ENABLED="false"
-    fi
-}
-
 function clean_up_temp_file(){
     local files=()
     if [[ -d $TEMP_FOLDER ]]; then
@@ -1364,9 +1330,6 @@ function sync_property_into_final_cr(){
     tmp_value="$(prop_user_profile_property_file BAI_STANDALONE.BAI_LICENSE)"
     ${SED_COMMAND} "s|sc_deployment_license:.*|sc_deployment_license: \"$tmp_value\"|g" ${BAI_PATTERN_FILE_TMP}
 
-    # Apply shared_configuration.enable_fips to always be false
-    ${YQ_CMD} w -i ${BAI_PATTERN_FILE_TMP} spec.shared_configuration.enable_fips "false"
-
     # Set sc_restricted_internet_access
     restricted_flag="$(prop_user_profile_property_file BAI_STANDALONE.ENABLE_RESTRICTED_INTERNET_ACCESS)"
     restricted_flag=$(sed -e 's/^"//' -e 's/"$//' <<<"$restricted_flag")
@@ -1395,12 +1358,6 @@ function sync_property_into_final_cr(){
     # set the sc_iam.default_admin_username
     ${YQ_CMD} w -i ${BAI_PATTERN_FILE_TMP} spec.shared_configuration.sc_iam.default_admin_username "\"$NON_DEFAULT_IAM_ADMIN\""
 
-    if [[ $FIPS_ENABLED == "true" ]]; then
-        ${YQ_CMD} w -i ${BAI_PATTERN_FILE_TMP} spec.shared_configuration.enable_fips "true"
-    else
-        ${YQ_CMD} w -i ${BAI_PATTERN_FILE_TMP} spec.shared_configuration.enable_fips "false"
-    fi
-    
     # Applying value in LDAP property file into final CR, if LDAP option was selected
     # DBACLD-168779
     if [[ "$(echo "$selected_ldap_flag" | tr '[:upper:]' '[:lower:]')" == "yes" ]]; then
@@ -1563,13 +1520,6 @@ function apply_bai_final_cr(){
 
             # Set bai_configuration.admin_user
             ${YQ_CMD} w -i ${BAI_PATTERN_FILE_TMP} spec.bai_configuration.admin_user "$LDAP_USER_NAME"
-        fi
-
-        # Set fips_enable
-        if [[ $FIPS_ENABLED == "true" ]]; then
-            ${YQ_CMD} w -i ${BAI_PATTERN_FILE_TMP} spec.shared_configuration.enable_fips "true"
-        else
-            ${YQ_CMD} w -i ${BAI_PATTERN_FILE_TMP} spec.shared_configuration.enable_fips "false"
         fi
 
         # Set sc_restricted_internet_access
@@ -2774,6 +2724,10 @@ if [ "$RUNTIME_MODE" == "upgradeOperator" ]; then
             fi
         done
         success "Completed the check for channels of all subscriptions of BAI Standalone operators"
+
+         # Patch the BTS datastore secret and CM if required
+        # https://jsw.ibm.com/browse/DBACLD-238245 and https://jsw.ibm.com/browse/DBACLD-238583
+        update_bts_datastore_resources "$BAI_SERVICES_NS"
 
         # for upgrading IFIX by IFIX
         # NEED TO ADD CODE IF THERE IS A RELEASE CHANGE

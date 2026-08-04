@@ -332,10 +332,6 @@ function upgrade_deployment(){
             info "${RED_TEXT}Setting \"sc_egress_configuration.sc_restricted_internet_access\" as \"false\" when upgrade CP4BA deployment, you could change it according to your requirments of security.${RESET_TEXT}"
             ${YQ_CMD} w -i ${UPGRADE_DEPLOYMENT_CONTENT_CR_TMP} spec.shared_configuration.sc_egress_configuration.sc_restricted_internet_access "false"
 
-            # Set shared_configuration.enable_fips always "false" in upgrade
-            info "${RED_TEXT}Setting \"shared_configuration.enable_fips\" as \"false\" when upgrade CP4BA deployment, you could change it according to your requirments.${RESET_TEXT}"
-            ${YQ_CMD} w -i ${UPGRADE_DEPLOYMENT_CONTENT_CR_TMP} spec.shared_configuration.enable_fips "false"
-
             # Set host_federated_portal as false in upgrade if it exist
             flag_host=`cat ${UPGRADE_DEPLOYMENT_CONTENT_CR_TMP} | ${YQ_CMD} r - spec.baw_configuration.[0].host_federated_portal`
             if [[ ! -z $flag_host ]]; then
@@ -883,10 +879,6 @@ function upgrade_deployment(){
         # Set sc_restricted_internet_access always "false" in upgrade
         info "${RED_TEXT}Setting \"sc_egress_configuration.sc_restricted_internet_access\" as \"false\" when upgrade CP4BA deployment, you could change it according to your requirments of security.${RESET_TEXT}"
         ${YQ_CMD} w -i ${UPGRADE_DEPLOYMENT_ICP4ACLUSTER_CR_TMP} spec.shared_configuration.sc_egress_configuration.sc_restricted_internet_access "false"
-        # Set shared_configuration.enable_fips always "false" in upgrade
-        info "${RED_TEXT}Setting \"shared_configuration.enable_fips\" as \"false\" when upgrade CP4BA deployment, you could change it according to your requirments.${RESET_TEXT}"
-        ${YQ_CMD} w -i ${UPGRADE_DEPLOYMENT_ICP4ACLUSTER_CR_TMP} spec.shared_configuration.enable_fips "false"
-
         # Set host_federated_portal as false in upgrade if it exist
         flag_host=`cat ${UPGRADE_DEPLOYMENT_ICP4ACLUSTER_CR_TMP} | ${YQ_CMD} r - spec.baw_configuration.[0].host_federated_portal`
         if [[ ! -z $flag_host ]]; then

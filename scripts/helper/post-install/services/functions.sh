@@ -77,6 +77,42 @@ OS()
   fi
 }
 
+operatorAndAPIVersions()
+{
+  # Auto-detect the namespace where InsightsEngine CR is deployed
+  # Try --all-namespaces first, fall back to -A flag
+  BAI_AUTO_NAMESPACE=`${CLI_CMD} get InsightsEngine --all-namespaces --no-headers 2> /dev/null | awk 'NR==1' | awk '{print $1}'`
+  if [ -z "$BAI_AUTO_NAMESPACE" ]; then
+    BAI_AUTO_NAMESPACE=`${CLI_CMD} get InsightsEngine -A --no-headers 2> /dev/null | awk 'NR==1' | awk '{print $1}'`
+  fi
+  export BAI_AUTO_NAMESPACE
+
+  # Fetch deployment name in the auto-detected namespace
+  BAI_DEPLOYMENT_NAME=`${CLI_CMD} get InsightsEngine -n ${BAI_AUTO_NAMESPACE} --no-headers 2> /dev/null | awk 'NR==1' | awk '{print $1}'`
+  export BAI_DEPLOYMENT_NAME
+
+  # Fetch deployment type from InsightsEngine CR spec
+  BAI_DEPLOYMENT_TYPE=`${CLI_CMD} get InsightsEngine ${BAI_DEPLOYMENT_NAME} -n ${BAI_AUTO_NAMESPACE} -o jsonpath='{.spec.deployment_type}' 2> /dev/null`
+  if [ -z "$BAI_DEPLOYMENT_TYPE" ]; then
+    BAI_DEPLOYMENT_TYPE=`${CLI_CMD} get InsightsEngine ${BAI_DEPLOYMENT_NAME} -n ${BAI_AUTO_NAMESPACE} -o jsonpath='{.spec.shared_configuration.sc_deployment_type}' 2> /dev/null`
+  fi
+  if [ -z "$BAI_DEPLOYMENT_TYPE" ]; then
+    BAI_DEPLOYMENT_TYPE="Production"
+  fi
+  export BAI_DEPLOYMENT_TYPE
+
+  # Detect if OLM-based deployment
+  OLM_DEPLOYMENT="false"
+  OLM_CHECK=`${CLI_CMD} get csv -n ${BAI_AUTO_NAMESPACE} 2> /dev/null | grep -c "ibm-insights-engine-operator"`
+  if [ "$OLM_CHECK" -ge 1 ]; then
+    OLM_DEPLOYMENT="true"
+  fi
+  export OLM_DEPLOYMENT
+
+  CS_DEPLOYMENT_NAME=`${CLI_CMD} get commonservices -n ${BAI_AUTO_NAMESPACE} 2> /dev/null | awk 'NR==2' | awk '{print $1}'`
+  export CS_DEPLOYMENT_NAME
+}
+
 validateOCPAccess()
 {
   printHeaderMessage "Validate OCP Access"
@@ -92,7 +128,6 @@ validateOCPAccess()
   OCP_CLUSTER_VERSION=`${CLI_CMD} get clusterversion 2> /dev/null | grep version | awk '{print  $2 }'`
   OCP_SERVER_VERSION=`${CLI_CMD} get clusterversion 2> /dev/null | grep version | awk '{print  $2 }'`
   ADMIN_USER=`${CLI_CMD} whoami`
-  BAI_AUTO_NAMESPACE=`${CLI_CMD} project -q`
 
   CLUSTER_NAME=`${CLI_CMD} -n kube-system get configmap cluster-info -o yaml 2> /dev/null | grep '"name":'  | grep -v cluster-info | sed 's/"//g' | sed 's/,//g' | sed "s/name: //g" | sed "s/ //g"`
   #If cm cluster-info does not exist, check for cm cluster-config-v1
@@ -119,7 +154,9 @@ validateOCPAccess()
      fi
   fi
 
-  export BAI_AUTO_NAMESPACE=$BAI_AUTO_NAMESPACE
+  # Load operator and API versions (also sets BAI_AUTO_NAMESPACE, BAI_DEPLOYMENT_NAME, BAI_DEPLOYMENT_TYPE, OLM_DEPLOYMENT)
+  operatorAndAPIVersions
+
   export CLUSTER_NAME=$CLUSTER_NAME
   export CLUSTER_DOMAIN=$CLUSTER_DOMAIN
 
@@ -129,56 +166,27 @@ validateOCPAccess()
   echo "Logged in as user                             : $ADMIN_USER"
   echo "Using namespace                               : $BAI_AUTO_NAMESPACE"
   echo "Deployment name                               : $BAI_DEPLOYMENT_NAME"
+  echo "Deployment type                               : $BAI_DEPLOYMENT_TYPE"
+  echo "OLM deployment                                : $OLM_DEPLOYMENT"
 
-  if [ -z ${BAI_DEPLOYMENT_NAME} ]; then
-   echo "${RED_TEXT} *** No deployment found in namespace $BAI_AUTO_NAMESPACE. ***  ${RESET_TEXT}"
+  if [ -z "${BAI_AUTO_NAMESPACE}" ] || [ -z "${BAI_DEPLOYMENT_NAME}" ]; then
+   echo "${RED_TEXT} *** No InsightsEngine deployment found in any namespace. ***  ${RESET_TEXT}"
    consoleFooter "${CP_FUNCTION_NAME}"
    exit
   fi
 }
-BAI_DEPLOYMENT_NAME=`${CLI_CMD} get InsightsEngine  2> /dev/null | awk 'NR==2' | awk '{print $1}'`
-export BAI_DEPLOYMENT_NAME=$BAI_DEPLOYMENT_NAME
-
-CS_DEPLOYMENT_NAME=`${CLI_CMD} get commonservices  2> /dev/null | awk 'NR==2' | awk '{print $1}'`
-export CS_DEPLOYMENT_NAME=$CS_DEPLOYMENT_NAME
 
 
-cpfs_status()
+BAIServiceProbe()
 {
-printHeaderMessage "CPFS Status - Common Service Components status"
-# Retrieve the JSON output
-json_output=$(${CLI_CMD} get commonservices ${CS_DEPLOYMENT_NAME} -n ${BAI_AUTO_NAMESPACE} -o json)
+    printHeaderMessage "BAI Service Readiness/Liveness"
+    cd $DIR
 
-# Initialize an empty array
-declare -A operator_array
+    helper/post-install/probe/checkURL4BA.sh $CLUSTER_DOMAIN $BAI_AUTO_NAMESPACE $PROBE_USER_API_KEY $PROBE_USER_NAME $PROBE_USER_PASSWORD $PROBE_VERBOSE
 
-# Extract name and version for each operator and store as key-value pairs
-while IFS= read -r line; do
-    name=$(echo "$line" | jq -r '.name')
-    version=$(echo "$line" | jq -r '.version')
-    # Removing unnecessary quotes
-    name="${name//\"}"
-    version="${version//\"}"
-    # Storing in the array
-    operator_array["$name"]=$version
-done <<< "$(echo "$json_output" | jq -c '.status.bedrockOperators[]')"
-VALUE_COLOUR="\e[31m"
-COLOUR="\e[0m"
-
-# Print the values in the array
-for key in "${!operator_array[@]}"; do
-    if [ "$key" = "ibm-iam-operator" ]; then
-        printf '%b\n' "${VALUE_COLOUR}$key${COLOUR} : Installed -  Version : ${VALUE_COLOUR}${operator_array[$key]}${COLOUR}"
-      elif [[ "$key" = "cloud-native-postgresql" ]]; then
-        printf '%b\n' "${VALUE_COLOUR}$key${COLOUR} : Installed -  Version : ${VALUE_COLOUR}${operator_array[$key]}${COLOUR}"
-      elif [[ "$key" = "ibm-bts-operator" ]]; then
-        printf '%b\n' "${VALUE_COLOUR}$key${COLOUR} : Installed -  Version : ${VALUE_COLOUR}${operator_array[$key]}${COLOUR}"
-      elif [[ "$key" = "ibm-elasticsearch-operator" ]]; then
-        printf '%b\n' "${VALUE_COLOUR}$key${COLOUR} : Installed -  Version : ${VALUE_COLOUR}${operator_array[$key]}${COLOUR}"
-      elif [[ "$key" = "ibm-opencontent-flink" ]]; then
-        printf '%b\n' "${VALUE_COLOUR}$key${COLOUR} : Installed -  Version : ${VALUE_COLOUR}${operator_array[$key]}${COLOUR}"
-      fi
-done
+    echo
+    consoleFooter "${CP_FUNCTION_NAME}"
+    exit
 }
 
 cleanUp()

@@ -1,0 +1,61 @@
+name: ibm-ba-insights
+version: 24.0.8
+description: Generated from CASE ibm-ba-insights version 24.0.8 on 2026-23-06 06:24:59
+  PDT
+cases:
+- name: ibm-ba-insights
+  version: 24.0.8
+  launch: true
+  catalogGeneration:
+    ocMirror:
+      disableMerge: true
+- name: ibm-bts-bundle
+  version: 1.0.39
+  catalogGeneration:
+    ocMirror:
+      disableMerge: true
+- name: ibm-cloud-native-postgresql
+  version: 5.40.0+20260511.071333.2716
+  catalogGeneration:
+    ocMirror:
+      disableMerge: true
+- name: ibm-cs-install
+  version: 4.6.22
+  catalogGeneration:
+    ocMirror:
+      disableMerge: true
+- name: ibm-cs-iam
+  version: 4.5.19
+  catalogGeneration:
+    ocMirror:
+      disableMerge: true
+- name: ibm-events-operator
+  version: 5.2.1
+  catalogGeneration:
+    ocMirror:
+      disableMerge: true
+- name: ibm-elasticsearch-operator
+  version: 1.1.2667
+  catalogGeneration:
+    ocMirror:
+      disableMerge: true
+- name: ibm-cs-flink
+  version: 2.0.19
+  catalogGeneration:
+    ocMirror:
+      disableMerge: true
+- name: ibm-cert-manager
+  version: 4.2.23
+  catalogGeneration:
+    ocMirror:
+      disableMerge: true
+- name: ibm-zen
+  version: 3.1.22
+  catalogGeneration:
+    ocMirror:
+      disableMerge: true
+- name: ibm-licensing
+  version: 4.2.24
+  catalogGeneration:
+    ocMirror:
+      disableMerge: true
