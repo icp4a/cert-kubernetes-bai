@@ -39,6 +39,8 @@ kind: ConfigMap
 metadata:
   name: ibm-cpp-config
   namespace: ${bai_namespace}
+  labels:
+    operator.ibm.com/managedByCsOperator: "true"
 data:
   kubernetes_cluster_type: cncf
   commonwebui.standalone: "true"

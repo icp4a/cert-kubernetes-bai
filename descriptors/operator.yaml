@@ -65,7 +65,7 @@ spec:
                       - ppc64le
       initContainers:
         - name: folder-prepare-container
-          image: icr.io/cpopen/icp4a-insights-engine-operator@sha256:b8e1925d5022c9a112eda65e31b24f6b51425b6d665a3229fdc349ff349f5dc3
+          image: icr.io/cpopen/icp4a-insights-engine-operator@sha256:b668f2635bf9d25151b5c512a90592662be7af02446b4c4cdfc632590cde8681
           imagePullPolicy: IfNotPresent
           securityContext:
             readOnlyRootFilesystem: true
@@ -137,7 +137,7 @@ spec:
               value: "10"
             - name: bai_license
               value: BAI
-          image: icr.io/cpopen/icp4a-insights-engine-operator@sha256:b8e1925d5022c9a112eda65e31b24f6b51425b6d665a3229fdc349ff349f5dc3
+          image: icr.io/cpopen/icp4a-insights-engine-operator@sha256:b668f2635bf9d25151b5c512a90592662be7af02446b4c4cdfc632590cde8681
           imagePullPolicy: IfNotPresent
           livenessProbe:
             httpGet:

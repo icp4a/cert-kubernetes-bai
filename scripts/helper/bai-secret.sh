@@ -59,12 +59,12 @@ EOF
 }
 
 function create_zen_external_db_secret_template(){
-  wait_msg "Creating ibm-zen-metastore-edb-secret secret YAML template for Zen metastore external Postgres DB"
+  wait_msg "Creating ibm-zen-metastore-secret secret YAML template for Zen metastore external Postgres DB"
   mkdir -p $ZEN_SECRET_FOLDER >/dev/null 2>&1
 
 cat << EOF > ${ZEN_SECRET_FILE}
 #!/bin/bash
-# Shell template for ibm-zen-metastore-edb-secret.sh
+# Shell template for ibm-zen-metastore-secret.sh
 if [[ -f "<cp4a-db-crt-file-in-local>/root.crt" && -f "<cp4a-db-crt-file-in-local>/client.crt" && -f "<cp4a-db-crt-file-in-local>/client.key" ]]; then
   openssl x509 -in <cp4a-db-crt-file-in-local>/root.crt -noout -subject -issuer -startdate -enddate >/dev/null 2>&1
 
@@ -76,8 +76,8 @@ if [[ -f "<cp4a-db-crt-file-in-local>/root.crt" && -f "<cp4a-db-crt-file-in-loca
 
   openssl x509 -in <cp4a-db-crt-file-in-local>/root.crt -outform PEM -out <cp4a-db-crt-file-in-local>/root.pem >/dev/null 2>&1
 
-  ${CLI_CMD} delete secret generic "ibm-zen-metastore-edb-secret" -n ${bai_services_namespace} >/dev/null 2>&1
-  ${CLI_CMD} create secret generic "ibm-zen-metastore-edb-secret" --from-file=ca.crt="<cp4a-db-crt-file-in-local>/root.pem"\
+  ${CLI_CMD} delete secret generic "ibm-zen-metastore-secret" -n ${bai_services_namespace} >/dev/null 2>&1
+  ${CLI_CMD} create secret generic "ibm-zen-metastore-secret" --from-file=ca.crt="<cp4a-db-crt-file-in-local>/root.pem"\
   --from-file=tls.crt="<cp4a-db-crt-file-in-local>/client.pem"\
   --from-file=tls.key="<cp4a-db-crt-file-in-local>/client_key.pem"\
   --type=kubernetes.io/tls -n ${bai_services_namespace}
@@ -86,21 +86,21 @@ else
   exit 1
 fi
 EOF
-  success "Created ibm-zen-metastore-edb-secret secret YAML template for Zen metastore external Postgres DB\n"
+  success "Created ibm-zen-metastore-secret secret YAML template for Zen metastore external Postgres DB\n"
   chmod 755 ${ZEN_SECRET_FILE}
 }
 
 function create_zen_external_db_configmap_template(){
-  wait_msg "Creating ibm-zen-metastore-edb-cm configMap YAML template for Zen metastore external Postgres DB"
+  wait_msg "Creating ibm-zen-metastore-cm configMap YAML template for Zen metastore external Postgres DB"
   mkdir -p $ZEN_SECRET_FOLDER >/dev/null 2>&1
 cat << EOF > ${ZEN_CONFIGMAP_FILE}
-# YAML template for ibm-zen-metastore-edb-cm configMap
+# YAML template for ibm-zen-metastore-cm configMap
 # Updated for issue https://jsw.ibm.com/browse/DBACLD-166239 with these 2 DATABASE_ENABLE_SSL,DATABASE_SSL_MODE parameters
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: ibm-zen-metastore-edb-cm
+  name: ibm-zen-metastore-cm
   namespace: ${bai_services_namespace}
 data:
   IS_EMBEDDED: "false"
@@ -117,7 +117,7 @@ data:
   DATABASE_ENABLE_SSL: "true"
   DATABASE_SSL_MODE: require 
 EOF
-  success "Created ibm-zen-metastore-edb-cm configMap YAML template for Zen metastore external Postgres DB\n"
+  success "Created ibm-zen-metastore-cm configMap YAML template for Zen metastore external Postgres DB\n"
 }
 
 function create_im_external_db_secret_template(){
@@ -175,7 +175,8 @@ EOF
 function create_bts_external_db_secret_template(){
   wait_msg "Creating bts-datastore-edb-secret secret YAML template for BTS metastore external Postgres DB"
   mkdir -p $BTS_SECRET_FOLDER >/dev/null 2>&1
-
+# For https://jsw.ibm.com/browse/DBACLD-238245 and https://jsw.ibm.com/browse/DBACLD-238583 we now need to update the bts-datastore-edb-secret template to have a different key
+# THe key tls.key will be replaced to be tls.pk8 as the client.key file that it stores is in pk8 format. With new Postgres drivers, if you name it tls.key it expects the the key cert to be in PEM format.
 cat << EOF > ${BTS_SSL_SECRET_FILE}
 #!/bin/bash
 # Shell template for bts-datastore-edb-secret.sh
@@ -189,7 +190,7 @@ if [[ -f "<cp4a-db-crt-file-in-local>/root.crt" && -f "<cp4a-db-crt-file-in-loca
   ${CLI_CMD} delete secret generic "bts-datastore-edb-secret" -n ${bai_services_namespace} >/dev/null 2>&1
   ${CLI_CMD} create secret generic "bts-datastore-edb-secret" --from-file=ca.crt="<cp4a-db-crt-file-in-local>/root.pem"\
   --from-file=tls.crt="<cp4a-db-crt-file-in-local>/client.pem"\
-  --from-file=tls.key="<cp4a-db-crt-file-in-local>/tls_key.pk8" -n ${bai_services_namespace}
+  --from-file=tls.pk8="<cp4a-db-crt-file-in-local>/tls_key.pk8" -n ${bai_services_namespace}
 else
   printf '%b\n' "\x1B[1;31m[FAILED]:\x1B[0m Please copy \"root.crt\" \"client.crt\" \"client.key\" into \"<cp4a-db-crt-file-in-local>\" first."
   exit 1
@@ -203,6 +204,8 @@ EOF
 function create_bts_external_db_configmap_template(){
   wait_msg "Creating ibm-bts-config-extension configMap YAML template for BTS metastore external Postgres DB"
   mkdir -p $BTS_SECRET_FOLDER >/dev/null 2>&1
+# For https://jsw.ibm.com/browse/DBACLD-238245 and https://jsw.ibm.com/browse/DBACLD-238583 we now need to update the ibm-bts-config-extension template to have a different file path
+# THe key tls.key file path will be replaced end with tls.pk8 as the client.key file that it stores is in pk8 format. With new Postgres drivers, if you name it tls.key it expects the the key to be in PEM format.
 cat << EOF > ${BTS_CONFIGMAP_FILE}
 # YAML template for ibm-bts-config-extension configMap
 ---
@@ -219,7 +222,7 @@ data:
   sslMode: verify-ca
   sslSecretName: bts-datastore-edb-secret
   customPropertyName1: sslKey
-  customPropertyValue1: "/opt/ibm/wlp/usr/shared/resources/security/db/tls.key"
+  customPropertyValue1: "/opt/ibm/wlp/usr/shared/resources/security/db/tls.pk8"
   customPropertyName2: user
   customPropertyValue2: "<DatabaseUserName>"
 EOF

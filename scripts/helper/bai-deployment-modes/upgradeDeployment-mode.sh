@@ -261,11 +261,7 @@ function upgrade_deployment(){
     #info "${YELLOW_TEXT}Setting \"shared_configuration.sc_egress_configuration.sc_restricted_internet_access\" to \"false\" while upgrading BAI Standalone deployment, you could change it according to your requirements of security.${RESET_TEXT}"
     #printf "\n"
     #${YQ_CMD} w -i ${UPGRADE_DEPLOYMENT_BAI_CR_TMP} spec.shared_configuration.sc_egress_configuration.sc_restricted_internet_access "false"
-    # Set shared_configuration.enable_fips always "false" in upgrade
-    info "${YELLOW_TEXT}Setting \"shared_configuration.enable_fips\" as \"false\" while upgrading BAI Standalone deployment, you could change it according to your requirements.${RESET_TEXT}"
-    ${YQ_CMD} w -i ${UPGRADE_DEPLOYMENT_BAI_CR_TMP} spec.shared_configuration.enable_fips "false"
-
-    # Function that will retrieve the network policies created in 24.0.1 by the operators and remove the references and re-apply them 
+    # Function that will retrieve the network policies created in 24.0.1 by the operators and remove the references and re-apply them
     # For https://jsw.ibm.com/browse/DBACLD-167387
     update_network_policies $deployment_project_name "InsightsEngine" ${UPGRADE_DEPLOYMENT_BAI_CR_TMP}
 

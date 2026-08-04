@@ -219,3 +219,49 @@ spec:
                   number: 8080
             path: /
             pathType: ImplementationSpecific
+---
+kind: Ingress
+apiVersion: networking.k8s.io/v1
+metadata:
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "180"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "180"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "180"
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+    nginx.ingress.kubernetes.io/proxy-buffer-size: "8k"
+  name: cncf-common-nav
+  namespace: NAMESPACE
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: HOST
+      http:
+        paths:
+          - path: /common-nav
+            pathType: Prefix
+            backend:
+              service:
+                name: ibm-nginx-svc
+                port:
+                  number: 443
+          - path: /auth
+            pathType: Prefix
+            backend:
+              service:
+                name: ibm-nginx-svc
+                port:
+                  number: 443
+          - path: /zen
+            pathType: Prefix
+            backend:
+              service:
+                name: ibm-nginx-svc
+                port:
+                  number: 443
+          - path: /api/v1
+            pathType: Prefix
+            backend:
+              service:
+                name: ibm-nginx-svc
+                port:
+                  number: 443

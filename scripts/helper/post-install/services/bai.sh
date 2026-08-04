@@ -34,11 +34,32 @@ BAIStatus()
   BAI_BAI_INSIGHT_ENGINE_VERSION=`cat ${LOG_DIR}/bai-version.log`
   echo "InsightsEngine Version:                       :  ${BAI_BAI_INSIGHT_ENGINE_VERSION}"
 }
+BAICommonServicesConsoleInfo()
+{
+  printHeaderMessage "Service Console - Common"
+  # BAI uses the cpd route for the Cloud Pak dashboard
+  local COMMON_CONSOLE_URL=`${CLI_CMD} get routes -n ${BAI_AUTO_NAMESPACE} 2> /dev/null | grep "^cpd " | awk '{print $2}'`
+  echo "Cloud Pak Common Dashboard                    : ${BLUE_TEXT}https://${COMMON_CONSOLE_URL}${RESET_TEXT}"
+
+  local COMMON_USERNAME=`${CLI_CMD} get secret platform-auth-idp-credentials -n ${BAI_AUTO_NAMESPACE} -o go-template --template="{{.data.admin_username|base64decode}}" 2> /dev/null`
+  local COMMON_PASSWORD=`${CLI_CMD} get secret platform-auth-idp-credentials -n ${BAI_AUTO_NAMESPACE} -o go-template --template="{{.data.admin_password|base64decode}}" 2> /dev/null`
+  echo "Admin Username                                : ${COMMON_USERNAME}"
+  echo "Admin Password                                : ${COMMON_PASSWORD}"
+}
+
 BAIConsole()
 {
-  printHeaderMessage "BAI - Business Automation Insights Console"
-  ${CLI_CMD} get cm bai-bai-access-info -o jsonpath='{.data.bai-access-info}' 2> /dev/null &> ${LOG_DIR}/bai-console.yaml
+  BAICommonServicesConsoleInfo
 
-  BPC_URL=`cat  ${LOG_DIR}/bai-console.yaml | grep "Business Performance Center URL"  | awk '{print $5}'| head -n 1`
+  printHeaderMessage "BAI - Business Automation Insights Console"
+  ${CLI_CMD} get cm bai-bai-access-info -n ${BAI_AUTO_NAMESPACE} -o jsonpath='{.data.bai-access-info}' 2> /dev/null &> ${LOG_DIR}/bai-console.yaml
+
+  BPC_URL=`cat ${LOG_DIR}/bai-console.yaml | grep "Business Performance Center URL" | awk '{print $5}' | head -n 1`
   echo "Business Performance Center URL               : ${BPC_URL}"
+
+  KAFKA_BOOTSTRAP=`cat ${LOG_DIR}/bai-console.yaml | grep "Kafka Bootstrap_Servers" | awk '{print $3}' | head -n 1`
+  echo "Kafka Bootstrap Servers                       : ${KAFKA_BOOTSTRAP}"
+
+  OPENSEARCH_URL=`cat ${LOG_DIR}/bai-console.yaml | grep "OpenSearch URL" | awk '{print $3}' | head -n 1`
+  echo "OpenSearch URL                                : ${OPENSEARCH_URL}"
 }
