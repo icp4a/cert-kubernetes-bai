@@ -1,8 +1,0 @@
-.DS_Store
-*.log
-scripts/bai-prerequisites/**/ingress_nginx.yaml
-scripts/network-policies/
-.tmp
-.bak
-bai-prerequisites*
-generated-cr
