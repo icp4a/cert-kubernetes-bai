@@ -86,7 +86,8 @@ function check_prereqs_for_gke_gateway() {
         echo ""
         echo "${YELLOW_TEXT}NOTE:${RESET_TEXT} If you are planning to use NGINX for Kafka, you can remove sc_ingress_type: loadbalancer"
         echo ""
-        read -rp "Do you want to continue anyway? (yes/no, default: no): " continue_anyway
+        printf "Do you want to continue anyway? (yes/no, default: no): \n"
+        read -erp "" continue_anyway
         continue_anyway=$(echo "$continue_anyway" | tr '[:upper:]' '[:lower:]')
 
         case "$continue_anyway" in
@@ -107,7 +108,8 @@ function check_prereqs_for_gke_gateway() {
     echo "Available GatewayClasses in your cluster:"
     ${CLI_CMD} get gatewayclass -o custom-columns=NAME:.metadata.name,CONTROLLER:.spec.controllerName --no-headers 2>/dev/null || echo "  (none found)"
     echo ""
-    read -rp "Enter the GatewayClass name to use: " gateway_class_input
+    printf "Enter the GatewayClass name to use: \n"
+    read -erp "" gateway_class_input
     if [[ -z "$gateway_class_input" ]]; then
         error "GatewayClass name is required"
         exit 1
@@ -122,7 +124,8 @@ function check_prereqs_for_gke_gateway() {
         echo ""
         echo "  gcloud container clusters update <CLUSTER_NAME> --region <REGION> --gateway-api=standard"
         echo ""
-        read -rp "Do you want to continue anyway? (yes/no, default: no): " continue_anyway
+        printf "Do you want to continue anyway? (yes/no, default: no): \n"
+        read -erp "" continue_anyway
         continue_anyway=$(echo "$continue_anyway" | tr '[:upper:]' '[:lower:]')
         case "$continue_anyway" in
             "yes"|"y")
@@ -198,7 +201,7 @@ function patch_services_for_https() {
     if [[ "$INCLUDE_OPENSEARCH" == "true" ]]; then
         info "Adding NEG annotation to OpenSearch service..."
         ${CLI_CMD} annotate service opensearch -n ${namespace} \
-          cloud.google.com/neg='{"ingress":true}' --overwrite 2>/dev/null || tru
+          cloud.google.com/neg='{"ingress":true}' --overwrite 2>/dev/null || true
 
         # Verify if appProtocol is set
         opensearch_app_protocol=$(${CLI_CMD} get svc opensearch -n ${namespace} -o jsonpath='{.spec.ports[1].appProtocol}' 2>/dev/null)

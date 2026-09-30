@@ -104,8 +104,8 @@ function check_cncf_rancher_prereqs() {
             
             info "Cannot find Operator Lifecycle Manager (OLM) installed on this Cluster. OLM is a prerequisite to installing IBM Business Automation Insights Standalone and the script can install OLM ${OLM_VERSION} for you."
             echo
-            printf "\x1B[1m\nDo you want the script to install the prerequisite OLM ${OLM_VERSION} (Yes/No, default: No) \x1B[0m"
-            read -rp "" ans
+            printf "\x1B[1m\nDo you want the script to install the prerequisite OLM ${OLM_VERSION} (Yes/No, default: No) \x1B[0m\n"
+            read -erp "" ans
             # If the user provides no input, set the default to 'No'
             if [ -z "$ans" ]; then
                 ans="No"

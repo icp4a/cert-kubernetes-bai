@@ -82,7 +82,7 @@ function prompt_wfps_license(){
     printf "\n"
     while true; do
         if [ -z "$AUTO_LICENSE_ACCEPT" ]; then
-            printf "\x1B[1mDo you accept the IBM Process Flow license (Yes/No, default: No): \x1B[0m"
+            printf "\x1B[1mDo you accept the IBM Process Flow license (Yes/No, default: No): \x1B[0m\n"
             read -erp "" ans
             case "$ans" in
             "y"|"Y"|"yes"|"Yes"|"YES")
@@ -99,7 +99,7 @@ function prompt_wfps_license(){
                 ;;
             esac
         else
-            printf "\x1B[1mDo you accept the IBM Process Flow license (Yes/No, default: No): \x1B[0m"
+            printf "\x1B[1mDo you accept the IBM Process Flow license (Yes/No, default: No): \x1B[0m\n"
             case "$AUTO_LICENSE_ACCEPT" in
             "y"|"Y"|"yes"|"Yes"|"YES")
                 printf "\n"
@@ -152,7 +152,7 @@ function validate_cli(){
         printf '%b\n' "\x1B[1mThis script prepares the environment for the deployment of the IBM Business Automation Insights capability. \x1B[0m"
     fi
     echo
-    if  [[ $PLATFORM_SELECTED == "OCP" || $PLATFORM_SELECTED == "ROKS" ]]; then
+    if  [[ $PLATFORM_SELECTED == "OCP" ]]; then
         which oc &>/dev/null
         [[ $? -ne 0 ]] && \
             echo "Unable to locate the OpenShift CLI. You must install it to run this script." && \
@@ -337,7 +337,7 @@ function select_private_catalog(){
     while true; do
         if [[ -z "$BAI_AUTO_PRIVATE_CATALOG" ]]; then
             # for defect https://jsw.ibm.com/browse/DBACLD-153503 where we had to update the script to set private catalog as the default option
-            printf "\x1B[1mWould you like to deploy IBM Business Automation Insights using a private catalog? (Yes/No, default: Yes): \x1B[0m"
+            printf "\x1B[1mWould you like to deploy IBM Business Automation Insights using a private catalog? (Yes/No, default: Yes): \x1B[0m\n"
             read -erp "" ans
         else
             # for defect https://jsw.ibm.com/browse/DBACLD-153503 where we had to update the script to set private catalog as the default option
@@ -373,7 +373,7 @@ function select_separate_operator(){
     echo "${YELLOW_TEXT}[NOTES] IBM Business Automation Insights (BAI) deployment supports separation of operators and operands, the script can deploy BAI operator and BAI runtime pods in different projects.${RESET_TEXT}"
     while true; do
         if [[ -z "$BAI_AUTO_SEPARATE_OPERATOR" ]]; then
-            printf "\x1B[1mWould you like to deploy IBM Business Automation Insights with the separation of operators and operands? (Yes/No, default: No): \x1B[0m"
+            printf "\x1B[1mWould you like to deploy IBM Business Automation Insights with the separation of operators and operands? (Yes/No, default: No): \x1B[0m\n"
             read -erp "" ans
         else
             printf "\x1B[1mWould you like to deploy IBM Business Automation Insights with the separation of operators and operands? (Yes/No, default: No): $BAI_AUTO_SEPARATE_OPERATOR\x1B[0m\n"
@@ -703,7 +703,7 @@ function collect_input() {
             fi
         done
     fi
-    if [[ "$PLATFORM_SELECTED" == "OCP" || "$PLATFORM_SELECTED" == "ROKS" ]]; then
+    if [[ "$PLATFORM_SELECTED" == "OCP" ]]; then
         user_name=""
         select_user
     fi
@@ -873,7 +873,7 @@ function validate_cncf_olm(){
     printf "\n"
 
     while true; do
-        printf "\x1B[1mWould you like to deploy the Operator Lifecycle Manager (OLM) in namespace \"${CNCF_OLM_NAMESPACE}\"? (Yes/No, default: No) \x1B[0m"
+        printf "\x1B[1mWould you like to deploy the Operator Lifecycle Manager (OLM) in namespace \"${CNCF_OLM_NAMESPACE}\"? (Yes/No, default: No) \x1B[0m\n"
         if [ -z "$AUTO_INSTALL_OLM" ]; then
             read -erp "" ans
             case "$ans" in
@@ -934,7 +934,7 @@ function create_project() {
 
     local project_name=$1
     project_name=$(sed -e 's/^"//' -e 's/"$//' <<<"$project_name")
-    if [[ "$PLATFORM_SELECTED" == "OCP" || "$PLATFORM_SELECTED" == "ROKS" ]]; then
+    if [[ "$PLATFORM_SELECTED" == "OCP" ]]; then
         isProjExists=`${CLI_CMD} get project $project_name --ignore-not-found | wc -l`  >/dev/null 2>&1
 
         if [ $isProjExists -ne 2 ] ; then
@@ -996,7 +996,7 @@ function verify_existing_csv(){
 
         if [ -z "$BAI_AUTO_NAMESPACE" ]; then
             while true; do
-                printf "\x1B[1mWould you like to deploy another $BAI_FULL_NAME Operator in new project \"${project_name}\"? (Yes/No, default: No) \x1B[0m"
+                printf "\x1B[1mWould you like to deploy another $BAI_FULL_NAME Operator in new project \"${project_name}\"? (Yes/No, default: No) \x1B[0m\n"
                 read -erp "" ans
                 case "$ans" in
                 "y"|"Y"|"yes"|"Yes"|"YES")
@@ -1055,7 +1055,7 @@ function bind_scc() {
 }
 
 function prepare_install() {
-    if [[ "$PLATFORM_SELECTED" == "OCP" || "$PLATFORM_SELECTED" == "ROKS" ]]; then
+    if [[ "$PLATFORM_SELECTED" == "OCP" ]]; then
         ${CLI_CMD} project ${project_name} >> ${LOG_FILE}
     fi
     # sed -e "s/<NAMESPACE>/${project_name}/g" ${CLUSTER_ROLE_BINDING_FILE} > ${CLUSTER_ROLE_BINDING_FILE_TEMP}
@@ -1085,7 +1085,7 @@ function prepare_install() {
     ${CLI_CMD} apply -f ${ROLE_BINDING_FILE} -n ${project_name} --validate=false >> ${LOG_FILE}
         echo "Done!"
         if [[ $NON_ADMIN == "false" && $user_name != "Cluster Admin" ]]; then
-            if [[ "$PLATFORM_SELECTED" == "OCP" || "$PLATFORM_SELECTED" == "ROKS" ]]; then
+            if [[ "$PLATFORM_SELECTED" == "OCP" ]]; then
             echo
             printf '%b' "Adding the user ${user_name} to the ibm-cp4a-operator role..."
             ${CLI_CMD} project ${project_name} >> ${LOG_FILE}
@@ -1444,7 +1444,7 @@ function display_airgap_prerequisites(){
     printf "\x1B[1;31mhttps://www.ibm.com/docs/en/bai/$BAI_RELEASE_BASE?topic=deployment-preparing-your-cluster-air-gapped-offline \n\x1B[0m"
     printf "\n"
     while true; do
-        printf "\x1B[1mDo you want to proceed with the offline/airgap cluster setup (Yes/No, default: No): \x1B[0m"
+        printf "\x1B[1mDo you want to proceed with the offline/airgap cluster setup (Yes/No, default: No): \x1B[0m\n"
         read -erp "" ans
         printf "\n"
         case "$ans" in
@@ -1469,7 +1469,7 @@ function display_airgap_prerequisites(){
 
 
 # Function that asks for the entitlement key and verifies it
-# For dev mode it verifies against cp.stg.icr.io
+# For dev mode it verifies against preprod.icr.io
 function get_entitlement_registry(){
 
     # For Entitlement Registry key
@@ -1504,7 +1504,7 @@ function get_entitlement_registry(){
         fi
 
         if [[ -z "$BAI_AUTO_ENTITLEMENT_KEY" && -z "$BAI_AUTO_LOCAL_REGISTRY" ]]; then
-            printf "\x1B[1mDo you have a $BAI_FULL_NAME Entitlement Registry key (Yes/No, default: No): \x1B[0m"
+            printf "\x1B[1mDo you have a $BAI_FULL_NAME Entitlement Registry key (Yes/No, default: No): \x1B[0m\n"
             read -erp "" ans
         fi
 
@@ -1516,7 +1516,7 @@ function get_entitlement_registry(){
             # During dev, OLM uses stage image repo
             if [[ "$RUNTIME_MODE" == "dev" || $RUNTIME_MODE == "baw-dev" || $RUNTIME_MODE == "process-flow-dev" ]]
             then
-                DOCKER_REG_SERVER="cp.stg.icr.io"
+                DOCKER_REG_SERVER="preprod.icr.io"
             else
                 DOCKER_REG_SERVER="cp.icr.io"
             fi
@@ -1812,25 +1812,15 @@ function select_platform(){
         
         
 
-        # For airgap deployment only ROKS and OCP is supported
-        #if [[ $AIRGAP_INSTALL == "Yes" ]]; then
-        #    options=("RedHat OpenShift Kubernetes Service (ROKS) - Public Cloud" "Openshift Container Platform (OCP) - Private Cloud")
-        #    PS3='Enter a valid option [1 to 2]: '
-        #else
         #Adding support for the other type of platform
         # DBACLD-168151
         otherOption="Other - Cloud Native Computing Foundation ( CNCF )"
-        options=("RedHat OpenShift Kubernetes Service (ROKS) - Public Cloud" "Openshift Container Platform (OCP) - Private Cloud" "$otherOption")
-        PS3='Enter a valid option [1 to 3]: '
-        #fi
+        options=("Openshift Container Platform (OCP) - Private Cloud" "$otherOption")
+        PS3='Enter a valid option [1 to 2]: '
 
         select opt in "${options[@]}"
         do
             case $opt in
-                "RedHat OpenShift Kubernetes Service (ROKS) - Public Cloud")
-                    PLATFORM_SELECTED="ROKS"
-                    break
-                    ;;
                 "Openshift Container Platform (OCP) - Private Cloud")
                     PLATFORM_SELECTED="OCP"
                     break
@@ -1850,7 +1840,7 @@ function select_platform(){
     fi
 
     
-    if [[ "$PLATFORM_SELECTED" == "OCP" || "$PLATFORM_SELECTED" == "ROKS" ]]; then
+    if [[ "$PLATFORM_SELECTED" == "OCP" ]]; then
         SCRIPT_MODE="OLM"
         CLI_CMD=oc
     elif [[ "$PLATFORM_SELECTED" == "other" ]]
@@ -1936,34 +1926,7 @@ function display_installationprompt(){
 
 
 function check_storage_class() {
-    if [[ $PLATFORM_SELECTED == "ROKS" ]];
-    then
-        # echo ""
-        # echo "Applying no_root_squash for demo DB2 deployment on ROKS using CLI"
-        # oc get no -l node-role.kubernetes.io/worker --no-headers -o name | xargs -I {} --  oc debug {} -- chroot /host sh -c 'grep "^Domain = slnfsv4.coms" /etc/idmapd.conf || ( sed -i "s/.*Domain =.*/Domain = slnfsv4.com/g" /etc/idmapd.conf; nfsidmap -c; rpc.idmapd )' >> ${LOG_FILE}
-       printf "\n"
-       printf '%b\n' "\x1B[1mUse the available storage classes.\x1B[0m"
-    fi
     display_storage_classes_existing
-}
-
-function create_storage_classes_roks() {
-    echo
-    printf '%b' "\x1B[1mCreate storage classes for deployment: \x1B[0m"
-    ${CLI_CMD} apply -f ${BRONZE_STORAGE_CLASS} --validate=false >&3 2>&3
-    ${CLI_CMD} apply -f ${SILVER_STORAGE_CLASS} --validate=false >&3 2>&3
-    ${CLI_CMD} apply -f ${GOLD_STORAGE_CLASS} --validate=false >&3 2>&3
-    printf '%b\n' "\x1B[1mDone \x1B[0m"
-
-}
-
-function display_storage_classes_roks() {
-    sc_bronze_name=cp4a-file-retain-bronze-gid
-    sc_silver_name=cp4a-file-retain-silver-gid
-    sc_gold_name=cp4a-file-retain-gold-gid
-    printf '%b\n' "\x1B[1;31m    $sc_bronze_name \x1B[0m"
-    printf '%b\n' "\x1B[1;31m    $sc_silver_name \x1B[0m"
-    printf '%b\n' "\x1B[1;31m    $sc_gold_name \x1B[0m"
 }
 
 function check_platform_version(){
@@ -2147,11 +2110,6 @@ function show_summary(){
     fi
     printf '%b\n' "\x1B[1;31m2. Project to deploy: ${project_name}\x1B[0m"
     printf '%b\n' "\x1B[1;31m3. User selected: ${user_name}\x1B[0m"
-    if  [[ $PLATFORM_SELECTED == "ROKS" ]];
-    then
-        printf '%b\n' "\x1B[1;31m5. Storage Class created: \x1B[0m"
-        display_storage_classes_roks
-    fi
     printf '%b\n' "\x1B[1m*******************************************************\x1B[0m"
 }
 
@@ -2176,7 +2134,7 @@ fi
 function select_ocp_olm(){
     printf "\n"
     while true; do
-        printf "\x1B[1mAre you using the OCP Catalog (OLM) to perform this install? (Yes/No, default: No) \x1B[0m"
+        printf "\x1B[1mAre you using the OCP Catalog (OLM) to perform this install? (Yes/No, default: No) \x1B[0m\n"
 
         read -erp "" ans
         case "$ans" in
@@ -2202,7 +2160,7 @@ function get_local_registry_server(){
     if [[ "${REGISTRY_TYPE}" == "internal" && ("${OCP_VERSION}" == "4.4OrLater") ]];then
         #This is required for docker/podman login validation.
         printf "\x1B[1mEnter the public image registry or route (e.g., default-route-openshift-image-registry.apps.<hostname>). \n\x1B[0m"
-        printf "\x1B[1mThis is required for docker/podman login validation: \x1B[0m"
+        printf "\x1B[1mThis is required for docker/podman login validation: \x1B[0m\n"
         local_public_registry_server=""
         while [[ $local_public_registry_server == "" ]]
         do
@@ -2230,7 +2188,7 @@ function get_local_registry_server(){
     elif [[ "${REGISTRY_TYPE}" == "external" || $PLATFORM_SELECTED == "other" ]]
     then
         if [ -z $BAI_AUTO_LOCAL_REGISTRY ]; then
-            printf "\x1B[1mEnter the URL to the docker registry, for example: abc.xyz.com: \x1B[0m"
+            printf "\x1B[1mEnter the URL to the docker registry, for example: abc.xyz.com: \x1B[0m\n"
         fi
     fi
     if [ -z $BAI_AUTO_LOCAL_REGISTRY ]; then
@@ -2265,7 +2223,7 @@ function get_local_registry_user(){
     # For Local Registry User
     printf "\n"
     if [ -z "$BAI_AUTO_LOCAL_REGISTRY_USER" ]; then
-        printf "\x1B[1mEnter the user name for your docker registry: \x1B[0m"
+        printf "\x1B[1mEnter the user name for your docker registry: \x1B[0m\n"
         local_registry_user=""
         while [[ $local_registry_user == "" ]]
         do
@@ -2306,7 +2264,7 @@ function verify_local_registry_password(){
     printf "\n"
     while true; do
         if [ -z "$BAI_AUTO_PUSH_IMAGE_LOCAL_REGISTRY" ]; then
-            printf "\x1B[1mHave you pushed the images to the local registry using 'loadimages.sh' ($BAI_FULL_NAME images) (Yes/No)? \x1B[0m"
+            printf "\x1B[1mHave you pushed the images to the local registry using 'loadimages.sh' ($BAI_FULL_NAME images) (Yes/No)? \x1B[0m\n"
             read -erp "" ans
         else
             case "$BAI_AUTO_PUSH_IMAGE_LOCAL_REGISTRY" in
@@ -2341,7 +2299,7 @@ function verify_local_registry_password(){
     done
 
     # Select which type of image registry to use.
-    if [[ "${PLATFORM_SELECTED}" == "OCP" || "${PLATFORM_SELECTED}" == "ROKS" ]]; then
+    if [[ "${PLATFORM_SELECTED}" == "OCP" ]]; then
         printf "\n"
         printf '%b\n' "\x1B[1mSelect the type of image registry to use: \x1B[0m"
         COLUMNS=12
@@ -2491,7 +2449,7 @@ function create_secret_local_registry(){
 #function for silent clusteradmin set up
 function verify_silence_install(){
     if [[ ! -z "${BAI_AUTO_PLATFORM}" || ! -z "${BAI_AUTO_DEPLOYMENT_TYPE}" ]]; then
-        local platform_array=("OCP" "ROKS" "other")
+        local platform_array=("OCP" "other")
         local deployment_type_array=("production")
         echo           "==========================================================================="
         printf '%b\n' "\x1B[1mStarting silent installation for $BAI_FULL_NAME Operator\x1B[0m"
@@ -2502,7 +2460,7 @@ function verify_silence_install(){
             exit 1
         fi
         if [[ ! " ${platform_array[@]} " =~ " ${BAI_AUTO_PLATFORM} " ]]; then
-            printf '%b\n' "\x1B[1;31mOnly \"OCP\" or \"ROKS\" or \"other\" is valid value for environment variable [BAI_AUTO_PLATFORM].\n\x1B[0m"
+            printf '%b\n' "\x1B[1;31mOnly \"OCP\" or \"other\" is valid value for environment variable [BAI_AUTO_PLATFORM].\n\x1B[0m"
             exit 1
         fi
 
@@ -2518,7 +2476,7 @@ function retrieve_domain_name(){
     OTHER_PLATFORM_TYPE_DOMAIN=""
 
     while [ $attempts -lt $max_attempts ]; do
-        printf "\x1B[1mProvide the domain name for your cluster (This is the ingress that must be created and provided as a prerequisite for the deployment): \x1B[0m"
+        printf "\x1B[1mProvide the domain name for your cluster (This is the ingress that must be created and provided as a prerequisite for the deployment): \x1B[0m\n"
         read -erp "" OTHER_PLATFORM_TYPE_DOMAIN
         
         if [[ -z "$OTHER_PLATFORM_TYPE_DOMAIN" ]]; then
@@ -2658,7 +2616,7 @@ if [[ "$RUNTIME_MODE" == "process-flow" || $RUNTIME_MODE == "process-flow-dev" ]
 fi
 
 validate_cli
-if [[ $PLATFORM_SELECTED == "OCP" || $PLATFORM_SELECTED == "ROKS" ]]; then
+if [[ $PLATFORM_SELECTED == "OCP" ]]; then
     check_platform_version
 fi
 
@@ -2806,7 +2764,7 @@ fi
 # create_scc
 display_storage_classes
 
-# if  [[ $PLATFORM_SELECTED == "OCP" || $PLATFORM_SELECTED == "ROKS" ]];
+# if  [[ $PLATFORM_SELECTED == "OCP" ]];
 # then
 #     display_node_name
 # fi
@@ -2815,7 +2773,7 @@ if [[ $SCRIPT_MODE != "OLM" ]]; then
     show_summary
     check_csoperator_exists
 
-    if [[ $PLATFORM_SELECTED == "OCP" ||  $PLATFORM_SELECTED == "ROKS" ]] && [[ $PLATFORM_VERSION == "4.4OrLater" ]] && [[ $CS_VERSION == "3.4" ]];
+    if [[ $PLATFORM_SELECTED == "OCP" ]] && [[ $PLATFORM_VERSION == "4.4OrLater" ]] && [[ $CS_VERSION == "3.4" ]];
     then
 
         if [ "$CS_INSTALL" != "YES" ]; then
@@ -2831,7 +2789,7 @@ if [[ $SCRIPT_MODE != "OLM" ]]; then
     # Deploy CS 3.3 if OCP 4.2 or 3.11 as per requirements.  The components for CS 3.3 in this case will only be Licensing and Metering (also CommonUI as a base requirment)
     #if  [[[ $PLATFORM_SELECTED == "OCP" ]] && [ $PLATFORM_VERSION == "4.2" ]]] || [[[ $PLATFORM_SELECTED == "OCP" ] && [ $PLATFORM_VERSION == "3.11" ]]]
 
-    if  [[ $PLATFORM_SELECTED == "OCP" ||  $PLATFORM_SELECTED == "ROKS" ]] && [[ $PLATFORM_VERSION == "4.4OrLater" ]] && [[ $CS_VERSION == "3.3" ]];
+    if  [[ $PLATFORM_SELECTED == "OCP" ]] && [[ $PLATFORM_VERSION == "4.4OrLater" ]] && [[ $CS_VERSION == "3.3" ]];
     then
         echo "IBM Cloud Pak foundational services, along with Metering & Licensing components, will be installed."
             if [ "$CS_INSTALL" != "YES" ]; then
@@ -2857,7 +2815,7 @@ fi
 
 clean_up
 #set the project context back to the user generated one
-if  [[ $PLATFORM_SELECTED == "OCP" ||  $PLATFORM_SELECTED == "ROKS" ]];
+if  [[ $PLATFORM_SELECTED == "OCP" ]];
 then
   ${CLI_CMD} project ${PROJ_NAME} > /dev/null
 fi

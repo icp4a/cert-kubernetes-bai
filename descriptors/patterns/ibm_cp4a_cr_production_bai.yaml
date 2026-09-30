@@ -140,6 +140,27 @@ spec:
       ## Provide non default admin user for IAM in case you do not want to use cpadmin
       default_admin_username: ""
 
+    ## Tolerations for all Insights Engine pods (cockpit, management, flink, jobs).
+    ## If your cluster nodes are tainted, configure tolerations here to allow pods to be scheduled on those nodes.
+    ## Without proper tolerations, pods will remain in Pending state and the deployment cannot proceed.
+    ##
+    ## Example configurations:
+    ## 1. Tolerate nodes with "dedicated=bai:NoSchedule" taint:
+    ##    sc_tolerations:
+    ##      - key: "dedicated"
+    ##        operator: "Equal"
+    ##        value: "bai"
+    ##        effect: "NoSchedule"
+    ##
+    ## 2. Tolerate infrastructure nodes (any value):
+    ##    sc_tolerations:
+    ##      - key: "node-role.kubernetes.io/infra"
+    ##        operator: "Exists"
+    ##        effect: "NoSchedule"
+    ##
+    ## For more information: https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/
+    sc_tolerations: []
+
   ## The beginning section of LDAP configuration for CP4A
   ldap_configuration:
     ## The possible values are: "IBM Security Directory Server" or "Microsoft Active Directory" or "Custom"

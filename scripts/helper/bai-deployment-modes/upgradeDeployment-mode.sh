@@ -25,8 +25,8 @@ function rerun_upgrade_check(){
             warning "The release version of insightsengine custom resource \"$insightsengine_cr_name\" is already \"$cr_version\"."
             printf "\n"
             while true; do
-                printf "\x1B[1mDo you want to continue running the upgrade? (Yes/No, default: No): \x1B[0m"
-                read -rp "" ans
+                printf "\x1B[1mDo you want to continue running the upgrade? (Yes/No, default: No): \x1B[0m\n"
+                read -erp "" ans
                 case "$ans" in
                 "y"|"Y"|"yes"|"Yes"|"YES")
                     RERUN_UPGRADE_DEPLOYMENT="Yes"

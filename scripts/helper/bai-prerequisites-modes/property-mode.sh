@@ -24,22 +24,14 @@ function select_platform(){
     printf "\n"
     printf '%b\n' "\x1B[1mSelect the cloud platform to deploy: \x1B[0m"
     COLUMNS=12
-    # options=("RedHat OpenShift Kubernetes Service (ROKS) - Public Cloud" "Openshift Container Platform (OCP) - Private Cloud" "Other ( Certified Kubernetes Cloud Platform / CNCF)")
-    # PS3='Enter a valid option [1 to 3]: '
-
     #Adding support for the other type of platform
     # DBACLD-168151
     otheroption="Other - Cloud Native Computing Foundation ( CNCF )"
-    options=("RedHat OpenShift Kubernetes Service (ROKS) - Public Cloud" "Openshift Container Platform (OCP) - Private Cloud" "$otheroption")
-    PS3='Enter a valid option [1 to 3]: '
+    options=("Openshift Container Platform (OCP) - Private Cloud" "$otheroption")
+    PS3='Enter a valid option [1 to 2]: '
     select opt in "${options[@]}"
     do
         case $opt in
-            "RedHat OpenShift Kubernetes Service (ROKS) - Public Cloud")
-                PLATFORM_SELECTED="ROKS"
-                use_entitlement="yes"
-                break
-                ;;
             "Openshift Container Platform (OCP) - Private Cloud")
                 PLATFORM_SELECTED="OCP"
                 use_entitlement="yes"

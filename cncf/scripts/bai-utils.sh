@@ -136,7 +136,7 @@ function create_all_catalog_sources(){
             ${YQ_CMD} w -i "$catalog_source_file_name" -d "$((doc_index - 1))" "metadata.namespace" "$bai_namespace"
         fi
 
-        # For dev mode the image for the catalog source has to be in cp.stg.icr.io and a secrets field has to be added
+        # For dev mode the image for the catalog source has to be in preprod.icr.io and a secrets field has to be added
         if [[ "$dev" == true ]]; then
             # temporarily adding ibm-zen-operator-catalog because as of March 13th 2025 zen has not GAed
             if [[ "$name" == "ibm-bai-operator-catalog" ]]; then
@@ -146,7 +146,7 @@ function create_all_catalog_sources(){
 
                 if [[ -n "$current_image" && "$current_image" == icr.io/cpopen/* ]]; then
                     # Modify the repository path
-                    updated_image=${current_image/icr.io\/cpopen\//cp.stg.icr.io\/cp/}
+                    updated_image=${current_image/icr.io\/cpopen\//preprod.icr.io\/cpopen/}
 
                     # Update the image field in the YAML
                     ${YQ_CMD} w -i "$catalog_source_file_name" -d "$((doc_index - 1))" "spec.image" "$updated_image"
@@ -160,7 +160,7 @@ function create_all_catalog_sources(){
             #
             #    if [[ -n "$current_image" && "$current_image" == icr.io/cpopen/* ]]; then
             #        # Modify the repository path
-            #        updated_image=${current_image/icr.io\/cpopen\//cp.stg.icr.io\/cp/}
+            #        updated_image=${current_image/icr.io\/cpopen\//preprod.icr.io\/cpopen/}
             #
             #        # Update the image field in the YAML
             #        ${YQ_CMD} w -i "$catalog_source_file_name" -d "$((doc_index - 1))" "spec.image" "$updated_image"
@@ -271,7 +271,7 @@ function is_sub_exist() {
     is_exist=$(echo "$name" | grep -w "$package_name")
 }
 
-# Function that patches the csv with the cp.stg.icr.io image
+# Function that patches the csv with the preprod.icr.io image
 # THIS FUNCTION IS ONLY USED FOR DEV MODE
 function patch_csv() {
     local csv_prefix=$1
@@ -310,7 +310,7 @@ function patch_csv() {
         fi
         sleep 5
         # Transform the image path
-        updated_image=$(echo "$image" | sed -E 's|^icr.io/cpopen/|cp.stg.icr.io/cp/|')
+        updated_image=$(echo "$image" | sed -E 's|^icr.io/cpopen/|preprod.icr.io/cpopen/|')
         if [[ "$csv_name" == "ibm-bai-insights-engine-operator"* ]]; then
             ${CLI_CMD} scale deployment "$(${CLI_CMD} get deployments -n "$namespace" -o jsonpath='{.items[*].metadata.name}' | tr ' ' '\n' | grep '^ibm-bai-insights-engine-operator')" -n "$namespace" --replicas=0
         fi

@@ -33,28 +33,14 @@ function select_platform(){
     # Adding the Rancher / Tanzu option
     # DBACLD-168151
     otherOption="Other - Cloud Native Computing Foundation ( CNCF )"
-    options=("RedHat OpenShift Kubernetes Service (ROKS) - Public Cloud" "Openshift Container Platform (OCP) - Private Cloud" "$otherOption")
-    PS3='Enter a valid option [1 to 3]: '
-    
-
-    # if [[ "${SCRIPT_MODE}" == "OLM" ]]; then
-    #     options=("RedHat OpenShift Kubernetes Service (ROKS) - Public Cloud" "Openshift Container Platform (OCP) - Private Cloud")
-    #     PS3='Enter a valid option [1 to 2]: '
-    # else
-    #     options=("RedHat OpenShift Kubernetes Service (ROKS) - Public Cloud" "Openshift Container Platform (OCP) - Private Cloud" "Other ( Certified Kubernetes Cloud Platform / CNCF)")
-    #     PS3='Enter a valid option [1 to 3]: '
-    # fi
-
+    options=("Openshift Container Platform (OCP) - Private Cloud" "$otherOption")
+    PS3='Enter a valid option [1 to 2]: '
 
     # Adding the Rancher / Tanzu option
     # DBACLD-168151
     select opt in "${options[@]}"
     do
         case $opt in
-            "RedHat OpenShift Kubernetes Service (ROKS) - Public Cloud")
-                PLATFORM_SELECTED="ROKS"
-                break
-                ;;
             "Openshift Container Platform (OCP) - Private Cloud")
                 PLATFORM_SELECTED="OCP"
                 break
@@ -66,9 +52,8 @@ function select_platform(){
             *) echo "invalid option $REPLY";;
         esac
     done
-    
-    
-    if [[ "$PLATFORM_SELECTED" == "OCP" || "$PLATFORM_SELECTED" == "ROKS" ]]; then
+
+    if [[ "$PLATFORM_SELECTED" == "OCP" ]]; then
         CLI_CMD=oc
     elif [[ "$PLATFORM_SELECTED" == "other" ]]; then
         CLI_CMD=kubectl
@@ -91,7 +76,7 @@ function get_namespace() {
     max_attempts=3
 
     while [ -z "$BAI_NAMESPACE" ] && [ $attempts -lt $max_attempts ]; do
-        printf "\x1B[1mEnter namespace of your BAI deployment: \x1B[0m"
+        printf "\x1B[1mEnter namespace of your BAI deployment: \x1B[0m\n"
         read -erp "" ans
         BAI_NAMESPACE=$ans
         if [[ $CLI_CMD == "kubectl" ]]; then
@@ -113,7 +98,7 @@ function get_namespace() {
     fi
 }
 
-# function that checks if the OCP/ROKS platform based deployment has seperate operator and services namespaces
+# function that checks if the OCP platform based deployment has seperate operator and services namespaces
 function separation_of_duties_check() {
     # Get Operand namespace from user
     if [ -z "$BAI_SERVICE_NAMESPACE" ]; then
@@ -134,8 +119,8 @@ function separation_of_duties_check() {
                 "y"|"yes"|"")
                     max_counter=0
                     while [ $max_counter -lt 4 ]; do
-                        printf "\x1B[1mEnter Operand namespace of your BAI deployment: \x1B[0m"
-                        read -erp "" ans 
+                        printf "\x1B[1mEnter Operand namespace of your BAI deployment: \x1B[0m\n"
+                        read -erp "" ans
                         BAI_SERVICE_NAMESPACE=$ans
                         if [ -z "$(${CLI_CMD} get project "${BAI_SERVICE_NAMESPACE}" 2>/dev/null)" ]; then
                             printf '%b\n' "\x1B[1;31mError: Namespace ${BAI_SERVICE_NAMESPACE} does not exist. Please re-enter the namespace.\x1B[0m"
@@ -278,7 +263,7 @@ function uninstall_bai_operators(){
     uninstall_bai_operators_flag=false
     info " The script will now proceed to uninstalling the BAI Standalone Operators. This step will not uninstall any CPFS operators"
     printf "\n"
-    printf "\x1B[1mDo you want to proceed with the uninstallation of BAI Standalone Operators (Yes/No, default: No): \x1B[0m"
+    printf "\x1B[1mDo you want to proceed with the uninstallation of BAI Standalone Operators (Yes/No, default: No): \x1B[0m\n"
     read -erp "" ans
     case "$ans" in
     "y"|"Y"|"yes"|"Yes"|"YES")
@@ -342,7 +327,7 @@ function pv_pvc_cm_secrets_to_delete(){
     for secret in $secrets; do printf "%-25s %-15s\n" "Secrets" "$secret"; done
 
     # Ask for confirmation
-    printf "\x1B[1mDo you want to proceed with deleting these resources (Yes/No, default: No): \x1B[0m"
+    printf "\x1B[1mDo you want to proceed with deleting these resources (Yes/No, default: No): \x1B[0m\n"
     read -erp "" confirm
     if [[ "$confirm" == "yes" || "$confirm" == "y" || "$confirm" == "Y"|| "$confirm" == "yes" || "$confirm" == "Yes" || "$confirm" == "YES" ]]; then
         info "Proceeding with the deletion of Secrets , PVs,PVCs and Service Accounts...."
@@ -570,12 +555,12 @@ fi
 select_platform
 cli_check
 # Check cluster login
-if [[ "$PLATFORM_SELECTED" == "OCP" || "$PLATFORM_SELECTED" == "ROKS" ]]; then
+if [[ "$PLATFORM_SELECTED" == "OCP" ]]; then
     check_cluster_login
 fi
 get_namespace
 # Separation of Duties check
-if [[ "$PLATFORM_SELECTED" == "OCP" || "$PLATFORM_SELECTED" == "ROKS" ]]; then
+if [[ "$PLATFORM_SELECTED" == "OCP" ]]; then
     separation_of_duties_check
     # Validate BAI_NAMESPACE env var is for existing namespace
     if [ -z "$(${CLI_CMD} get project "${BAI_SERVICE_NAMESPACE}" 2>/dev/null)" ]; then
@@ -586,7 +571,7 @@ else
 fi
 check_namespace_validity
 
-if [[ "$PLATFORM_SELECTED" == "OCP" || "$PLATFORM_SELECTED" == "ROKS" ]]; then
+if [[ "$PLATFORM_SELECTED" == "OCP" ]]; then
     printf '%b\n' "The BAI namespace entered: ${BAI_SERVICE_NAMESPACE}"
     if [[ "$BAI_SERVICE_NAMESPACE" != "$BAI_NAMESPACE" ]]; then
         printf '%b\n' "The BAI operator namespace is ${BAI_NAMESPACE}\n"

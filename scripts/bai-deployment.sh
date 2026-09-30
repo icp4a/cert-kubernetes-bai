@@ -38,6 +38,7 @@ function show_help() {
     echo "  --ingress  Optional: Set this flag if you want to generate the ingress templates required for platform type -> Other - Cloud Native Computing Foundation ( CNCF )"
     echo
     echo "  --gateway-api  Optional: Set this flag if you want to configure the Gateway API resources and generate the required templates for platform type -> Other - Cloud Native Computing Foundation ( CNCF )"
+    echo "  --platform Only for --gateway-api mode: Platform type for which the Gateway API templates are created. Possible options are gke and rancher"
     echo
     echo
     echo "Additional Information:"
@@ -146,6 +147,20 @@ function parse_arguments() {
         --gateway-api)
             GATEWAY_API_MODE=true
         ;;
+        --platform)
+            shift
+            if [ -z $1 ]; then
+                echo "Invalid option: --platform flag requires an argument (gke/rancher)"
+                exit 1
+            fi
+            GATEWAY_API_PLATFORM=$1
+            if [[ $GATEWAY_API_PLATFORM == "gke" || $GATEWAY_API_PLATFORM == "rancher" ]]; then
+                echo -n
+            else
+                msg "Provide a valid argument for --platform: [gke] or [rancher]"
+                exit -1
+            fi
+        ;;
         dev)
         SCRIPT_MODE="dev"
         ;;
@@ -187,7 +202,7 @@ DOCKER_REG_USER=""
 
 if [[ "$SCRIPT_MODE" == "dev" || "$SCRIPT_MODE" == "review" ]] # During dev, OLM uses stage image repo
 then
-    DOCKER_REG_SERVER="cp.stg.icr.io"
+    DOCKER_REG_SERVER="preprod.icr.io"
     if [[ -z $2 ]]; then
         IMAGE_TAG_DEV="${BAI_RELEASE_BASE}"
     else

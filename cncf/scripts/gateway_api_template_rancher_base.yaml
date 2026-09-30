@@ -1,0 +1,691 @@
+# ================================================================================
+# Rancher/Traefik v3 Gateway API Template for IBM Business Automation Insights
+# (BAI) Standalone
+# ================================================================================
+#
+# GatewayClass: traefik  (controller: traefik.io/gateway-controller)
+#
+# IMPORTANT DIFFERENCES FROM GKE TEMPLATE:
+#   - NO GCPBackendPolicy   — GKE-specific, no Traefik equivalent.
+#                             Timeouts are set on HTTPRoute rules (Traefik v3.1+).
+#   - NO HealthCheckPolicy  — GKE-specific. Traefik uses Kubernetes readiness probes.
+#                             Verify ibm-nginx readinessProbe is on :8443/diag.
+#                             OpenSearch readiness probe must NOT return 401
+#                             (unauthenticated requests return 401 from OpenSearch
+#                             security plugin — ensure probe uses a health endpoint
+#                             or bypasses auth, otherwise pods are marked unready).
+#   - NO NEG annotations    — GKE-specific. Not applicable to Traefik/Rancher.
+#   - NO NamedAddress       — GKE-specific (GCP named static IP).
+#                             Uses type:IPAddress or omitted (controller assigns).
+#   - Backend HTTPS         — Set via appProtocol:https (lowercase) on each Service port.
+#                             Applied by script (patch_services_for_https_rancher) before apply.
+#                             This tells Traefik's kubernetesGateway provider to use TLS when
+#                             connecting to backend pods via EndpointSlice pod IPs.
+#                             GKE uses appProtocol:HTTPS (uppercase) for the same purpose.
+#                             PREREQUISITE: Traefik must have --serversTransport.insecureSkipVerify=true
+#                             set globally (IBM pod certs have DNS SANs only, no IP SAN).
+#                             The script checks for this and exits if not set.
+#                             This is NOT a security gap — see full justification in
+#                             bai-generate-gateway-api-rancher.sh check_prereqs_rancher_gateway().
+#                             GKE: GCPBackendPolicy offloads backend TLS to GCP infra entirely.
+#                             NGINX Ingress: backend-protocol:HTTPS silently skips cert verify
+#                             (proxy_ssl_verify off by default — same behaviour, just implicit).
+#                             NOTE: service.serversscheme and ServersTransport CRD annotations
+#                             are silently ignored by kubernetesGateway — do NOT use those.
+#   - Session affinity      — NOT supported by standard Gateway API.
+#                             platform-auth-service MUST run as 1 replica for OIDC
+#                             flows to be reliable (script verifies and warns).
+#   - OpenSearch             — Always included (core BAI component, not optional).
+#                             If the opensearch Service is headless (ClusterIP: None),
+#                             Traefik cannot route to it. SECTION 2 creates a non-headless
+#                             wrapper Service with a ClusterIP and the same pod selector.
+#                             The HTTPRoute targets this wrapper.
+#
+# This template contains:
+#   SECTION 1 — 4 cert-manager Certificates (auth, licensing, opensearch, cpd-ingress)
+#   SECTION 2 — Non-headless OpenSearch wrapper Service (required by Traefik Gateway API)
+#   SECTION 3 — Gateway (4 listeners: HTTP, HTTPS-auth, HTTPS-licensing, HTTPS-opensearch)
+#   SECTION 4 — ReferenceGrant (cross-namespace licensing)
+#   SECTION 5 — HTTPRoutes in the BAI namespace (9 routes: auth services + zen catch-all)
+#   SECTION 6 — HTTPRoute in the BAI namespace (opensearch — targets wrapper service)
+#   SECTION 7 — HTTPRoute in the licensing namespace (licensing, cross-namespace)
+#   SECTION 8 — HTTP→HTTPS redirect routes (auth, opensearch, licensing)
+#
+# Placeholders are replaced at generation time by bai-generate-gateway-api-rancher.sh.
+#
+# ================================================================================
+
+---
+# ================================================================================
+# SECTION 1: TLS CERTIFICATES (cert-manager)
+# Identical to GKE. zen-tls-issuer is created by IBM Cloud Pak installation.
+# cpd-ingress-tls-secret is required by CPD pods — previously auto-created by
+# NGINX ingress-shim; now created explicitly because Gateway API does not use
+# NGINX and the ingress-shim will no longer run for this hostname.
+# ================================================================================
+
+# Certificate for auth hostname (consumed by Gateway https listener)
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: bai-auth-gateway-tls
+  namespace: NAMESPACE
+spec:
+  secretName: cp-console-gateway-tls-secret
+  issuerRef:
+    name: zen-tls-issuer
+    kind: Issuer
+  dnsNames:
+    - HOST
+  usages:
+    - digital signature
+    - key encipherment
+    - server auth
+
+---
+# Certificate for licensing hostname (consumed by Gateway https-licensing listener)
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: licensing-gateway-tls
+  namespace: NAMESPACE
+spec:
+  secretName: licensing-gateway-tls-secret
+  issuerRef:
+    name: zen-tls-issuer
+    kind: Issuer
+  dnsNames:
+    - licensing.DOMAIN
+  usages:
+    - digital signature
+    - key encipherment
+    - server auth
+
+---
+# Certificate for OpenSearch hostname
+# opensearch-[NAMESPACE].[DOMAIN] matches the hostname pattern used on GKE
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: opensearch-gateway-tls
+  namespace: NAMESPACE
+spec:
+  secretName: opensearch-gateway-tls-secret
+  issuerRef:
+    name: zen-tls-issuer
+    kind: Issuer
+  dnsNames:
+    - opensearch-NAMESPACE.DOMAIN
+  usages:
+    - digital signature
+    - key encipherment
+    - server auth
+
+---
+# Certificate for cpd-ingress-tls-secret (consumed directly by CPD/Zen pods)
+# Previously auto-created by NGINX ingress-shim annotation on the zen-ingress
+# Ingress object. With Gateway API there is no ingress-shim, so we create it
+# explicitly here. Without this secret, the Zen UI will show TLS errors.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: cpd-ingress-tls
+  namespace: NAMESPACE
+spec:
+  secretName: cpd-ingress-tls-secret
+  issuerRef:
+    name: zen-tls-issuer
+    kind: Issuer
+  dnsNames:
+    - HOST
+  usages:
+    - digital signature
+    - key encipherment
+    - server auth
+
+---
+# ================================================================================
+# SECTION 2: NON-HEADLESS OPENSEARCH WRAPPER SERVICE
+#
+# WHY THIS IS NEEDED:
+#   Traefik's kubernetesGateway provider resolves backends via EndpointSlices.
+#   If the opensearch Service is headless (ClusterIP: None), Kubernetes does not
+#   create an EndpointSlice with a stable ClusterIP, causing Traefik to fail routing.
+#   This wrapper Service has a normal ClusterIP and selects the same opensearch pods,
+#   giving Traefik a routable backend. appProtocol:https tells Traefik to use TLS.
+#
+# If your opensearch Service already has a ClusterIP (not headless), this wrapper
+# is harmless — the HTTPRoute in SECTION 6 always targets this wrapper.
+# ================================================================================
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: opensearch-gateway-svc
+  namespace: NAMESPACE
+  labels:
+    app: opensearch-gateway-svc
+spec:
+  selector:
+    # Selects the same pods as the opensearch Service.
+    # Verify with: kubectl get svc opensearch -n NAMESPACE -o jsonpath='{.spec.selector}'
+    app: opensearch
+  ports:
+    - name: https
+      port: 9200
+      targetPort: 9200
+      protocol: TCP
+      appProtocol: https
+
+---
+# ================================================================================
+# SECTION 3: GATEWAY
+#
+# GKE difference: GKE used addresses[].type=NamedAddress (GCP named static IP)
+# and standard ports 80/443. Traefik uses addresses[].type=IPAddress (or omits
+# the block) and binds to hostPorts 80/443 via its DaemonSet, which maps to
+# Traefik's internal entryPoints web:8000 and websecure:8443.
+#
+# The script either injects the IP or removes the addresses block at generation
+# time — see the Gateway IP address handling in bai-generate-gateway-api-rancher.sh.
+# ================================================================================
+
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: bai-gateway
+  namespace: NAMESPACE
+  labels:
+    app: bai-gateway
+spec:
+  gatewayClassName: GATEWAY_CLASS
+  addresses:
+    - type: IPAddress
+      value: GATEWAY_IP_PLACEHOLDER
+  listeners:
+    # HTTP listener — used only for HTTP→HTTPS redirects
+    - name: http
+      protocol: HTTP
+      port: 8000
+      allowedRoutes:
+        namespaces:
+          from: All
+        kinds:
+          - kind: HTTPRoute
+
+    # HTTPS listener for auth and Zen UI services
+    - name: https
+      protocol: HTTPS
+      port: 8443
+      hostname: HOST
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: cp-console-gateway-tls-secret
+            kind: Secret
+      allowedRoutes:
+        namespaces:
+          from: Same
+        kinds:
+          - kind: HTTPRoute
+
+    # HTTPS listener for licensing (cross-namespace via ReferenceGrant)
+    - name: https-licensing
+      protocol: HTTPS
+      port: 8443
+      hostname: licensing.DOMAIN
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: licensing-gateway-tls-secret
+            kind: Secret
+      allowedRoutes:
+        namespaces:
+          from: Selector
+          selector:
+            matchLabels:
+              kubernetes.io/metadata.name: LICENSING_NS
+        kinds:
+          - kind: HTTPRoute
+
+    # HTTPS listener for OpenSearch
+    - name: https-opensearch
+      protocol: HTTPS
+      port: 8443
+      hostname: opensearch-NAMESPACE.DOMAIN
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: opensearch-gateway-tls-secret
+            kind: Secret
+      allowedRoutes:
+        namespaces:
+          from: Same
+        kinds:
+          - kind: HTTPRoute
+
+---
+# ================================================================================
+# SECTION 4: REFERENCE GRANT (Cross-namespace routing)
+# Identical to GKE. Without this, licensing HTTPRoutes silently fail to attach —
+# no error is surfaced, traffic simply is not routed.
+# Traefik v3 fully supports ReferenceGrant with the kubernetesGateway provider.
+# ================================================================================
+
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: ReferenceGrant
+metadata:
+  name: allow-licensing-to-gateway
+  namespace: NAMESPACE
+spec:
+  from:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      namespace: LICENSING_NS
+  to:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: bai-gateway
+
+---
+# ================================================================================
+# SECTION 5: HTTP ROUTES in the BAI namespace (9 routes)
+#
+# All routes are identical to GKE — Gateway API HTTPRoute spec is portable.
+# Traefik v3 supports: PathPrefix, URLRewrite (ReplacePrefixMatch),
+# RequestHeaderModifier, RequestRedirect — all used below.
+#
+# Timeout note: timeouts.backendRequest replaces GKE GCPBackendPolicy timeoutSec.
+# Requires Traefik v3.1+. Set to 180s to match GKE baseline.
+# ================================================================================
+
+# Route 1: /idauth → platform-auth-service:9443 (strip prefix via ReplacePrefixMatch)
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: cncf-platform-id-auth
+  namespace: NAMESPACE
+spec:
+  parentRefs:
+    - name: bai-gateway
+      sectionName: https
+  hostnames:
+    - "HOST"
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /idauth
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /
+      timeouts:
+        backendRequest: 180s
+      backendRefs:
+        - name: platform-auth-service
+          port: 9443
+
+---
+# Route 2: /idprovider → platform-identity-provider:4300 (strip prefix)
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: cncf-platform-id-provider
+  namespace: NAMESPACE
+spec:
+  parentRefs:
+    - name: bai-gateway
+      sectionName: https
+  hostnames:
+    - "HOST"
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /idprovider
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /
+      timeouts:
+        backendRequest: 180s
+      backendRefs:
+        - name: platform-identity-provider
+          port: 4300
+
+---
+# Route 3: /login → platform-identity-provider:4300 (strip prefix)
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: cncf-platform-login
+  namespace: NAMESPACE
+spec:
+  parentRefs:
+    - name: bai-gateway
+      sectionName: https
+  hostnames:
+    - "HOST"
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /login
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /
+      timeouts:
+        backendRequest: 180s
+      backendRefs:
+        - name: platform-identity-provider
+          port: 4300
+
+---
+# Route 4: /v1/auth → platform-identity-provider:4300
+# Injects X-Forwarded-Proto: https header (no prefix rewrite)
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: cncf-platform-auth
+  namespace: NAMESPACE
+spec:
+  parentRefs:
+    - name: bai-gateway
+      sectionName: https
+  hostnames:
+    - "HOST"
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /v1/auth
+      filters:
+        - type: RequestHeaderModifier
+          requestHeaderModifier:
+            set:
+              - name: X-Forwarded-Proto
+                value: https
+      timeouts:
+        backendRequest: 180s
+      backendRefs:
+        - name: platform-identity-provider
+          port: 4300
+
+---
+# Route 5: /idmgmt → platform-identity-management:4500 (strip prefix)
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: cncf-id-mgmt
+  namespace: NAMESPACE
+spec:
+  parentRefs:
+    - name: bai-gateway
+      sectionName: https
+  hostnames:
+    - "HOST"
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /idmgmt
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /
+      timeouts:
+        backendRequest: 180s
+      backendRefs:
+        - name: platform-identity-management
+          port: 4500
+
+---
+# Route 6: /oidc → platform-auth-service:9443
+# IMPORTANT: No prefix rewrite — /oidc path is preserved.
+# Injects X-Forwarded-Proto: https.
+# GKE had GENERATED_COOKIE session affinity on platform-auth-service for this
+# path. Traefik has no standard Gateway API equivalent. If platform-auth-service
+# has >1 replica, OIDC flows may loop — see script WARNING output.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: cncf-platform-oidc
+  namespace: NAMESPACE
+spec:
+  parentRefs:
+    - name: bai-gateway
+      sectionName: https
+  hostnames:
+    - "HOST"
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /oidc
+      filters:
+        - type: RequestHeaderModifier
+          requestHeaderModifier:
+            set:
+              - name: X-Forwarded-Proto
+                value: https
+      timeouts:
+        backendRequest: 180s
+      backendRefs:
+        - name: platform-auth-service
+          port: 9443
+
+---
+# Route 7: SAML callback — /ibm/saml20/defaultSP/acs (no rewrite)
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: cncf-saml-ui-callback
+  namespace: NAMESPACE
+spec:
+  parentRefs:
+    - name: bai-gateway
+      sectionName: https
+  hostnames:
+    - "HOST"
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /ibm/saml20/defaultSP/acs
+      timeouts:
+        backendRequest: 180s
+      backendRefs:
+        - name: platform-auth-service
+          port: 9443
+
+---
+# Route 8: Social login callback — /ibm/api/social-login (no rewrite)
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: cncf-social-login-callback
+  namespace: NAMESPACE
+spec:
+  parentRefs:
+    - name: bai-gateway
+      sectionName: https
+  hostnames:
+    - "HOST"
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /ibm/api/social-login
+      timeouts:
+        backendRequest: 180s
+      backendRefs:
+        - name: platform-auth-service
+          port: 9443
+
+---
+# Route 9: Catch-all / → ibm-nginx-svc:443 (Zen UI)
+# This is the lowest-specificity route. All more-specific paths above take
+# priority. ibm-nginx-svc has port:443 / targetPort:8443 (asymmetric), which
+# causes Traefik to use the correct HTTPS endpoint path without needing
+# appProtocol:https patched on the Service. No annotation required.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: zen-ingress
+  namespace: NAMESPACE
+spec:
+  parentRefs:
+    - name: bai-gateway
+      sectionName: https
+  hostnames:
+    - "HOST"
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      timeouts:
+        backendRequest: 180s
+      backendRefs:
+        - name: ibm-nginx-svc
+          port: 443
+
+---
+# ================================================================================
+# SECTION 6: HTTP ROUTE — OpenSearch
+# Targets the non-headless wrapper Service from SECTION 2 so Traefik can
+# resolve pod IPs from EndpointSlices and honour appProtocol:https.
+# ================================================================================
+
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: cncf-opensearch
+  namespace: NAMESPACE
+spec:
+  parentRefs:
+    - name: bai-gateway
+      sectionName: https-opensearch
+  hostnames:
+    - "opensearch-NAMESPACE.DOMAIN"
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      timeouts:
+        backendRequest: 180s
+      backendRefs:
+        - name: opensearch-gateway-svc
+          port: 9200
+
+---
+# ================================================================================
+# SECTION 7: HTTP ROUTE — Licensing (cross-namespace)
+# Deployed in the licensing namespace and references Gateway bai-gateway in the
+# BAI namespace. The ReferenceGrant in SECTION 4 is what allows this cross-namespace
+# attachment. Without the ReferenceGrant this route will silently fail to attach.
+# ================================================================================
+
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: cncf-ibm-licensing-service-instance
+  namespace: LICENSING_NS
+spec:
+  parentRefs:
+    - name: bai-gateway
+      namespace: NAMESPACE
+      sectionName: https-licensing
+  hostnames:
+    - "licensing.DOMAIN"
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      timeouts:
+        backendRequest: 180s
+      backendRefs:
+        - name: ibm-licensing-service-instance
+          port: 8080
+
+---
+# ================================================================================
+# SECTION 8: HTTP→HTTPS REDIRECT ROUTES
+# Identical to GKE — Traefik v3 supports RequestRedirect natively.
+# ================================================================================
+
+# HTTP→HTTPS redirect for auth hostname
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: http-to-https-redirect-auth
+  namespace: NAMESPACE
+spec:
+  parentRefs:
+    - name: bai-gateway
+      sectionName: http
+  hostnames:
+    - "HOST"
+  rules:
+    - filters:
+        - type: RequestRedirect
+          requestRedirect:
+            scheme: https
+            statusCode: 301
+
+---
+# HTTP→HTTPS redirect for OpenSearch hostname
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: http-to-https-redirect-opensearch
+  namespace: NAMESPACE
+spec:
+  parentRefs:
+    - name: bai-gateway
+      sectionName: http
+  hostnames:
+    - "opensearch-NAMESPACE.DOMAIN"
+  rules:
+    - filters:
+        - type: RequestRedirect
+          requestRedirect:
+            scheme: https
+            statusCode: 301
+
+---
+# HTTP→HTTPS redirect for licensing hostname (in licensing namespace)
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: http-to-https-redirect-licensing
+  namespace: LICENSING_NS
+spec:
+  parentRefs:
+    - name: bai-gateway
+      namespace: NAMESPACE
+      sectionName: http
+  hostnames:
+    - "licensing.DOMAIN"
+  rules:
+    - filters:
+        - type: RequestRedirect
+          requestRedirect:
+            scheme: https
+            statusCode: 301
+
+# ================================================================================
+# END OF TEMPLATE
+# ================================================================================

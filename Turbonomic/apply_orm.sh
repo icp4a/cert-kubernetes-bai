@@ -47,16 +47,12 @@ function select_platform(){
     printf '%b\n' "\x1B[1mSelect the cloud platform where BAI has been deployed: \x1B[0m"
 
     otherOption="Other - Cloud Native Computing Foundation ( CNCF )"
-    options=("RedHat OpenShift Kubernetes Service (ROKS) - Public Cloud" "Openshift Container Platform (OCP) - Private Cloud" "$otherOption")
-    PS3='Enter a valid option [1 to 3]: '
+    options=("Openshift Container Platform (OCP) - Private Cloud" "$otherOption")
+    PS3='Enter a valid option [1 to 2]: '
 
     select opt in "${options[@]}"
     do
         case $opt in
-            "RedHat OpenShift Kubernetes Service (ROKS) - Public Cloud")
-                PLATFORM_SELECTED="ROKS"
-                break
-                ;;
             "Openshift Container Platform (OCP) - Private Cloud")
                 PLATFORM_SELECTED="OCP"
                 break
@@ -69,7 +65,7 @@ function select_platform(){
         esac
     done
 
-    if [[ "$PLATFORM_SELECTED" == "OCP" || "$PLATFORM_SELECTED" == "ROKS" ]]; then
+    if [[ "$PLATFORM_SELECTED" == "OCP" ]]; then
         CLI_CMD=oc
     elif [[ "$PLATFORM_SELECTED" == "other" ]]; then
         CLI_CMD=kubectl

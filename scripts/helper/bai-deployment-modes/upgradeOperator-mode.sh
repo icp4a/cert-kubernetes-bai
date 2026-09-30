@@ -57,8 +57,8 @@ function select_private_catalog_bai(){
     echo "${YELLOW_TEXT}[NOTES] You can switch the BAI Standalone deployment to a private catalog (namespace scope) or keep it in the global catalog namespace (GCN). The private catalog (recommended) uses the same target namespace as the BAI Standalone deployment, while the GCN uses the openshift-marketplace namespace.${RESET_TEXT}"
 
     while true; do
-        printf "\x1B[1mDo you want to switch BAI Standalone deployment to use private catalog? (Yes/No, default: Yes): \x1B[0m"
-        read -rp "" ans
+        printf "\x1B[1mDo you want to switch BAI Standalone deployment to use private catalog? (Yes/No, default: Yes): \x1B[0m\n"
+        read -erp "" ans
         case "$ans" in
         "y"|"Y"|"yes"|"Yes"|"YES"|"")
             ENABLE_PRIVATE_CATALOG=1
@@ -1115,8 +1115,8 @@ function upgradeoperator_mode(){
         printf "\n"
         while true; do
             printf "\n"
-            printf "\x1B[1mDo you want to continue to do upgrade? (Yes/No, default: No): \x1B[0m"
-            read -rp "" ans
+            printf "\x1B[1mDo you want to continue to do upgrade? (Yes/No, default: No): \x1B[0m\n"
+            read -erp "" ans
             if [[ -z "$ans" ]]; then
                 ans="no"
             fi
