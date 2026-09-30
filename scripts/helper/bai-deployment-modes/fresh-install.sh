@@ -25,20 +25,15 @@ function select_platform(){
     COLUMNS=12
     otheroption="Other - Cloud Native Computing Foundation ( CNCF )"
     if [ -z "$existing_platform_type" ]; then
-        
+
         #Adding support for the other type of platform
         # DBACLD-168151
-        options=("RedHat OpenShift Kubernetes Service (ROKS) - Public Cloud" "Openshift Container Platform (OCP) - Private Cloud" "$otheroption")
-        PS3='Enter a valid option [1 to 3]: '
+        options=("Openshift Container Platform (OCP) - Private Cloud" "$otheroption")
+        PS3='Enter a valid option [1 to 2]: '
 
         select opt in "${options[@]}"
         do
             case $opt in
-                "RedHat OpenShift Kubernetes Service (ROKS) - Public Cloud")
-                    PLATFORM_SELECTED="ROKS"
-                    use_entitlement="yes"
-                    break
-                    ;;
                 "Openshift Container Platform (OCP) - Private Cloud")
                     PLATFORM_SELECTED="OCP"
                     use_entitlement="yes"
@@ -53,13 +48,13 @@ function select_platform(){
         done
     else
         if [[ "${SCRIPT_MODE}" == "OLM" ]]; then
-            options=("RedHat OpenShift Kubernetes Service (ROKS) - Public Cloud" "Openshift Container Platform (OCP) - Private Cloud")
-            options_var=("ROKS" "OCP")
+            options=("Openshift Container Platform (OCP) - Private Cloud")
+            options_var=("OCP")
         else
-            # options=("RedHat OpenShift Kubernetes Service (ROKS) - Public Cloud" "Openshift Container Platform (OCP) - Private Cloud" "Other ( Certified Kubernetes Cloud Platform / CNCF)")
-            # options_var=("ROKS" "OCP" "other")
-            options=("RedHat OpenShift Kubernetes Service (ROKS) - Public Cloud" "Openshift Container Platform (OCP) - Private Cloud")
-            options_var=("ROKS" "OCP")
+            # options=("Openshift Container Platform (OCP) - Private Cloud" "Other ( Certified Kubernetes Cloud Platform / CNCF)")
+            # options_var=("OCP" "other")
+            options=("Openshift Container Platform (OCP) - Private Cloud")
+            options_var=("OCP")
         fi
         for i in ${!options_var[@]}; do
             if [[ "${options_var[i]}" == "$existing_platform_type" ]]; then
@@ -73,7 +68,7 @@ function select_platform(){
         prompt_press_any_key_to_continue
     fi
 
-    if [[ "$PLATFORM_SELECTED" == "OCP" || "$PLATFORM_SELECTED" == "ROKS" ]]; then
+    if [[ "$PLATFORM_SELECTED" == "OCP" ]]; then
         CLI_CMD=oc
     elif [[ "$PLATFORM_SELECTED" == "other" ]]
     then
@@ -88,11 +83,11 @@ function select_ldap_user_for_zen(){
     printf "\n"
     LDAP_USER_NAME=""
 
-    printf '%b\n'  "${YELLOW_TEXT}For BAI standalone, if you select LDAP, then provide one ldap user here for onborading ZEN.${RESET_TEXT}"    
+    printf '%b\n'  "${YELLOW_TEXT}For BAI standalone, if you select LDAP, then provide one ldap user here for onborading ZEN.${RESET_TEXT}"
     while [[ $LDAP_USER_NAME == "" ]] # While get medium storage clase name
     do
-        printf "\x1B[1mEnter one LDAP user for BAI standalone: \x1B[0m"
-        read -rp "" LDAP_USER_NAME
+        printf "\x1B[1mEnter one LDAP user for BAI standalone: \x1B[0m\n"
+        read -erp "" LDAP_USER_NAME
         if [ -z "$LDAP_USER_NAME" ]; then
         printf '%b\n' "\x1B[1;31mEnter a valid LDAP user\x1B[0m"
         fi
@@ -104,8 +99,8 @@ function select_ldap_type(){
     printf "\n"
     SELECTED_LDAP="Yes" # Setting the default value to true since that is in line with the question being asked
     while true; do
-        printf "\x1B[1mDo you want to configure one LDAP for this IBM Business Automation Insights standalone deployment? (Yes/No, default: Yes): \x1B[0m"
-        read -rp "" ans
+        printf "\x1B[1mDo you want to configure one LDAP for this IBM Business Automation Insights standalone deployment? (Yes/No, default: Yes): \x1B[0m\n"
+        read -erp "" ans
         case "$ans" in
         "y"|"Y"|"yes"|"Yes"|"YES"|"")
             SELECTED_LDAP="Yes"
@@ -164,8 +159,8 @@ function get_storage_class_name(){
 
     while [[ $sc_medium_file_storage_classname == "" ]] # While get medium storage clase name
     do
-        printf "\x1B[1mEnter the file storage classname for medium storage(RWX): \x1B[0m"
-        read -rp "" sc_medium_file_storage_classname
+        printf "\x1B[1mEnter the file storage classname for medium storage(RWX): \x1B[0m\n"
+        read -erp "" sc_medium_file_storage_classname
         if [ -z "$sc_medium_file_storage_classname" ]; then
             printf '%b\n' "\x1B[1;31mEnter a valid file storage classname(RWX)\x1B[0m"
         fi
@@ -173,8 +168,8 @@ function get_storage_class_name(){
 
     while [[ $sc_fast_file_storage_classname == "" ]] # While get fast storage clase name
     do
-        printf "\x1B[1mEnter the file storage classname for fast storage(RWX): \x1B[0m"
-        read -rp "" sc_fast_file_storage_classname
+        printf "\x1B[1mEnter the file storage classname for fast storage(RWX): \x1B[0m\n"
+        read -erp "" sc_fast_file_storage_classname
         if [ -z "$sc_fast_file_storage_classname" ]; then
             printf '%b\n' "\x1B[1;31mEnter a valid file storage classname(RWX)\x1B[0m"
         fi
@@ -182,8 +177,8 @@ function get_storage_class_name(){
     
     while [[ $block_storage_class_name == "" ]] # While get block storage clase name
     do
-        printf "\x1B[1mEnter the block storage classname for Zen(RWO): \x1B[0m"
-        read -rp "" block_storage_class_name
+        printf "\x1B[1mEnter the block storage classname for Zen(RWO): \x1B[0m\n"
+        read -erp "" block_storage_class_name
         if [ -z "$block_storage_class_name" ]; then
             printf '%b\n' "\x1B[1;31mEnter a valid block storage classname(RWO)\x1B[0m"
         fi
@@ -245,8 +240,8 @@ function select_iam_default_admin(){
     printf "\n"
     while true; do
         printf '%b\n' "\x1B[33;5mATTENTION: \x1B[0m\x1B[1;31mIf you are unable to use [cpadmin] as the default IAM admin user due to it being already used in your LDAP Directory, you need to change the Cloud Pak administrator username. See: \" https://www.ibm.com/docs/en/cloud-paks/foundational-services/$CS_CHANNEL_KC?topic=configurations-changing-cluster-administrator-access-credentials#name\"\x1B[0m"
-        printf "\x1B[1mDo you want to use the default IAM admin user: [cpadmin] (Yes/No, default: Yes): \x1B[0m"
-        read -rp "" ans
+        printf "\x1B[1mDo you want to use the default IAM admin user: [cpadmin] (Yes/No, default: Yes): \x1B[0m\n"
+        read -erp "" ans
         case "$ans" in
         "y"|"Y"|"yes"|"Yes"|"YES"|"")
             USE_DEFAULT_IAM_ADMIN="Yes"
@@ -254,11 +249,11 @@ function select_iam_default_admin(){
             ;;
         "n"|"N"|"no"|"No"|"NO")
             USE_DEFAULT_IAM_ADMIN="No"
-            while [[ $NON_DEFAULT_IAM_ADMIN == "" ]]; 
+            while [[ $NON_DEFAULT_IAM_ADMIN == "" ]];
             do
                 printf "\n"
                 printf '%b\n' "\x1B[1mWhat is the non default IAM admin user you renamed?\x1B[0m"
-                read -p "Enter the admin user name: " NON_DEFAULT_IAM_ADMIN
+                read -erp "Enter the admin user name: " NON_DEFAULT_IAM_ADMIN
             
                 if [ -z "$NON_DEFAULT_IAM_ADMIN" ]; then
                     printf '%b\n' "\x1B[1;31mEnter a valid admin user name, user name can not be blank\x1B[0m"
@@ -407,7 +402,7 @@ function input_information(){
     #        select_profile_type
     #    fi
     #    select_platform
-    #    if [[ ("$PLATFORM_SELECTED" == "OCP" || "$PLATFORM_SELECTED" == "ROKS") && "$DEPLOYMENT_TYPE" == "production" ]]; then
+    #    if [[ "$PLATFORM_SELECTED" == "OCP" && "$DEPLOYMENT_TYPE" == "production" ]]; then
     #        select_iam_default_admin
     #    fi
     #    check_ocp_version
@@ -421,7 +416,7 @@ function input_information(){
             load_properties_from_temp_file # Function definition in helper/common.sh
             if [[ -f $USER_PROFILE_PROPERTY_FILE ]]; then
                 PLATFORM_SELECTED=$(prop_user_profile_property_file BAI_STANDALONE.PLATFORM_TYPE)
-                if [[ "$PLATFORM_SELECTED" == "OCP" || "$PLATFORM_SELECTED" == "ROKS" ]]; then
+                if [[ "$PLATFORM_SELECTED" == "OCP" ]]; then
                     CLI_CMD=oc
                 elif [[ "$PLATFORM_SELECTED" == "other" ]]
                 then
@@ -590,11 +585,7 @@ function sync_property_into_final_cr(){
 
     # echo "FAST_STORAGE_CLASS_NAME: $FAST_STORAGE_CLASS_NAME, STORAGE_CLASS_NAME=$STORAGE_CLASS_NAME, MEDIUM_STORAGE_CLASS_NAME=$MEDIUM_STORAGE_CLASS_NAME, BLOCK_STORAGE_CLASS_NAME=$BLOCK_STORAGE_CLASS_NAME, BAI_PATTERN_FILE_TMP=$BAI_PATTERN_FILE_TMP"
     # Set sc_dynamic_storage_classname
-    if [[ "$PLATFORM_SELECTED" == "ROKS" ]]; then
-        ${SED_COMMAND} "s|sc_dynamic_storage_classname:.*|sc_dynamic_storage_classname: \"${FAST_STORAGE_CLASS_NAME}\"|g" ${BAI_PATTERN_FILE_TMP}
-    else
-        ${SED_COMMAND} "s|sc_dynamic_storage_classname:.*|sc_dynamic_storage_classname: \"${STORAGE_CLASS_NAME}\"|g" ${BAI_PATTERN_FILE_TMP}
-    fi
+    ${SED_COMMAND} "s|sc_dynamic_storage_classname:.*|sc_dynamic_storage_classname: \"${STORAGE_CLASS_NAME}\"|g" ${BAI_PATTERN_FILE_TMP}
     ${SED_COMMAND} "s|sc_medium_file_storage_classname:.*|sc_medium_file_storage_classname: \"${MEDIUM_STORAGE_CLASS_NAME}\"|g" ${BAI_PATTERN_FILE_TMP}
     ${SED_COMMAND} "s|sc_fast_file_storage_classname:.*|sc_fast_file_storage_classname: \"${FAST_STORAGE_CLASS_NAME}\"|g" ${BAI_PATTERN_FILE_TMP}
     ${SED_COMMAND} "s|sc_block_storage_classname:.*|sc_block_storage_classname: \"${BLOCK_STORAGE_CLASS_NAME}\"|g" ${BAI_PATTERN_FILE_TMP}
@@ -702,7 +693,7 @@ function sync_property_into_final_cr(){
         update_repository_and_tags "spec.bai_configuration.management.backend"
         update_repository_and_tags "spec.bai_configuration.init_image"
         update_repository_and_tags "spec.bai_configuration.business_performance_center"
-        # For dev mode and other type of platform , we need to add the ibm-staging-entitlement-key which will be used to store the cp.stg.icr.io credentials
+        # For dev mode and other type of platform , we need to add the ibm-staging-entitlement-key which will be used to store the preprod.icr.io credentials
         # the function update_repository_and_tags updates the CR with the staging repo and tag 
         # DBACLD-168151
         ${YQ_CMD} w -i ${BAI_PATTERN_FILE_TMP} spec.shared_configuration.image_pull_secrets.[1] "ibm-staging-entitlement-key"
@@ -723,7 +714,7 @@ function sync_property_into_final_cr(){
         ${SED_COMMAND} "s/sc_ingress_tls_secret_name: /# sc_ingress_tls_secret_name: /g" ${BAI_PATTERN_FILE_TMP}
     fi
 
-    if [[ "$PLATFORM_SELECTED" == "ROKS" || "$PLATFORM_SELECTED" == "OCP" ]]; then
+    if [[ "$PLATFORM_SELECTED" == "OCP" ]]; then
         use_entitlement="yes"
     fi
 
@@ -844,8 +835,8 @@ function fresh_install(){
         printf "\n"
         printf "\x1B[1mVerify that the information above is correct.\n\x1B[0m"
         printf "\x1B[1mTo proceed with the deployment, enter \"Yes\".\n\x1B[0m"
-        printf "\x1B[1mTo make changes, enter \"No\" (default: No): \x1B[0m"
-        read -rp "" ans
+        printf "\x1B[1mTo make changes, enter \"No\" (default: No): \x1B[0m\n"
+        read -erp "" ans
         case "$ans" in
         "y"|"Y"|"yes"|"Yes"|"YES")
             if [[ ("$SCRIPT_MODE" != "review") && ("$SCRIPT_MODE" != "OLM") ]]; then
@@ -884,9 +875,9 @@ function fresh_install(){
                 show_summary
                 printf "\n"
 
-                printf "\x1B[1mEnter the number from 1 to 9 that you want to change: \x1B[0m"
+                printf "\x1B[1mEnter the number from 1 to 9 that you want to change: \x1B[0m\n"
 
-                read -rp "" ans
+                read -erp "" ans
                 case "$ans" in
                 "1")
                     if [[ $DEPLOYMENT_WITH_PROPERTY == "No" ]]; then

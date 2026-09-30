@@ -39,12 +39,12 @@ OLM_VERSION=v0.27.0
 #Licensing service related variables that required during the creation of subscription and the checks.
 # NEED TO BE UPDATED WHEN WE UPDATE THE VERSIONS
 LICENSING_SERVICE_CHANNEL=v4.2
-LICENSING_SERVICE_TARGET_VERSION="4.2.21"
+LICENSING_SERVICE_TARGET_VERSION="4.2.25"
 
 #Cert Manager related variables that required during the creation of subscription and the checks.
 # NEED TO BE UPDATED WHEN WE UPDATE THE VERSIONS
 CERT_MANAGER_CHANNEL=v4.2
-CERT_MANAGER_TARGET_VERSION="4.2.23"
+CERT_MANAGER_TARGET_VERSION="4.2.24"
 
 # CATALOG SOURCE file name
 CATALOG_SOURCE_FILENAME=${PARENT_DIR}/descriptors/op-olm/catalog_source.yaml
@@ -65,7 +65,7 @@ cs_maximal_version_for_ifix="5.0.0" # Maximal supported Common Service version b
 BAI_S_FC_CR=${PARENT_DIR}/descriptors/patterns/ibm_cp4a_cr_production_FC_bai.yaml
 
 #Change required each sprint for using dev mode
-CURRENT_SPRINT_TAG="25.0.0-IF006"
+CURRENT_SPRINT_TAG="25.0.0-IF007"
 
 
 # End of Section for BAI Rancher specific variables
@@ -75,6 +75,7 @@ PREREQUISITES_FOLDER=${CUR_DIR}/bai-prerequisites/project/$1
 PREREQUISITES_FOLDER_BAK=${CUR_DIR}/bai-prerequisites-backup/project/$1
 PROPERTY_FILE_FOLDER=${PREREQUISITES_FOLDER}/propertyfile
 GENERATED_INGRESS_FILE_FOLDER=${PREREQUISITES_FOLDER}/ingress_template
+GENERATED_API_GATEWAY_FOLDER=${PREREQUISITES_FOLDER}/api_gateway_template
 PROPERTY_FILE_FOLDER_BAK=${PREREQUISITES_FOLDER_BAK}/propertyfile
 CREATE_SECRET_SCRIPT_FILE=$PREREQUISITES_FOLDER/create_secret.sh
 
@@ -112,15 +113,15 @@ LDAP_SECRET_FILE=${SECRET_FILE_FOLDER}/ldap-bind-secret.yaml
 # Release/Patch version for CP4BA
 # BAI_RELEASE_BASE is for fetch content/foundation operator pod, only need to change for major release.
 BAI_RELEASE_BASE="25.0.0"
-BAI_PATCH_VERSION="IF006"
+BAI_PATCH_VERSION="IF007"
 # BAI_RELEASE_BASE_MAJOR_VERSION is used in certain checks where we used to hardcode to see if a upgrade is not ifix to ifix,change this only for major release
 BAI_RELEASE_BASE_MAJOR_VERSION="25.0"
 # BAI_CSV_VERSION is for checking CP4BA operator upgrade status, need to update for each IFIX
-BAI_CSV_VERSION="v25.0.6"
+BAI_CSV_VERSION="v25.0.7"
 # BAI_CHANNEL_VERSION is for switch CP4BA operator upgrade status, need to update for major release
 BAI_CHANNEL_VERSION="v25.0"
 # CS_OPERATOR_VERSION is for checking CPFS operator upgrade status, need to update for each IFIX
-CS_OPERATOR_VERSION="v4.19.2"
+CS_OPERATOR_VERSION="v4.19.3"
 # CS_CHANNEL_VERSION is for for CPFS script -c option, need to update for each IFIX
 CS_CHANNEL_VERSION="v4.19"
 # CS CHANNEL VERSION that is used in the KC
@@ -130,13 +131,13 @@ CERT_LICENSE_CHANNEL_VERSION="v4.2"
 # CS_CATALOG_VERSION is for CPFS script -s option, need to update for each IFIX
 CS_CATALOG_VERSION="ibm-cs-install-catalog-v4-19-0"
 # ZEN_OPERATOR_VERSION is for checking ZenService operator upgrade status, need to update for each IFIX
-ZEN_OPERATOR_VERSION="v6.10.3"
+ZEN_OPERATOR_VERSION="v6.10.7"
 # BTS_CHANNEL_VERSION is for for BTS, need to update for each IFIX
 BTS_CHANNEL_VERSION="v3.35"
-# BTS_CATALOG_VERSION is for BTS 3.35.13.
+# BTS_CATALOG_VERSION is for BTS 3.35.14.
 BTS_CATALOG_VERSION="ibm-bts-operator-catalog-v3-35"
 # REQUIREDVER_BTS is for checking bts operator upgrade status before run removal_iaf.sh, need to update for each IFIX
-REQUIREDVER_BTS="3.35.13"
+REQUIREDVER_BTS="3.35.14"
 # REQUIREDVER_POSTGRESQL is for checking postgresql operator upgrade status before run removal_iaf.sh, need to update for each IFIX
 REQUIREDVER_POSTGRESQL="1.28.4"
 # EVENTS_OPERATOR_VERSION is for checking IBM Events operator upgrade status, need to update for each IFIX
@@ -149,6 +150,8 @@ MINIMUM_SUPPORTED_UPGRADE_VERSIONS=("24.1.2" "25.0.0")
 # Zen metastore EDB configmap name
 ZEN_EDB_CFG="ibm-zen-metastore-cm"
 CERT_MANAGER_PROJECT="ibm-cert-manager"
+CERT_MANAGER_V1_OWNER="operator.ibm.com/v1"
+CERT_MANAGER_V1ALPHA1_OWNER="operator.ibm.com/v1alpha1"
 LICENSE_MANAGER_PROJECT="ibm-licensing"
 DEDICATED_CS_PROJECT="cs-control"
 # Directory for upgrade operator and prerequisites
@@ -615,7 +618,8 @@ function check_bai_separate_operand(){
         do
             printf "\n"
             printf '%b\n' "\x1B[1mWhere (namespace) did you deploy BAI Standalone operands (i.e., runtime pods)? \x1B[0m"
-            read -p "Enter the name for an existing project (namespace): " BAI_SERVICES_NS
+            printf "Enter the name for an existing project (namespace): \n"
+            read -erp "" BAI_SERVICES_NS
             if [ -z "$BAI_SERVICES_NS" ]; then
                 printf '%b\n' "\x1B[1;31mEnter a valid project name, project name can not be blank\x1B[0m"
             elif [[ "$BAI_SERVICES_NS" == openshift* ]]; then
@@ -699,6 +703,12 @@ function save_log(){
 }
 
 function cleanup_log() {
+    # Close custom file descriptor 3
+    exec 3>&- 2>/dev/null || true
+
+    # Close redirected stdout and stderr to release the tee process substitution subshell
+    exec 1>&- 2>&-
+
     # Check if the log file already exists
     if [[ -e $LOG_FILE ]]; then
         # Remove ANSI escape sequences from log file
@@ -733,7 +743,7 @@ function allocate_operator_pvc(){
         sed "s/<StorageClassName>/$STORAGE_CLASS_NAME/g" ${OPERATOR_PVC_FILE_BAK} > ${OPERATOR_PVC_FILE_TMP1}
         sed "s/<Fast_StorageClassName>/$STORAGE_CLASS_NAME/g" ${OPERATOR_PVC_FILE_TMP1}  > ${OPERATOR_PVC_FILE_TMP} # &> /dev/null
 
-    elif [[ ($DEPLOYMENT_TYPE == "production" && ($PLATFORM_SELECTED == "OCP" || $PLATFORM_SELECTED == "other")) || $PLATFORM_SELECTED == "ROKS" ]];
+    elif [[ $DEPLOYMENT_TYPE == "production" && ($PLATFORM_SELECTED == "OCP" || $PLATFORM_SELECTED == "other") ]];
     then
         sed "s/<StorageClassName>/$SLOW_STORAGE_CLASS_NAME/g" ${OPERATOR_PVC_FILE_BAK} > ${OPERATOR_PVC_FILE_TMP1} # &> /dev/null
         sed "s/<Fast_StorageClassName>/$FAST_STORAGE_CLASS_NAME/g" ${OPERATOR_PVC_FILE_TMP1} > ${OPERATOR_PVC_FILE_TMP} # &> /dev/null
@@ -992,7 +1002,7 @@ function update_repository_and_tags(){
         tag_path="$component_path.image.tag"
     fi
     repo_value=$(${YQ_CMD} r ${BAI_S_FC_CR} $repository_path || echo "")
-    updated_value=$(echo "$repo_value" | sed 's|cp.icr.io/cp|cp.stg.icr.io/cp|')
+    updated_value=$(echo "$repo_value" | sed 's|cp.icr.io/cp|preprod.icr.io/cp|')
     ${YQ_CMD} w -i "$BAI_PATTERN_FILE_TMP" "$repository_path" "\"$updated_value\""
     ${YQ_CMD} w -i ${BAI_PATTERN_FILE_TMP} "$tag_path" "\"$CURRENT_SPRINT_TAG\""
 
@@ -1067,7 +1077,7 @@ function prompt_license(){
 
     printf "\n"
     while true; do
-        printf "\x1B[1mDo you accept the IBM Business Automation Insights standalone license (Yes/No, default: No): \x1B[0m"
+        printf "\x1B[1mDo you accept the IBM Business Automation Insights standalone license (Yes/No, default: No): \x1B[0m\n"
 
         read -erp "" ans
         case "$ans" in
@@ -1091,7 +1101,7 @@ function prompt_license(){
 
 # Function that validates if a specific CLI is present based on the platform type
 function validate_kube_oc_cli(){
-    if  [[ $PLATFORM_SELECTED == "OCP" || $PLATFORM_SELECTED == "ROKS" ]]; then
+    if  [[ $PLATFORM_SELECTED == "OCP" ]]; then
         which oc &>/dev/null
         [[ $? -ne 0 ]] && \
         printf '%b\n'  "\x1B[1;31mUnable to locate the OpenShift CLI. You must install it to run this script.\x1B[0m" && \
@@ -1135,11 +1145,12 @@ function validate_namespace() {
 
 # Function to select the project , in case the user wants to use a different project name from what was entered or passed
 function select_project() {
-    while [[ $TARGET_PROJECT_NAME == "" ]]; 
+    while [[ $TARGET_PROJECT_NAME == "" ]];
     do
         printf "\n"
         printf '%b\n' "\x1B[1mWhere do you want to deploy IBM Business Automation Insights standalone?\x1B[0m"
-        read -p "Enter the name for an existing project (namespace): " TARGET_PROJECT_NAME
+        printf "Enter the name for an existing project (namespace): \n"
+        read -erp "" TARGET_PROJECT_NAME
         if [ -z "$TARGET_PROJECT_NAME" ]; then
             printf '%b\n' "\x1B[1;31mEnter a valid project name, project name can not be blank\x1B[0m"
         elif [[ "$TARGET_PROJECT_NAME" == openshift* ]]; then
@@ -1163,7 +1174,7 @@ function select_project() {
 
 # Function to check for OCP version
 function check_ocp_version(){
-    if [[ ${PLATFORM_SELECTED} == "OCP" || ${PLATFORM_SELECTED} == "ROKS" ]];then
+    if [[ ${PLATFORM_SELECTED} == "OCP" ]];then
         temp_ver=`${CLI_CMD} version | grep v[1-9]\.[1-9][0-9] | tail -n1`
         if [[ $temp_ver == *"Kubernetes Version"* ]]; then
             currentver="${temp_ver:20:7}"
@@ -1187,7 +1198,7 @@ function check_ocp_version(){
 # For https://jsw.ibm.com/browse/DBACLD-201592
 function prompt_to_continue() {
     while true; do
-        printf "\x1B[1mPlease confirm that you are ready to continue.  Enter Yes to continue or No to exit (Yes/No, default: No): \x1B[0m"
+        printf "\x1B[1mPlease confirm that you are ready to continue.  Enter Yes to continue or No to exit (Yes/No, default: No): \x1B[0m\n"
         read -erp "" ans
         ans=$(echo "$ans" | tr '[:upper:]' '[:lower:]')
         if [ -z "$ans" ]; then
@@ -1223,7 +1234,7 @@ function retrieve_network_details(){
         printf "\n"
         printf "The user does not have sufficient permissions to retrieve cluster network details. As a result, the \"ibm-cp4a-common-configmap\" ConfigMap must be manually updated with the correct network CIDR and network type. This step is required before applying the custom resource file."
         printf "\n"
-        printf "${YELLOW_TEXT}[NOTE]:${RESET_TEXT} In OCP or ROKS, this information can be obtained by querying the Network resource \"${CLI_CMD} get network cluster -o yaml\" or by retrieving the details from the OCP Console."
+        printf "${YELLOW_TEXT}[NOTE]:${RESET_TEXT} In OCP, this information can be obtained by querying the Network resource \"${CLI_CMD} get network cluster -o yaml\" or by retrieving the details from the OCP Console."
         printf "Then update the 'ibm-cp4ba-common-config' configMap in the namespace where BAI Standalone is deployed with the following command: \" ${CLI_CMD} patch configmap ibm-cp4ba-common-config -n <BAI-namespace> --type merge -p \"{ \"data\": { \"network_cidr\": \"<cidr range from command>\", \"network_type\": \"<networkType from command>\" } } \" where the values being patched are the CIDR range and networkType that you obtained from the command above respectively."
         printf "\n"
     else
@@ -1751,4 +1762,91 @@ function update_bts_datastore_resources() {
 
     success "BTS Datasource resources are compatible with the latest BTS version."
     return 0
+}
+
+function is_cert_manager_installed(){
+
+    info "Checking to see if any cert-manager is installed\n"
+    $CLI_CMD get subscriptions -A |grep  "cert-manager"  >  /dev/null 2>&1 # this will catch the packagenames of all cert-manager-operators
+    if [ $? -eq 0 ]; then
+        warning "There is a cert-manager Subscription already existed\n"
+    fi
+
+    local webhook_ns=$($CLI_CMD get deployments -A | grep cert-manager-webhook | cut -d ' ' -f1)
+    if [ ! -z "$webhook_ns" ]; then
+        warning "There is a cert-manager-webhook pod Running, so most likely another cert-manager is already installed\n"
+        info "Continue to check further\n"
+
+        # Check if the cert-manager-webhook is owned by ibm-cert-manager-operator
+        local api_version=$($CLI_CMD get deployments -n "$webhook_ns" cert-manager-webhook -o jsonpath='{.metadata.ownerReferences[*].apiVersion}' --ignore-not-found)
+        if [ ! -z "$api_version" ]; then
+            if [ "$api_version" == "$CERT_MANAGER_V1ALPHA1_OWNER" ]; then
+                error "Cluster has not deactivated LTSR ibm-cert-manager-operator yet.  Please do so before proceeding."
+                return 0
+                exit 1
+            fi
+
+            if [ "$api_version" != "$CERT_MANAGER_V1_OWNER" ]; then
+                warning "Cluster has a non ibm-cert-manager-operator already installed, skipping"
+                return 0
+            fi
+
+            # IBM cert-manager is installed (regardless of namespace)
+            if [[ "$webhook_ns" != "$CERT_MANAGER_PROJECT" ]]; then
+                warning "IBM cert-manager is installed but in namespace: $webhook_ns (expected: $CERT_MANAGER_PROJECT)"
+            else
+                info "IBM cert-manager is already installed in the correct namespace: $webhook_ns"
+            fi
+            return 0
+        else
+            warning "Cluster has a RedHat cert-manager or Helm cert-manager, skipping"
+            return 0
+        fi
+    else
+        info "There is no cert-manager-webhook pod running\n"
+        return 1
+    fi
+}
+
+# DBACLD-237319: Skip the creation of `ibm-cert-manager` project if cert-manager is already installed
+# This function will remove the any catalog entry out of the catalog source list if it exists
+# There are three parameters:
+# 1. input_file: The input YAML file containing the catalog sources
+# 2. output_file: The output YAML file to write the modified catalog sources
+# 3. name_to_be_removed: The name of the catalog source to be removed. (eg: ibm-cert-manager-catalog)
+function remove_item_from_cs() {
+    local input_file="$1"
+    local output_file="$2"
+    local name_to_be_removed="$3"
+
+    # Create an empty output file
+    > "$output_file"
+
+    # Process documents one by one (yq v3.3.0 approach)
+    doc_index=0
+    first_doc=true
+
+    while true; do
+        # Try to read the document at current index
+        doc_content=$($YQ_CMD 'select(documentIndex == '"$doc_index"')' "$input_file" 2>/dev/null)
+        if [ $? -ne 0 ] || [ -z "$doc_content" ]; then
+            break
+        fi
+
+        # Get the catalog name
+        catalog_name=$($YQ_CMD 'select(documentIndex == '"$doc_index"').metadata.name' "$input_file" 2>/dev/null)
+
+        # If this is not the cert-manager catalog, include it
+        if [ "$catalog_name" != "$name_to_be_removed" ]; then
+            if [ "$first_doc" = true ]; then
+                echo "$doc_content" >> "$output_file"
+                first_doc=false
+            else
+                echo "---" >> "$output_file"
+                echo "$doc_content" >> "$output_file"
+            fi
+        fi
+
+        ((doc_index++))
+    done
 }

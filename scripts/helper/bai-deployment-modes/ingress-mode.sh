@@ -26,7 +26,8 @@ function generate_cncf_ingress_templates(){
     attempt=0
 
     while (( attempt < 3 )); do
-        read -rp "Confirm if you want to proceed with generating ingress templates required for a BAI Standalone deployment (Yes/No, default: No): " answer
+        printf "Confirm if you want to proceed with generating ingress templates required for a BAI Standalone deployment (Yes/No, default: No): \n"
+        read -erp "" answer
         answer=$(echo "$answer" | tr '[:upper:]' '[:lower:]')  # Convert to lowercase
 
         if [[ -z "$answer" || "$answer" == "no" || "$answer" = "n" ]]; then
