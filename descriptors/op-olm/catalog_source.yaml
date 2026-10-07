@@ -93,7 +93,7 @@ spec:
   displayName: IBM CS Install Operators
   publisher: IBM
   sourceType: grpc
-  image: icr.io/cpopen/ibm-cs-install-catalog@sha256:cdc2139db36d5f75ff51b7f5408f0d228ed8bf779f0091d10aca9c711ae6b815
+  image: icr.io/cpopen/ibm-cs-install-catalog@sha256:56405e6eceab8851a1ef4e123283102c60ec4a0cf7e3760eb4737bd9f1552d2c
   priority: 100
   grpcPodConfig:
     securityContextConfig: restricted
@@ -110,7 +110,7 @@ spec:
   displayName: BTS Operator-3.35.13
   publisher: IBM
   sourceType: grpc
-  image: icr.io/cpopen/ibm-bts-operator-catalog@sha256:902acaceec92f54159514cc18aef3618e27c5c0092ce25b715c9baf24b961fc1
+  image: icr.io/cpopen/ibm-bts-operator-catalog@sha256:25458e158903b6645f17f3b2ec076f60a595872680cc6b8cdca596434239c4b7
   grpcPodConfig:
     securityContextConfig: restricted
 ---
@@ -126,7 +126,7 @@ spec:
   displayName: IBM IAM Operator Catalog
   publisher: IBM
   sourceType: grpc
-  image: icr.io/cpopen/ibm-iam-operator-catalog@sha256:7faea5949f352c8f48e33fb992664645f2bcfa53882732fa2535f2c75a1e2111
+  image: icr.io/cpopen/ibm-iam-operator-catalog@sha256:cc6014641c67668e77d7a512ae02a0f2521f78ba406f86c17f340f13ea8c836a
   priority: 100
   grpcPodConfig:
     securityContextConfig: restricted
