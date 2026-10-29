@@ -107,7 +107,7 @@ function separation_of_duties_check() {
         #fixes a potential scenario of no input passed to the next step
         max_retries=0
         while [ $max_retries -lt 4 ]; do
-            printf "\x1B[1m\nDid you install BAI Standalone with Separation of Duties? (Yes/No, default: No) \x1B[0m"
+            printf "\x1B[1m\nDid you install BAI Standalone with Separation of Duties? (Yes/No, default: No) \x1B[0m\n"
             read -erp "" ans
             # If the user provides no input, set the default to 'No'
             if [ -z "$ans" ]; then

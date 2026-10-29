@@ -114,7 +114,8 @@ function generate_rancher_gateway_api_templates(){
     attempt=0
 
     while (( attempt < 3 )); do
-        read -rp "Confirm if you want to proceed with generating Gateway API templates required for a BAI Standalone deployment on Rancher (Yes/No, default: No): " answer
+        printf "Confirm if you want to proceed with generating Gateway API templates required for a BAI Standalone deployment on Rancher (Yes/No, default: No): \n"
+        read -erp "" answer
         answer=$(echo "$answer" | tr '[:upper:]' '[:lower:]')
 
         if [[ -z "$answer" || "$answer" == "no" || "$answer" = "n" ]]; then
@@ -180,7 +181,8 @@ function generate_gateway_api_templates(){
     if [[ -z "${GATEWAY_API_PLATFORM:-}" ]]; then
         local attempt=0
         while (( attempt < 3 )); do
-            read -rp "Select the target platform for Gateway API generation [gke/rancher] (default: rancher): " GATEWAY_API_PLATFORM
+            printf "Select the target platform for Gateway API generation [gke/rancher] (default: rancher): \n"
+            read -erp "" GATEWAY_API_PLATFORM
             GATEWAY_API_PLATFORM=$(echo "${GATEWAY_API_PLATFORM:-rancher}" | tr '[:upper:]' '[:lower:]')
             if [[ "$GATEWAY_API_PLATFORM" == "gke" || "$GATEWAY_API_PLATFORM" == "rancher" ]]; then
                 break

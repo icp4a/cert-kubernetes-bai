@@ -253,7 +253,8 @@ function select_iam_default_admin(){
             do
                 printf "\n"
                 printf '%b\n' "\x1B[1mWhat is the non default IAM admin user you renamed?\x1B[0m"
-                read -erp "Enter the admin user name: " NON_DEFAULT_IAM_ADMIN
+                printf "Enter the admin user name: \n"
+                read -erp "" NON_DEFAULT_IAM_ADMIN
             
                 if [ -z "$NON_DEFAULT_IAM_ADMIN" ]; then
                     printf '%b\n' "\x1B[1;31mEnter a valid admin user name, user name can not be blank\x1B[0m"

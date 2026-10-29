@@ -52,8 +52,8 @@ function select_ldap_type(){
     printf "\n"
     SELECTED_LDAP="Yes" # Setting the default value of selected LDAP to true since that is the default value
     while true; do
-        printf "\x1B[1mDo you want to configure an LDAP for this IBM Business Automation Insights stand-alone deployment? (Yes/No, default: Yes): \x1B[0m"
-        read -rp "" ans
+        printf "\x1B[1mDo you want to configure an LDAP for this IBM Business Automation Insights stand-alone deployment? (Yes/No, default: Yes): \x1B[0m\n"
+        read -erp "" ans
         case "$ans" in
         "y"|"Y"|"yes"|"Yes"|"YES"|"")
             SELECTED_LDAP="Yes"
@@ -106,8 +106,8 @@ function select_ldap_user_for_zen(){
     printf '%b\n'  "${YELLOW_TEXT}For BAI stand-alone, if you select LDAP, then provide one ldap user here for onboarding ZEN.${RESET_TEXT}"    
     while [[ $LDAP_USER_NAME == "" ]] # While get medium storage clase name
     do
-        printf "\x1B[1mPlease enter one LDAP user for BAI stand-alone: \x1B[0m"
-        read -rp "" LDAP_USER_NAME
+        printf "\x1B[1mPlease enter one LDAP user for BAI stand-alone: \x1B[0m\n"
+        read -erp "" LDAP_USER_NAME
         if [ -z "$LDAP_USER_NAME" ]; then
         printf '%b\n' "\x1B[1;31mEnter a valid LDAP user\x1B[0m"
         fi
@@ -130,8 +130,8 @@ function select_storage_class(){
     
     while [[ $sc_medium_file_storage_classname == "" ]] # While get medium storage clase name
     do
-        printf "\x1B[1mPlease enter the file storage classname for medium storage(RWX): \x1B[0m"
-        read -rp "" sc_medium_file_storage_classname
+        printf "\x1B[1mPlease enter the file storage classname for medium storage(RWX): \x1B[0m\n"
+        read -erp "" sc_medium_file_storage_classname
         if [ -z "$sc_medium_file_storage_classname" ]; then
         printf '%b\n' "\x1B[1;31mEnter a valid file storage classname(RWX)\x1B[0m"
         fi
@@ -139,8 +139,8 @@ function select_storage_class(){
 
     while [[ $sc_fast_file_storage_classname == "" ]] # While get fast storage clase name
     do
-        printf "\x1B[1mPlease enter the file storage classname for fast storage(RWX): \x1B[0m"
-        read -rp "" sc_fast_file_storage_classname
+        printf "\x1B[1mPlease enter the file storage classname for fast storage(RWX): \x1B[0m\n"
+        read -erp "" sc_fast_file_storage_classname
         if [ -z "$sc_fast_file_storage_classname" ]; then
         printf '%b\n' "\x1B[1;31mEnter a valid file storage classname(RWX)\x1B[0m"
         fi
@@ -148,8 +148,8 @@ function select_storage_class(){
 
     while [[ $block_storage_class_name == "" ]] # While get block storage clase name
     do
-        printf "\x1B[1mPlease enter the block storage classname for Zen(RWO): \x1B[0m"
-        read -rp "" block_storage_class_name
+        printf "\x1B[1mPlease enter the block storage classname for Zen(RWO): \x1B[0m\n"
+        read -erp "" block_storage_class_name
         if [ -z "$block_storage_class_name" ]; then
         printf '%b\n' "\x1B[1;31mEnter a valid block storage classname(RWO)\x1B[0m"
         fi
@@ -212,8 +212,8 @@ function select_iam_default_admin(){
     printf "\n"
     while true; do
         printf '%b\n' "\x1B[33;5mATTENTION: \x1B[0m\x1B[1;31mIf you are unable to use [cpadmin] as the default IAM admin user due to it being already used in your LDAP Directory, you need to change the Cloud Pak administrator username. See: \" https://www.ibm.com/docs/en/cloud-paks/foundational-services/$CS_CHANNEL_KC?topic=configurations-changing-cluster-administrator-access-credentials#name\"\x1B[0m"
-        printf "\x1B[1mDo you want to use the default IAM admin user: [cpadmin] (Yes/No, default: Yes): \x1B[0m"
-        read -rp "" ans
+        printf "\x1B[1mDo you want to use the default IAM admin user: [cpadmin] (Yes/No, default: Yes): \x1B[0m\n"
+        read -erp "" ans
         case "$ans" in
         "y"|"Y"|"yes"|"Yes"|"YES"|"")
             USE_DEFAULT_IAM_ADMIN="Yes"
@@ -221,11 +221,12 @@ function select_iam_default_admin(){
             ;;
         "n"|"N"|"no"|"No"|"NO")
             USE_DEFAULT_IAM_ADMIN="No"
-            while [[ $NON_DEFAULT_IAM_ADMIN == "" ]]; 
+            while [[ $NON_DEFAULT_IAM_ADMIN == "" ]];
             do
                 printf "\n"
                 printf '%b\n' "\x1B[1mWhat is the non default IAM admin user you renamed?\x1B[0m"
-                read -p "Enter the admin user name: " NON_DEFAULT_IAM_ADMIN
+                printf "Enter the admin user name: \n"
+                read -erp "" NON_DEFAULT_IAM_ADMIN
             
                 if [ -z "$NON_DEFAULT_IAM_ADMIN" ]; then
                     printf '%b\n' "\x1B[1;31mEnter a valid admin user name, user name can not be blank\x1B[0m"
@@ -249,8 +250,8 @@ function generate_sample_network_policies(){
     printf "\n"
     echo ""
     while true; do
-        printf "\x1B[1mDo you want to generate the network policy templates for this BAI stand-alone deployment?\x1B[0m ${YELLOW_TEXT}(Notes: Starting from $BAI_RELEASE_BASE, the BAI stand-alone operators no longer install network policies automatically. If you want the operators to generate network policies from a set of templates, select Yes. You can install the network policies by running a script after the BAI Deployment is installed. If you select No, then no network policies will be generated.)${RESET_TEXT} (Yes/No, default: No):" 
-        read -rp "" ans
+        printf "\x1B[1mDo you want to generate the network policy templates for this BAI stand-alone deployment?\x1B[0m ${YELLOW_TEXT}(Notes: Starting from $BAI_RELEASE_BASE, the BAI stand-alone operators no longer install network policies automatically. If you want the operators to generate network policies from a set of templates, select Yes. You can install the network policies by running a script after the BAI Deployment is installed. If you select No, then no network policies will be generated.)${RESET_TEXT} (Yes/No, default: No):\n"
+        read -erp "" ans
         case "$ans" in
         "y"|"Y"|"yes"|"Yes"|"YES")
             GENERATE_SAMPLE_NETWORK_POLICIES="true"
@@ -272,8 +273,8 @@ function enable_instana_monitoring(){
     printf "\n"
     echo ""
     while true; do
-        printf "\x1B[1mDo you want to enable the Instana Monitoring for this BAI stand-alone deployment?\x1B[0m ${YELLOW_TEXT}(Notes: If you want the operators to enable the Instana monitoring for this bai deployment, select Yes.)${RESET_TEXT} (Yes/No, default: No):" 
-        read -rp "" ans
+        printf "\x1B[1mDo you want to enable the Instana Monitoring for this BAI stand-alone deployment?\x1B[0m ${YELLOW_TEXT}(Notes: If you want the operators to enable the Instana monitoring for this bai deployment, select Yes.)${RESET_TEXT} (Yes/No, default: No):\n"
+        read -erp "" ans
         case "$ans" in
         "y"|"Y"|"yes"|"Yes"|"YES")
             ENABLE_INSTANA_MONITORING="true"
@@ -315,8 +316,8 @@ function select_external_postgresdb_for_im_zen_bts(){
             prompt_press_any_key_to_continue
             break
         else
-            printf "\x1B[1mDo you want to use an external Postgres DB for IM , Zen and BTS \x1B[0m[${RED_TEXT}YOU NEED TO CREATE THE POSTGRESQL DBs BY YOURSELF FIRST BEFORE APPLYING THE BAI Standalone CUSTOM RESOURCE${RESET_TEXT}] \x1B[1m for the IM, Zen and BTS services in this BAI Standalone deployment?\x1B[0m (Yes/No, default: No): "
-            read -rp "" ans
+            printf "\x1B[1mDo you want to use an external Postgres DB for IM , Zen and BTS \x1B[0m[${RED_TEXT}YOU NEED TO CREATE THE POSTGRESQL DBs BY YOURSELF FIRST BEFORE APPLYING THE BAI Standalone CUSTOM RESOURCE${RESET_TEXT}] \x1B[1m for the IM, Zen and BTS services in this BAI Standalone deployment?\x1B[0m (Yes/No, default: No):\n"
+            read -erp "" ans
 
             ans=$(echo "$ans" | tr '[:upper:]' '[:lower:]')
 

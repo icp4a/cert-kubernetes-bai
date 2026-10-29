@@ -40,12 +40,12 @@ OLM_VERSION=v0.27.0
 #Licensing service related variables that required during the creation of subscription and the checks.
 # NEED TO BE UPDATED WHEN WE UPDATE THE VERSIONS
 LICENSING_SERVICE_CHANNEL=v4.2
-LICENSING_SERVICE_TARGET_VERSION="4.2.25"
+LICENSING_SERVICE_TARGET_VERSION="4.2.26"
 
 #Cert Manager related variables that required during the creation of subscription and the checks.
 # NEED TO BE UPDATED WHEN WE UPDATE THE VERSIONS
 CERT_MANAGER_CHANNEL=v4.2
-CERT_MANAGER_TARGET_VERSION="4.2.24"
+CERT_MANAGER_TARGET_VERSION="4.2.25"
 #Cert manager owner.
 CERT_MANAGER_V1ALPHA1_OWNER="operator.ibm.com/v1alpha1"
 CERT_MANAGER_V1_OWNER="operator.ibm.com/v1"
@@ -69,7 +69,7 @@ cs_maximal_version_for_ifix="5.0.0" # Maximal supported Common Service version b
 BAI_S_FC_CR=${PARENT_DIR}/descriptors/patterns/ibm_cp4a_cr_production_FC_bai.yaml
 
 #Change required each sprint for using dev mode
-CURRENT_SPRINT_TAG="26.0.0-IF003"
+CURRENT_SPRINT_TAG="26.0.0-IF004"
 
 #DBACLD-194974: This variable is used to specify the version that will block EDB option for IM ZEN BTS.The user will HAVE to use external postgres for this. It should be in the format of ${BAI_RELEASE_BASE}_${BAI_PATCH_VERSION}
 # For 25.0.1_GA we will remove the Starter option and EDB option.
@@ -121,15 +121,15 @@ LDAP_SECRET_FILE=${SECRET_FILE_FOLDER}/ldap-bind-secret.yaml
 # Release/Patch version for BAI
 # BAI_RELEASE_BASE is for fetch content/foundation operator pod, only need to change for major release.
 BAI_RELEASE_BASE="26.0.0"
-BAI_PATCH_VERSION="IF003"
+BAI_PATCH_VERSION="IF004"
 # BAI_RELEASE_BASE_MAJOR_VERSION is used in certain checks where we used to hardcode to see if a upgrade is not ifix to ifix,change this only for major release
 BAI_RELEASE_BASE_MAJOR_VERSION="26.0"
 # BAI_CSV_VERSION is for checking BAI operator upgrade status, need to update for each IFIX
-BAI_CSV_VERSION="v26.0.3"
+BAI_CSV_VERSION="v26.0.4"
 # BAI_CHANNEL_VERSION is for switch BAI operator upgrade status, need to update for major release
 BAI_CHANNEL_VERSION="v26.0"
 # CS_OPERATOR_VERSION is for checking CPFS operator upgrade status, need to update for each IFIX
-CS_OPERATOR_VERSION="v4.19.3"
+CS_OPERATOR_VERSION="v4.19.4"
 # CS_CHANNEL_VERSION is for for CPFS script -c option, need to update for each IFIX
 CS_CHANNEL_VERSION="v4.19"
 # CS CHANNEL VERSION that is used in the KC
@@ -139,15 +139,15 @@ CERT_LICENSE_CHANNEL_VERSION="v4.2"
 # CS_CATALOG_VERSION is for CPFS script -s option, need to update for each IFIX
 CS_CATALOG_VERSION="ibm-cs-install-catalog-v4-19-0"
 # ZEN_OPERATOR_VERSION is for checking ZenService operator upgrade status, need to update for each IFIX
-ZEN_OPERATOR_VERSION="v6.10.7"
+ZEN_OPERATOR_VERSION="v6.10.8"
 # BTS_CHANNEL_VERSION is for for BTS, need to update for each IFIX
 BTS_CHANNEL_VERSION="v3.35"
-# BTS_CATALOG_VERSION is for BTS 3.35.14.
+# BTS_CATALOG_VERSION is for BTS 3.35.15.
 BTS_CATALOG_VERSION="ibm-bts-operator-catalog-v3-35"
 # REQUIREDVER_BTS is for checking bts operator upgrade status before run removal_iaf.sh, need to update for each IFIX
-REQUIREDVER_BTS="3.35.14"
+REQUIREDVER_BTS="3.35.15"
 # REQUIREDVER_POSTGRESQL is for checking postgresql operator upgrade status before run removal_iaf.sh, need to update for each IFIX
-REQUIREDVER_POSTGRESQL="1.28.4"
+REQUIREDVER_POSTGRESQL="1.28.8"
 # EVENTS_OPERATOR_VERSION is for checking IBM Events operator upgrade status, need to update for each IFIX
 EVENTS_OPERATOR_VERSION="v5.2.1"
 # List of BAI versions that are supported for upgrade to $BAI_CSV_VERSION
@@ -159,7 +159,7 @@ MINIMUM_SUPPORTED_UPGRADE_VERSIONS=(24.0.7 25.0.4 25.1.1 26.0.0)
 # UMS_CHANNEL_VERSION is for UMS, need to update for each IFIX
 UMS_CHANNEL_VERSION="v1.0"
 # UMS_CSV_VERSION is for UMS, need to update for each IFIX
-UMS_CSV_VERSION="v1.0.7"
+UMS_CSV_VERSION="v1.0.9"
 # UMS_CATALOG_VERSION is the current UMS catalog name.
 UMS_CATALOG_VERSION="ibm-usage-metering-catalog"
 # UMS connection point secret name
@@ -282,7 +282,7 @@ function validate_cli(){
         while true; do
             echo_bold "\"timeout\" Command Not Found\n"
             echo_bold "The \"timeout\" will be installed automatically\n"
-            echo_bold "Do you accept (Yes/No, default: No):"
+            echo_bold "Do you accept (Yes/No, default: No):\n"
             read -erp "" ans
             case "$ans" in
             "y"|"Y"|"yes"|"Yes"|"YES")

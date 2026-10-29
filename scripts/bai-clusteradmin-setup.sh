@@ -408,7 +408,8 @@ function select_project(){
         if [ -z "$BAI_AUTO_NAMESPACE" ]; then
             echo
             printf '%b\n' "\x1B[1mwhere would you like to deploy IBM Business Automation Insights?\x1B[0m"
-            read -erp "Enter the name for a new project or an existing project (namespace): " project_name
+            printf "Enter the name for a new project or an existing project (namespace): \n"
+            read -erp "" project_name
         else
             if [[ "$BAI_AUTO_NAMESPACE" == openshift* ]]; then
                 printf '%b\n' "\x1B[1;31mEnter a valid project name. The project name should not be 'openshift' or start with 'openshift'. \x1B[0m"
@@ -475,7 +476,8 @@ function set_separate_operator_project(){
         if [ -z "$BAI_AUTO_OPERATOR_NAMESPACE" ]; then
             echo
             printf '%b\n' "\x1B[1mWhere would you like to deploy $BAI_FULL_NAME operators? \x1B[0m"
-            read -erp "Enter the name for a new project or an existing project (namespace): " project_name_operator
+            printf "Enter the name for a new project or an existing project (namespace): \n"
+            read -erp "" project_name_operator
         else
             if [[ "$BAI_AUTO_OPERATOR_NAMESPACE" == openshift* ]]; then
                 printf '%b\n' "\x1B[1;31mEnter a valid project name. The project name should not be 'openshift' or start with 'openshift'. \x1B[0m"
@@ -540,7 +542,8 @@ function set_separate_cpfs_service_project(){
         if [ -z "$BAI_AUTO_CS_SERVICE_NAMESPACE" ]; then
             echo
             printf '%b\n' "\x1B[1mWhere would you like to deploy $BAI_FULL_NAME deployment and its services ? \x1B[0m"
-            read -erp "Enter the name for a new project or an existing project (namespace): " project_name_cs_service
+            printf "Enter the name for a new project or an existing project (namespace): \n"
+            read -erp "" project_name_cs_service
         else
             if [[ "$BAI_AUTO_CS_SERVICE_NAMESPACE" == openshift* ]]; then
                 printf '%b\n' "\x1B[1;31mEnter a valid project name. The project name should not be 'openshift' or start with 'openshift'. \x1B[0m"
@@ -678,7 +681,8 @@ function collect_input() {
             if [ -z "$BAI_AUTO_NAMESPACE" ]; then
                 echo
                 printf '%b\n' "\x1B[1mWhere do you want to deploy $BAI_FULL_NAME?\x1B[0m"
-                read -erp "Enter the name for a new project or an existing project (namespace): " project_name
+                printf "Enter the name for a new project or an existing project (namespace): \n"
+                read -erp "" project_name
             else
                 if [[ "$BAI_AUTO_NAMESPACE" == openshift* ]]; then
                     printf '%b\n' "\x1B[1;31mEnter a valid project name. The project name should not be 'openshift' or start with 'openshift'. \x1B[0m"
@@ -1512,7 +1516,7 @@ function get_entitlement_registry(){
         "y"|"Y"|"yes"|"Yes"|"YES")
             use_entitlement="yes"
             printf "\n"
-            printf "\x1B[1mEnter your Entitlement Registry key: \x1B[0m"
+            printf "\x1B[1mEnter your Entitlement Registry key: \x1B[0m\n"
             # During dev, OLM uses stage image repo
             if [[ "$RUNTIME_MODE" == "dev" || $RUNTIME_MODE == "baw-dev" || $RUNTIME_MODE == "process-flow-dev" ]]
             then
@@ -1607,7 +1611,8 @@ function get_domain_name(){
     while [[ $domain_name == '' ]]
     do
         if [ -z "$AUTO_DOMAIN_NAME" ]; then
-            read -erp "Enter your domain name(for none 443 port, Also append port number, such as domain_name:port): " domain_name
+            printf "Enter your domain name(for none 443 port, Also append port number, such as domain_name:port): \n"
+            read -erp "" domain_name
         else
             domain_name=$AUTO_DOMAIN_NAME
         fi
@@ -2177,7 +2182,7 @@ function get_local_registry_server(){
     then
         printf "\n"
         printf "\x1B[1mEnter the local image registry (e.g., image-registry.openshift-image-registry.svc:5000/<project>)\n\x1B[0m"
-        printf "\x1B[1mThis is required to pull container images and Kubernetes secret creation: \x1B[0m"
+        printf "\x1B[1mThis is required to pull container images and Kubernetes secret creation: \x1B[0m\n"
         builtin_dockercfg_secrect_name=($(${CLI_CMD} get secret -n $project_name --no-headers --ignore-not-found | grep default-dockercfg | awk '{print $1}'))
 
         if [ -z "$builtin_dockercfg_secrect_name" ]; then
@@ -2242,7 +2247,7 @@ function get_local_registry_user(){
 function get_local_registry_password(){
     printf "\n"
     if [ -z "$BAI_AUTO_LOCAL_REGISTRY_PASSWORD" ]; then
-        printf "\x1B[1mEnter the password for your docker registry: \x1B[0m"
+        printf "\x1B[1mEnter the password for your docker registry: \x1B[0m\n"
         local_registry_password=""
         while [[ $local_registry_password == "" ]];
         do

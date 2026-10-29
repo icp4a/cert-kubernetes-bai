@@ -314,8 +314,8 @@ fi
 
 # Check if Multiple BAI are installed in the same cluster
 while true; do
-	printf '%b\n' "\x1B[1m\nAre there multiple BAI deployments on your cluster? (Yes/No, default: Yes)\x1B[0m"
-	read -erp "" ans 
+	printf '%b\n' "\x1B[1m\nAre there multiple BAI deployments on your cluster? (Yes/No, default: Yes)\x1B[0m\n"
+	read -erp "" ans
 	ans=$(echo "${ans}" | tr '[:upper:]' '[:lower:]')
 	case "$ans" in
 	"y"|"yes"|"")

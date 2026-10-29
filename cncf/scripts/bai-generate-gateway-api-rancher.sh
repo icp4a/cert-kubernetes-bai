@@ -243,7 +243,8 @@ function check_prereqs_rancher_gateway() {
         -o custom-columns=NAME:.metadata.name,CONTROLLER:.spec.controllerName,ACCEPTED:.status.conditions[0].status \
         --no-headers 2>/dev/null || echo "  (none found)"
     echo ""
-    read -rp "Enter the GatewayClass name to use [default: traefik]: " gateway_class_input
+    printf "Enter the GatewayClass name to use [default: traefik]: \n"
+    read -erp "" gateway_class_input
     if [[ -z "$gateway_class_input" ]]; then
         gateway_class_input="traefik"
     fi
@@ -251,7 +252,8 @@ function check_prereqs_rancher_gateway() {
 
     if ! ${CLI_CMD} get gatewayclass "${GATEWAY_CLASS_NAME}" >/dev/null 2>&1; then
         warning "GatewayClass '${GATEWAY_CLASS_NAME}' not found in the cluster."
-        read -rp "Continue anyway? (yes/no, default: no): " continue_anyway
+        printf "Continue anyway? (yes/no, default: no): \n"
+        read -erp "" continue_anyway
         continue_anyway=$(echo "$continue_anyway" | tr '[:upper:]' '[:lower:]')
         if [[ "$continue_anyway" != "yes" && "$continue_anyway" != "y" ]]; then
             error "Exiting. Ensure GatewayClass exists before proceeding."
@@ -275,12 +277,14 @@ function check_prereqs_rancher_gateway() {
     echo "Enter the static IP address for the Gateway (type:IPAddress)."
     echo "Press Enter to omit (let the Traefik controller assign the IP automatically)."
     if [[ -n "$detected_ip" ]]; then
-        read -rp "Gateway IP [detected: ${detected_ip}]: " gateway_ip_input
+        printf "Gateway IP [detected: ${detected_ip}]: \n"
+        read -erp "" gateway_ip_input
         if [[ -z "$gateway_ip_input" ]]; then
             gateway_ip_input="$detected_ip"
         fi
     else
-        read -rp "Gateway IP (or press Enter to omit): " gateway_ip_input
+        printf "Gateway IP (or press Enter to omit): \n"
+        read -erp "" gateway_ip_input
     fi
     GATEWAY_IP="${gateway_ip_input}"
 
