@@ -27,36 +27,25 @@ function select_platform(){
             # printf '%b\n' "\x1B[1mOnly Openshift Container Platform (OCP) - Private Cloud is supported.\x1B[0m"
             # PLATFORM_SELECTED="OCP"
             # read -rsn1 -p"Press Enter/Return to continue";echo
-            options=("RedHat OpenShift Kubernetes Service (ROKS) - Public Cloud" "Openshift Container Platform (OCP) - Private Cloud")
-            PS3='Enter a valid option [1 to 2]: '
+            options=("Openshift Container Platform (OCP) - Private Cloud")
+            PS3='Enter a valid option [1 to 1]: '
         elif [[ $DEPLOYMENT_TYPE == "production" ]]
         then
             if [[ "${SCRIPT_MODE}" == "OLM" ]]; then
-                options=("RedHat OpenShift Kubernetes Service (ROKS) - Public Cloud" "Openshift Container Platform (OCP) - Private Cloud")
-                PS3='Enter a valid option [1 to 2]: '
+                options=("Openshift Container Platform (OCP) - Private Cloud")
+                PS3='Enter a valid option [1 to 1]: '
             else
-                # options=("RedHat OpenShift Kubernetes Service (ROKS) - Public Cloud" "Openshift Container Platform (OCP) - Private Cloud" "Other ( Certified Kubernetes Cloud Platform / CNCF)")
-                # PS3='Enter a valid option [1 to 3]: '
-                options=("RedHat OpenShift Kubernetes Service (ROKS) - Public Cloud" "Openshift Container Platform (OCP) - Private Cloud")
-                PS3='Enter a valid option [1 to 2]: '
+                options=("Openshift Container Platform (OCP) - Private Cloud")
+                PS3='Enter a valid option [1 to 1]: '
             fi
         fi
 
         select opt in "${options[@]}"
         do
             case $opt in
-                "RedHat OpenShift Kubernetes Service (ROKS) - Public Cloud")
-                    PLATFORM_SELECTED="ROKS"
-                    use_entitlement="yes"
-                    break
-                    ;;
                 "Openshift Container Platform (OCP) - Private Cloud")
                     PLATFORM_SELECTED="OCP"
                     use_entitlement="yes"
-                    break
-                    ;;
-                "Other ( Certified Kubernetes Cloud Platform / CNCF)")
-                    PLATFORM_SELECTED="other"
                     break
                     ;;
                 *) echo "invalid option $REPLY";;
@@ -67,18 +56,16 @@ function select_platform(){
             # printf '%b\n' "\x1B[1mOnly Openshift Container Platform (OCP) - Private Cloud is supported.\x1B[0m"
             # PLATFORM_SELECTED="OCP"
             # read -rsn1 -p"Press Enter/Return to continue";echo
-            options=("RedHat OpenShift Kubernetes Service (ROKS) - Public Cloud" "Openshift Container Platform (OCP) - Private Cloud")
-            options_var=("ROKS" "OCP")
+            options=("Openshift Container Platform (OCP) - Private Cloud")
+            options_var=("OCP")
         elif [[ $DEPLOYMENT_TYPE == "production" ]]
         then
             if [[ "${SCRIPT_MODE}" == "OLM" ]]; then
-                options=("RedHat OpenShift Kubernetes Service (ROKS) - Public Cloud" "Openshift Container Platform (OCP) - Private Cloud")
-                options_var=("ROKS" "OCP")
+                options=("Openshift Container Platform (OCP) - Private Cloud")
+                options_var=("OCP")
             else
-                # options=("RedHat OpenShift Kubernetes Service (ROKS) - Public Cloud" "Openshift Container Platform (OCP) - Private Cloud" "Other ( Certified Kubernetes Cloud Platform / CNCF)")
-                # options_var=("ROKS" "OCP" "other")
-                options=("RedHat OpenShift Kubernetes Service (ROKS) - Public Cloud" "Openshift Container Platform (OCP) - Private Cloud")
-                options_var=("ROKS" "OCP")
+                options=("Openshift Container Platform (OCP) - Private Cloud")
+                options_var=("OCP")
             fi
         fi
         for i in ${!options_var[@]}; do
@@ -93,7 +80,7 @@ function select_platform(){
         prompt_press_any_key_to_continue
     fi
 
-    if [[ "$PLATFORM_SELECTED" == "OCP" || "$PLATFORM_SELECTED" == "ROKS" ]]; then
+    if [[ "$PLATFORM_SELECTED" == "OCP" ]]; then
         CLI_CMD=oc
     elif [[ "$PLATFORM_SELECTED" == "other" ]]
     then
